@@ -64,9 +64,9 @@ function Create() {
    
 
   return (
-    <div className='flex flex-col items-center p-5 md:px-24 lg:px-36 mt-20'>
-        <h2 className='font-bold text-4xl text-primary'>Start Building Your Personal Study Material</h2>
-        <p className='text-gray-500 text-lg'>Fill All details in order to generate study material for your next project</p>
+    <div className='flex flex-col items-center p-4 md:px-24 lg:px-36 mt-10 md:mt-20'>
+        <h2 className='font-bold text-2xl md:text-4xl text-primary text-center'>Start Building Your Personal Study Material</h2>
+        <p className='text-gray-500 text-sm md:text-lg text-center'>Fill All details in order to generate study material for your next project</p>
 
         <div className='mt-10'>
           {step==0?  <SelectOption selectedStudyType={(value)=>handleUserInput('courseType',value)}/>

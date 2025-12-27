@@ -10,7 +10,7 @@ import React, { useContext, useMemo, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
 
-function SideBar() {
+function SideBar({ onNavigate }) {
     const { user } = useUser();
     const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
     const adminEmails = useMemo(() => (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean), []);
@@ -180,7 +180,7 @@ function SideBar() {
 
                 <div className='mt-5 pb-32 overflow-y-auto max-h-[calc(100vh-250px)]'>
                     {MenuList.map((menu,index)=>(
-                        <Link href={menu.path} key={index} prefetch={true}>
+                        <Link href={menu.path} key={index} prefetch={true} onClick={onNavigate}>
                         <div 
                         className={`flex gap-5 items-center p-3
                         hover:bg-slate-200 rounded-lg cursor-pointer mt-3

@@ -129,17 +129,17 @@ function DashboardHeader() {
   const isDashboardRoute = path?.startsWith('/dashboard');
 
   return (
-    <div className={`p-5 shadow-md flex ${isDashboardRoute ? 'justify-end' : 'justify-between'}`}>
+    <div className={`p-3 md:p-5 shadow-md flex ${isDashboardRoute ? 'justify-end' : 'justify-between'} pl-16 md:pl-5`}>
       {!isDashboardRoute && (
         <Link href={'/dashboard'}>
           <div className='flex gap-2 items-center'>
             <Image src={'/logo.svg'} alt='logo' width={30} height={30} />
-            <h2 className="font-bold text-xl">GEMINI LMS</h2>
+            <h2 className="font-bold text-xl hidden sm:block">GEMINI LMS</h2>
           </div>
         </Link>
       )}
 
-      <div className='flex items-center gap-3'>
+      <div className='flex items-center gap-2 md:gap-3 flex-wrap justify-end'>
         <div className='relative' ref={dropdownRef}>
           <button
             onClick={handleNotificationClick}
@@ -190,8 +190,8 @@ function DashboardHeader() {
           )}
         </div>
 
-        {/* Streak Display */}
-        <div className='flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg shadow-sm'>
+        {/* Streak Display - Hidden on small mobile */}
+        <div className='hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg shadow-sm'>
           <Flame className='w-5 h-5 text-orange-500' />
           <div className='flex flex-col'>
             <div className='text-sm font-bold text-orange-700'>{streak.current} Day{streak.current !== 1 ? 's' : ''}</div>
@@ -202,8 +202,8 @@ function DashboardHeader() {
           </div>
         </div>
 
-        {/* Badges Button */}
-        <Link href={'/dashboard/badges'}>
+        {/* Badges Button - Hidden on small mobile */}
+        <Link href={'/dashboard/badges'} className='hidden sm:block'>
           <Button variant="outline" size="sm" className='flex items-center gap-2 border-purple-200 hover:bg-purple-50'>
             <Award className='w-4 h-4 text-purple-600' />
             <span className='text-purple-700 font-semibold'>Badges</span>
@@ -222,7 +222,7 @@ function DashboardHeader() {
           </Link>
         )}
         {mounted && <UserButton afterSignOutUrl="/" />}
-        <Link href={'/dashboard'}>
+        <Link href={'/dashboard'} className='hidden md:block'>
           <Button>Dashboard</Button>
         </Link>
       </div>
