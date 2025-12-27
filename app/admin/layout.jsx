@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { AdminAuthProvider, useAdminAuth } from '@/app/_context/AdminAuthContext'
 import Link from 'next/link'
@@ -21,17 +21,25 @@ import {
     BarChart3,
     Mail,
     History,
-    DollarSign
+    DollarSign,
+    Menu,
+    X
 } from 'lucide-react'
 
 function AdminLayoutContent({ children }) {
     const { admin, loading, isAuthenticated, logout } = useAdminAuth()
     const router = useRouter()
     const pathname = usePathname()
+    const [sidebarOpen, setSidebarOpen] = useState(false)
 
     // Public admin routes that don't require auth
     const publicRoutes = ['/admin/login', '/admin/setup']
     const isPublicRoute = publicRoutes.includes(pathname)
+
+    // Close sidebar when route changes (mobile)
+    useEffect(() => {
+        setSidebarOpen(false)
+    }, [pathname])
 
     useEffect(() => {
         if (!loading && !isAuthenticated && !isPublicRoute) {
@@ -81,18 +89,37 @@ function AdminLayoutContent({ children }) {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className="fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-40 flex flex-col">
+            <aside className={`fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+                sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}>
                 {/* Logo */}
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                            <Shield className="h-6 w-6 text-primary" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                                <Shield className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <h1 className="font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{admin?.role}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="font-bold text-gray-900 dark:text-white">Admin Panel</h1>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{admin?.role}</p>
-                        </div>
+                        {/* Close button for mobile */}
+                        <button 
+                            onClick={() => setSidebarOpen(false)}
+                            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <X className="h-5 w-5 text-gray-500" />
+                        </button>
                     </div>
                 </div>
 
@@ -110,8 +137,8 @@ function AdminLayoutContent({ children }) {
                                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                             >
-                                <item.icon className="h-5 w-5" />
-                                <span>{item.label}</span>
+                                <item.icon className="h-5 w-5 flex-shrink-0" />
+                                <span className="truncate">{item.label}</span>
                             </Link>
                         )
                     })}
@@ -134,24 +161,35 @@ function AdminLayoutContent({ children }) {
             </aside>
 
             {/* Main Content */}
-            <main className="ml-64 min-h-screen">
-                {/* Breadcrumb */}
-                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <Link href="/admin/dashboard" className="hover:text-primary">Admin</Link>
-                        {pathname !== '/admin/dashboard' && (
-                            <>
-                                <ChevronRight className="h-4 w-4 mx-2" />
-                                <span className="text-gray-900 dark:text-white capitalize">
-                                    {pathname.split('/').pop()?.replace(/-/g, ' ')}
-                                </span>
-                            </>
-                        )}
+            <main className="lg:ml-64 min-h-screen">
+                {/* Header with mobile menu button */}
+                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4">
+                    <div className="flex items-center gap-4">
+                        {/* Mobile menu button */}
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        >
+                            <Menu className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                        </button>
+                        
+                        {/* Breadcrumb */}
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                            <Link href="/admin/dashboard" className="hover:text-primary">Admin</Link>
+                            {pathname !== '/admin/dashboard' && (
+                                <>
+                                    <ChevronRight className="h-4 w-4 mx-2" />
+                                    <span className="text-gray-900 dark:text-white capitalize truncate">
+                                        {pathname.split('/').pop()?.replace(/-/g, ' ')}
+                                    </span>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Page Content */}
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     {children}
                 </div>
             </main>
