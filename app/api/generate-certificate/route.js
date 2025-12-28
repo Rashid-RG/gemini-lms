@@ -123,10 +123,10 @@ export async function POST(req) {
       totalChapters
     });
 
-    // REQUIREMENT: Must complete ALL quizzes (one per chapter)
-    if (quizScoreValues.length < totalChapters) {
+    // REQUIREMENT: Must complete at least 1 quiz
+    if (quizScoreValues.length < 1) {
       return NextResponse.json(
-        { error: `You must complete all quizzes. Completed: ${quizScoreValues.length}/${totalChapters}` },
+        { error: `You must complete the quiz to earn a certificate.` },
         { status: 400 }
       );
     }
@@ -141,11 +141,11 @@ export async function POST(req) {
       );
     }
 
-    // REQUIREMENT: If course has assignments, must complete ALL assignments (one per chapter)
+    // REQUIREMENT: If course has assignments, must complete at least 1 assignment
     if (courseHasAssignments) {
-      if (assignmentScoreEntries.length < totalChapters) {
+      if (assignmentScoreEntries.length < 1) {
         return NextResponse.json(
-          { error: `You must complete all assignments. Completed: ${assignmentScoreEntries.length}/${totalChapters}` },
+          { error: `You must complete at least one assignment to earn a certificate.` },
           { status: 400 }
         );
       }
