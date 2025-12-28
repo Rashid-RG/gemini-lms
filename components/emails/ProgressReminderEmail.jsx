@@ -1,4 +1,5 @@
 import React from 'react'
+import { EmailLayout, EmailSection, EmailButton, StatCard, StatsRow } from './EmailLayout'
 
 export const ProgressReminderEmail = ({ 
   studentName = 'Student', 
@@ -10,83 +11,105 @@ export const ProgressReminderEmail = ({
   weakTopics = []
 }) => {
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto', padding: '20px', backgroundColor: '#f9fafb' }}>
-      {/* Header */}
-      <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '20px', borderRadius: '8px 8px 0 0', textAlign: 'center' }}>
-        <h1 style={{ margin: '0 0 10px 0', fontSize: '24px' }}>📚 Your Weekly Learning Summary</h1>
-        <p style={{ margin: '0', fontSize: '14px' }}>Progress update for {courseName}</p>
-      </div>
+    <EmailLayout preheader={`Your weekly progress summary for ${courseName}`}>
+      <div style={{ color: '#1f2937', lineHeight: '1.6' }}>
+        <p style={{ fontSize: '16px', margin: '0 0 20px 0' }}>
+          Hi <strong>{studentName}</strong>,
+        </p>
 
-      {/* Content */}
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '0 0 8px 8px' }}>
-        <p style={{ margin: '0 0 20px 0', color: '#1f2937' }}>Hi {studentName},</p>
+        <p style={{ fontSize: '14px', margin: '0 0 20px 0' }}>
+          Here's your weekly learning summary for <strong>{courseName}</strong>. Keep up the momentum!
+        </p>
 
-        {/* Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-          <div style={{ backgroundColor: '#dbeafe', padding: '12px', borderRadius: '6px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e40af' }}>{overallMastery}%</div>
-            <div style={{ fontSize: '12px', color: '#1e3a8a' }}>Overall Mastery</div>
-          </div>
-          <div style={{ backgroundColor: '#dcfce7', padding: '12px', borderRadius: '6px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#15803d' }}>{topicsMastered}</div>
-            <div style={{ fontSize: '12px', color: '#166534' }}>Topics Mastered</div>
-          </div>
-          <div style={{ backgroundColor: '#fed7aa', padding: '12px', borderRadius: '6px', textAlign: 'center' }}>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#b45309' }}>{topicsNeedingWork}</div>
-            <div style={{ fontSize: '12px', color: '#92400e' }}>Need Review</div>
-          </div>
-        </div>
+        {/* Summary Stats */}
+        <StatsRow>
+          <StatCard
+            label="Overall Mastery"
+            value={`${overallMastery}%`}
+            icon="📚"
+            color="#3b82f6"
+          />
+          <StatCard
+            label="Topics Mastered"
+            value={topicsMastered}
+            icon="⭐"
+            color="#10b981"
+          />
+          <StatCard
+            label="Needs Review"
+            value={topicsNeedingWork}
+            icon="📌"
+            color="#f59e0b"
+          />
+        </StatsRow>
 
-        {/* Weak Topics */}
+        {/* Weak Topics Section */}
         {weakTopics.length > 0 && (
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#1f2937' }}>🎯 Topics to Focus On</h3>
+          <EmailSection 
+            title="Topics to Focus On" 
+            icon="🎯"
+            backgroundColor="#fef3c7"
+            borderColor="#f59e0b"
+          >
             {weakTopics.map((topic, idx) => (
-              <div key={idx} style={{ backgroundColor: '#fef3c7', padding: '10px', borderRadius: '4px', marginBottom: '8px', fontSize: '14px', color: '#78350f' }}>
-                <strong>{topic.topicName}</strong> - {topic.score}% (Recommended: {topic.recommendedDifficulty})
+              <div key={idx} style={{ 
+                padding: '12px', 
+                backgroundColor: '#fffbeb', 
+                borderRadius: '4px', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                color: '#78350f',
+                borderLeft: '3px solid #f59e0b'
+              }}>
+                <div style={{ fontWeight: '600', marginBottom: '4px' }}>{topic.topicName}</div>
+                <div style={{ fontSize: '13px' }}>
+                  Current Mastery: <strong>{topic.score}%</strong> | 
+                  Recommended: <strong>{topic.recommendedDifficulty}</strong>
+                </div>
               </div>
             ))}
-          </div>
+          </EmailSection>
         )}
 
-        {/* Next Action */}
+        {/* Next Action Section */}
         {nextActionTopic && (
-          <div style={{ backgroundColor: '#ecfdf5', border: '2px solid #10b981', padding: '15px', borderRadius: '6px', marginBottom: '20px' }}>
-            <h3 style={{ margin: '0 0 8px 0', color: '#047857' }}>📌 Your Next Step</h3>
+          <EmailSection 
+            title="Your Next Step" 
+            icon="📌"
+            backgroundColor="#ecfdf5"
+            borderColor="#10b981"
+          >
             <p style={{ margin: '0', color: '#065f46', fontSize: '14px' }}>
-              {nextActionTopic.suggestion || `Review ${nextActionTopic.topicName} at ${nextActionTopic.recommendedDifficulty} difficulty to boost mastery.`}
+              {nextActionTopic.suggestion || `Review ${nextActionTopic.topicName} at ${nextActionTopic.recommendedDifficulty} difficulty to improve mastery.`}
             </p>
-          </div>
+          </EmailSection>
         )}
 
-        {/* CTA */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <a href="#" style={{
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            textDecoration: 'none',
-            fontWeight: 'bold',
-            fontSize: '14px',
-            display: 'inline-block'
-          }}>
-            Continue Learning →
-          </a>
+        {/* CTA Button */}
+        <div style={{ textAlign: 'center', margin: '25px 0' }}>
+          <EmailButton 
+            href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`}
+            text="Continue Learning →"
+          />
         </div>
 
-        <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '20px 0' }} />
+        {/* Motivation Section */}
+        <EmailSection 
+          title="Keep the Momentum Going" 
+          icon="🔥"
+          backgroundColor="#fef3c7"
+          borderColor="#f59e0b"
+        >
+          <p style={{ margin: '0', fontSize: '14px', color: '#1f2937' }}>
+            Consistent practice is the key to mastery. You're doing great! Keep pushing and you'll see amazing results.
+          </p>
+        </EmailSection>
 
-        <p style={{ margin: '0', color: '#6b7280', fontSize: '12px', lineHeight: '1.6' }}>
-          Keep up the momentum! Consistent practice improves retention. Check your dashboard for detailed insights and personalized recommendations.
+        <p style={{ fontSize: '14px', margin: '15px 0 0 0', color: '#6b7280' }}>
+          Keep learning and stay focused on your goals!<br />
+          The Gemini LMS Team
         </p>
       </div>
-
-      {/* Footer */}
-      <div style={{ textAlign: 'center', marginTop: '20px', color: '#9ca3af', fontSize: '12px' }}>
-        <p style={{ margin: '0' }}>You're receiving this because you enabled progress reminders.</p>
-        <p style={{ margin: '0' }}>© 2025 Gemini LMS. All rights reserved.</p>
-      </div>
-    </div>
+    </EmailLayout>
   )
 }

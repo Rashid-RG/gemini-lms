@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { db } from "@/configs/db";
 import { PAYMENT_RECORD_TABLE, USER_TABLE, CREDIT_TRANSACTION_TABLE } from "@/configs/schema";
 import { eq, sql } from "drizzle-orm";
+import { emailService } from "@/lib/emailService";
 
 /**
  * PayHere Payment Notification API (IPN - Instant Payment Notification)
@@ -187,6 +188,20 @@ export async function POST(req) {
                     balanceAfter: plan.isMember ? 999999 : currentCredits + plan.credits,
                     createdBy: 'system'
                 });
+
+                // Send payment confirmation email
+                try {
+                    await emailService.sendPaymentConfirmationEmail(
+                        userEmail,
+                        user[0].name || 'User',
+                        payhereAmount,
+                        paymentId,
+                        plan.planType
+                    );
+                } catch (emailError) {
+                    console.error('Payment email failed (non-fatal):', emailError?.message);
+                    // Don't fail the payment processing if email fails
+                }
 
                 console.log(`Payment successful: ${userEmail} purchased ${plan.name}`);
             }

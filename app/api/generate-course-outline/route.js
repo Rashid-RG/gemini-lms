@@ -38,7 +38,7 @@
 
 import { courseOutlineAIModel } from "@/configs/AiModel";
 import { db } from "@/configs/db";
-import { STUDY_MATERIAL_TABLE } from "@/configs/schema";
+import { STUDY_MATERIAL_TABLE, USER_TABLE } from "@/configs/schema";
 import { inngest } from "@/inngest/client";
 import { NextResponse } from "next/server";
 import { eq, isNotNull } from "drizzle-orm";
@@ -112,16 +112,24 @@ export async function POST(req) {
       );
     }
 
-    // 💰 Check user credits before proceeding (with retry for cold starts)
-    const hasCredits = await withDbRetry(() => hasEnoughCredits(createdBy, 1));
-    if (!hasCredits) {
-      return NextResponse.json(
-        { 
-          error: "Insufficient credits. You need at least 1 credit to create a course.", 
-          code: "INSUFFICIENT_CREDITS" 
-        },
-        { status: 402 } // Payment Required
-      );
+    // � Check if user is a Premium Member (with retry for cold starts)
+    const userResult = await withDbRetry(() => 
+      db.select().from(USER_TABLE).where(eq(USER_TABLE.email, createdBy))
+    );
+    const isPremiumMember = userResult.length > 0 && userResult[0].isMember === true;
+
+    // 💰 Check user credits before proceeding (skip for Premium members)
+    if (!isPremiumMember) {
+      const hasCredits = await withDbRetry(() => hasEnoughCredits(createdBy, 1));
+      if (!hasCredits) {
+        return NextResponse.json(
+          { 
+            error: "Insufficient credits. You need at least 1 credit to create a course.", 
+            code: "INSUFFICIENT_CREDITS" 
+          },
+          { status: 402 } // Payment Required
+        );
+      }
     }
 
     // 1️⃣ Check if THIS SPECIFIC COURSE already exists (by courseId) - with retry
@@ -164,20 +172,22 @@ Generate EXACTLY 3 chapters with 4 specific topics each. Return only valid JSON.
       return NextResponse.json({ error: message }, { status });
     }
 
-    // 💰 Deduct credit after successful AI generation (before DB insert)
-    const deductResult = await deductCredits(createdBy, 1, {
-      type: CREDIT_TYPES.COURSE_CREATION,
-      reason: `Course creation: ${topic}`,
-      courseId,
-      createdBy: 'system'
-    });
-    
-    if (!deductResult.success) {
-      console.error("Failed to deduct credits:", deductResult.error);
-      return NextResponse.json(
-        { error: "Failed to process credits. Please try again." },
-        { status: 500 }
-      );
+    // 💰 Deduct credit after successful AI generation (skip for Premium members)
+    if (!isPremiumMember) {
+      const deductResult = await deductCredits(createdBy, 1, {
+        type: CREDIT_TYPES.COURSE_CREATION,
+        reason: `Course creation: ${topic}`,
+        courseId,
+        createdBy: 'system'
+      });
+      
+      if (!deductResult.success) {
+        console.error("Failed to deduct credits:", deductResult.error);
+        return NextResponse.json(
+          { error: "Failed to process credits. Please try again." },
+          { status: 500 }
+        );
+      }
     }
 
     // 4️⃣ Save new course outline to DB (with retry for cold starts)
@@ -206,13 +216,22 @@ Generate EXACTLY 3 chapters with 4 specific topics each. Return only valid JSON.
     };
 
     // 5️⃣ Trigger Inngest workflow for notes generation
-    inngest.send({
+    const notesEventResult = await inngest.send({
       name: "notes.generate",
       data: { course: courseForInngest }
     });
+    
+    // Check if Inngest event was actually sent (null = skipped due to missing key)
+    if (notesEventResult === null) {
+      console.error('CRITICAL: Inngest event was not sent! Check INNGEST_EVENT_KEY environment variable.');
+      // Mark course as Error since notes won't be generated
+      await db.update(STUDY_MATERIAL_TABLE)
+        .set({ status: 'Error' })
+        .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId));
+    }
 
     // 5a️⃣ Trigger Inngest workflow for assignments generation
-    inngest.send({
+    await inngest.send({
       name: "assignments.generate",
       data: { course: courseForInngest }
     });

@@ -3,6 +3,7 @@ import { CERTIFICATES_TABLE, STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE } from
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
+import { emailService } from "@/lib/emailService";
 
 /**
  * POST /api/generate-certificate
@@ -193,6 +194,20 @@ export async function POST(req) {
           eq(STUDENT_PROGRESS_TABLE.studentEmail, studentEmail)
         )
       );
+
+    // Send certificate email
+    try {
+      const certificateUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-certificate/${certificateId}`;
+      await emailService.sendCertificateEmail(
+        studentEmail,
+        studentName,
+        course[0].topic,
+        certificateUrl
+      );
+    } catch (emailError) {
+      console.error('Certificate email failed (non-fatal):', emailError?.message);
+      // Don't fail the certificate generation if email fails
+    }
 
     return NextResponse.json({ 
       result: certificate[0],

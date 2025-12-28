@@ -9,6 +9,7 @@ import { buildReminderEmailHTML } from "@/lib/reminderEmail";
 import { v4 as uuidv4 } from "uuid";
 import { safeJsonParse, retryWithBackoff } from "@/lib/rateLimit";
 import { initializeUserCredits, refundCourseCredits } from "@/lib/credits";
+import { emailService } from "@/lib/emailService";
 
 export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
@@ -61,16 +62,52 @@ export const CreateNewUser = inngest.createFunction(
             return result;
         })
 
+        // Send Welcome Email
+        try {
+            const email = user?.primaryEmailAddress?.emailAddress 
+                || user?.emailAddresses?.[0]?.emailAddress 
+                || user?.email;
+            
+            const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'User';
+            
+            await step.run('send-welcome-email', async () => {
+                return await emailService.sendWelcomeEmail(email, firstName);
+            });
+        } catch (emailError) {
+            console.error('Welcome email failed (non-fatal):', emailError?.message);
+            // Don't fail the entire function if email fails
+        }
+
         return 'Success';
     }
-
-    // Step is to Send Welecome Email notification
-
-    // Step to Send Email notification After 3 Days Once user join it
 )
 
 export const GenerateNotes=inngest.createFunction(
-    {id:'generate-course',retries:3, concurrency: { limit: 2 }},
+    {
+        id:'generate-course',
+        retries:3, 
+        concurrency: { limit: 2 },
+        // Called when all retries are exhausted - ensures cleanup happens
+        onFailure: async ({ event, error }) => {
+            console.error('GenerateNotes failed permanently:', error.message);
+            try {
+                const courseId = event.data?.course?.courseId;
+                const createdBy = event.data?.course?.createdBy;
+                if (courseId) {
+                    await db.update(STUDY_MATERIAL_TABLE).set({
+                        status: 'Error'
+                    }).where(eq(STUDY_MATERIAL_TABLE.courseId, courseId));
+                    console.log('onFailure: Updated course status to Error:', courseId);
+                    
+                    if (createdBy) {
+                        await refundCourseCredits(createdBy, courseId, 'Course generation failed after retries');
+                    }
+                }
+            } catch (e) {
+                console.error('onFailure cleanup failed:', e);
+            }
+        }
+    },
     {event:'notes.generate'},
     async({event,step})=>{
         try {
@@ -184,6 +221,27 @@ Use <h3> headings, <ul><li> lists, <pre><code> for code. Max 1200 words.`;
             return { success: true };
         } catch (err) {
             console.error('GenerateNotes unhandled error:', err);
+            
+            // CRITICAL: Update status to 'Error' so course doesn't stay stuck forever
+            try {
+                const courseId = event.data?.course?.courseId;
+                if (courseId) {
+                    await db.update(STUDY_MATERIAL_TABLE).set({
+                        status: 'Error'
+                    }).where(eq(STUDY_MATERIAL_TABLE.courseId, courseId));
+                    console.log('Updated course status to Error:', courseId);
+                    
+                    // Refund the credit since generation failed
+                    const createdBy = event.data?.course?.createdBy;
+                    if (createdBy) {
+                        await refundCourseCredits(createdBy, courseId, 'Course generation failed');
+                        console.log('Refunded credit to user:', createdBy);
+                    }
+                }
+            } catch (updateErr) {
+                console.error('Failed to update course status to Error:', updateErr);
+            }
+            
             throw err;
         }
     }

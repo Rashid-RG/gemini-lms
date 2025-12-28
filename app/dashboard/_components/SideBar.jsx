@@ -175,7 +175,7 @@ function SideBar({ onNavigate }) {
 
             <div className='mt-10 pb-32'>
                 <Link href={'/create'} className="w-full">
-                <Button className="w-full" disabled={totalCourse>=5}>+ Create New</Button>
+                <Button className="w-full" disabled={!isMember && userCredits <= 0}>+ Create New</Button>
                 </Link>
 
                 <div className='mt-5 pb-32 overflow-y-auto max-h-[calc(100vh-250px)]'>
@@ -204,8 +204,8 @@ function SideBar({ onNavigate }) {
                 ) : (
                     <>
                         <h2 className='text-lg mb-2'>Available Credits : {userCredits}</h2>
-                        <Progress value={userCredits > 0 ? Math.min((totalCourse / userCredits) * 100, 100) : 100} />
-                        <h2 className='text-sm'>{totalCourse} Out of {userCredits} Credits Used</h2>
+                        <Progress value={userCredits > 0 ? ((userCredits) / (userCredits + totalCourse)) * 100 : 0} />
+                        <h2 className='text-sm'>{totalCourse} Courses Created</h2>
                     </>
                 )}
                 

@@ -206,15 +206,30 @@ export async function POST(req) {
 /**
  * PUT /api/admin/payments
  * Update payment status (refund, etc.)
+ * Automatically reverses credits when marking as refunded
  */
 export async function PUT(req) {
     try {
-        const { id, status, adminEmail } = await req.json();
+        const { id, status, adminEmail, refundReason = 'Admin refund' } = await req.json();
 
         if (!id || !status) {
             return NextResponse.json({ error: 'Payment ID and status are required' }, { status: 400 });
         }
 
+        // Get the payment record
+        const payment = await db.select()
+            .from(PAYMENT_RECORD_TABLE)
+            .where(eq(PAYMENT_RECORD_TABLE.id, id))
+            .limit(1);
+
+        if (payment.length === 0) {
+            return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
+        }
+
+        const paymentRecord = payment[0];
+        const userEmail = paymentRecord.userEmail;
+
+        // Update payment status
         const result = await db.update(PAYMENT_RECORD_TABLE)
             .set({
                 status,
@@ -223,6 +238,66 @@ export async function PUT(req) {
             })
             .where(eq(PAYMENT_RECORD_TABLE.id, id))
             .returning();
+
+        // If marking as refunded, automatically reverse credits
+        if (status === 'refunded') {
+            // Get user data
+            const user = await db.select()
+                .from(USER_TABLE)
+                .where(eq(USER_TABLE.email, userEmail))
+                .limit(1);
+
+            if (user.length > 0) {
+                const currentCredits = user[0].credits || 0;
+                const planType = paymentRecord.planType;
+                const creditsAdded = paymentRecord.creditsAdded || 0;
+
+                if (planType === 'subscription') {
+                    // For premium subscriptions, remove member status and reset credits
+                    await db.update(USER_TABLE)
+                        .set({
+                            isMember: false,
+                            credits: 0,
+                            updatedAt: new Date()
+                        })
+                        .where(eq(USER_TABLE.email, userEmail));
+
+                    // Log refund transaction
+                    await db.insert(CREDIT_TRANSACTION_TABLE).values({
+                        userEmail: userEmail,
+                        amount: -999999,
+                        type: 'refund',
+                        reason: `Refund: ${refundReason} - Subscription cancelled`,
+                        balanceBefore: 999999,
+                        balanceAfter: 0,
+                        createdBy: `admin:${adminEmail}`
+                    });
+                } else if (planType === 'credits') {
+                    // For credit packs, deduct the credits
+                    const newBalance = Math.max(0, currentCredits - creditsAdded);
+                    
+                    await db.update(USER_TABLE)
+                        .set({
+                            credits: newBalance,
+                            updatedAt: new Date()
+                        })
+                        .where(eq(USER_TABLE.email, userEmail));
+
+                    // Log refund transaction
+                    await db.insert(CREDIT_TRANSACTION_TABLE).values({
+                        userEmail: userEmail,
+                        amount: -creditsAdded,
+                        type: 'refund',
+                        reason: `Refund: ${refundReason} - ${creditsAdded} credits reversed`,
+                        balanceBefore: currentCredits,
+                        balanceAfter: newBalance,
+                        createdBy: `admin:${adminEmail}`
+                    });
+                }
+
+                console.log(`Refund processed: ${userEmail} - ${status} - ${creditsAdded} credits reversed`);
+            }
+        }
 
         return NextResponse.json({
             success: true,
@@ -233,3 +308,4 @@ export async function PUT(req) {
         return NextResponse.json({ error: 'Failed to update payment' }, { status: 500 });
     }
 }
+

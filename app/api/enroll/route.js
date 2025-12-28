@@ -1,7 +1,8 @@
 import { db } from "@/configs/db";
-import { STUDY_MATERIAL_TABLE } from "@/configs/schema";
+import { STUDY_MATERIAL_TABLE, USER_TABLE } from "@/configs/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { emailService } from "@/lib/emailService";
 
 // POST: Enroll user in a course
 export async function POST(req) {
@@ -40,6 +41,28 @@ export async function POST(req) {
       .update(STUDY_MATERIAL_TABLE)
       .set({ enrolledUsers: updatedEnrolledUsers })
       .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId));
+
+    // Get user details for email
+    try {
+      const user = await db
+        .select()
+        .from(USER_TABLE)
+        .where(eq(USER_TABLE.email, userEmail))
+        .limit(1);
+
+      if (user && user.length > 0) {
+        // Send enrollment confirmation email
+        await emailService.sendCourseEnrollmentEmail(
+          userEmail,
+          user[0].name || 'Student',
+          currentCourse.courseName,
+          currentCourse.instructorName || 'Instructor'
+        );
+      }
+    } catch (emailError) {
+      console.error('Enrollment email failed (non-fatal):', emailError?.message);
+      // Don't fail the enrollment if email fails
+    }
 
     return NextResponse.json({
       message: 'Successfully enrolled',

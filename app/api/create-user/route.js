@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { withDbRetry } from "@/lib/dbUtils";
 import cache, { CACHE_TTL, invalidateUserCache } from "@/lib/cache";
 import { captureError, startTimer } from "@/lib/monitoring";
+import { emailService } from "@/lib/emailService";
 
 export async function POST(req) {
     const timer = startTimer('create-user-api');
@@ -47,7 +48,7 @@ export async function POST(req) {
             timer.end({ cached: false, exists: true });
             
             // User exists, return full user data including credits
-            return NextResponse.json({ 
+            return NextResponse.json({
                 result: existingUser[0],
                 exists: true 
             });
