@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 
 export async function POST(req) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, role } = await req.json();
     
     if (!email || !password) {
       return NextResponse.json(
@@ -20,6 +20,14 @@ export async function POST(req) {
       return NextResponse.json(
         { error: authResult.error },
         { status: 401 }
+      );
+    }
+    
+    // Verify selected role matches actual role
+    if (role && authResult.admin.role !== role) {
+      return NextResponse.json(
+        { error: `This account is not registered as ${role === 'super_admin' ? 'Super Admin' : role === 'admin' ? 'Admin' : 'Tutor'}. Please select the correct role.` },
+        { status: 403 }
       );
     }
     

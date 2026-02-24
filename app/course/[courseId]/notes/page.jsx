@@ -9,6 +9,7 @@ import StepProgress from '../_components/StepProgress';
 import EndScreen from '../_components/EndScreen';
 import { useChapter } from '../_context/ChapterContext';
 import { toast } from 'sonner';
+import ReportContentIssue from '@/components/ReportContentIssue';
 
 function ViewNotes() {
 
@@ -143,7 +144,12 @@ function ViewNotes() {
             stepCount={stepCount}
         />
 
-        <div className='mt-4 flex justify-end'>
+        <div className='mt-4 flex justify-end gap-3'>
+            <ReportContentIssue 
+                courseId={courseId} 
+                contentType="notes" 
+                contentId={String(stepCount)}
+            />
             <Button onClick={downloadPdf} disabled={downloading} className='bg-slate-800 hover:bg-slate-900'>
                 {downloading ? 'Exporting...' : 'Download PDF'}
             </Button>

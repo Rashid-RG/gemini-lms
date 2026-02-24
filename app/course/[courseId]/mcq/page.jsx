@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { Sparkles, Zap, CheckCircle2, AlertCircle, Loader } from 'lucide-react'
 import { useAdaptiveDifficulty } from '../_hooks/useAdaptiveDifficulty'
 import { Button } from '@/components/ui/button'
+import ReportContentIssue from '@/components/ReportContentIssue'
 
 // Safe JSON parsing helper
 const safeJsonParse = (value, fallback = {}) => {
@@ -388,6 +389,12 @@ ${course.courseLayout.chapters.map((ch, idx) => {
                 {/* Difficulty Badge */}
                 <div className='flex justify-between items-center mb-6'>
                     <h2 className='font-bold text-2xl'>Multiple Choice Questions</h2>
+                    <div className='flex items-center gap-3'>
+                    <ReportContentIssue 
+                        courseId={courseId} 
+                        contentType="mcq" 
+                        compact={true}
+                    />
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-white ${
                         difficulty === 'Hard' ? 'bg-red-500' :
                         difficulty === 'Medium' ? 'bg-yellow-500' :
@@ -396,6 +403,7 @@ ${course.courseLayout.chapters.map((ch, idx) => {
                         <Zap className='w-4 h-4' />
                                 {difficulty || 'Easy'} Level
                             </div>
+                        </div>
                         </div>
 
                         <StepProgress data={mcq} stepCount={stepCount} setStepCount={(value)=>setStepCount(value)} />

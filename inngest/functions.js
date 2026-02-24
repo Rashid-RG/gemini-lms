@@ -1,6 +1,6 @@
 import { db } from "@/configs/db";
 import { inngest } from "./client";
-import { CHAPTER_NOTES_TABLE, STUDY_MATERIAL_TABLE, STUDY_TYPE_CONTENT_TABLE, USER_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, STUDENT_PROGRESS_TABLE, COURSE_ASSIGNMENTS_TABLE, ADAPTIVE_PERFORMANCE_TABLE, CREDIT_TRANSACTION_TABLE } from "@/configs/schema";
+import { CHAPTER_NOTES_TABLE, STUDY_MATERIAL_TABLE, STUDY_TYPE_CONTENT_TABLE, USER_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, STUDENT_PROGRESS_TABLE, COURSE_ASSIGNMENTS_TABLE, ADAPTIVE_PERFORMANCE_TABLE, CREDIT_TRANSACTION_TABLE, CONTENT_REVIEW_TABLE } from "@/configs/schema";
 import { eq, and, lt, sql } from "drizzle-orm";
 import { courseOutlineAIModel, generateNotesAiModel, GenerateQuizAiModel, GenerateStudyTypeContentAiModel, AssignmentGradingAiModel, GenerateAssignmentsAiModel, GenerateMCQAiModel } from "@/configs/AiModel";
 import { Resend } from "resend";
@@ -218,6 +218,56 @@ Use <h3> headings, <ul><li> lists, <pre><code> for code. Max 1200 words.`;
                 return 'Success';
             });
 
+            // Auto-create content review items for admin approval
+            await step.run('Create Content Review Items', async () => {
+                try {
+                    // Queue course outline for review
+                    await db.insert(CONTENT_REVIEW_TABLE).values({
+                        courseId: course?.courseId,
+                        contentType: 'course_outline',
+                        contentId: null,
+                        status: 'pending',
+                        originalContent: courseLayout,
+                        priority: 'normal',
+                        flaggedBy: 'system',
+                        flagReason: 'Auto-queued: New AI-generated course outline',
+                        autoFlagged: true,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    });
+
+                    // Queue each chapter's notes for review
+                    for (let i = 0; i < Chapters.length; i++) {
+                        const chapterNotes = await db.select()
+                            .from(CHAPTER_NOTES_TABLE)
+                            .where(and(
+                                eq(CHAPTER_NOTES_TABLE.courseId, course?.courseId),
+                                eq(CHAPTER_NOTES_TABLE.chapterId, i)
+                            ));
+                        
+                        if (chapterNotes.length > 0) {
+                            await db.insert(CONTENT_REVIEW_TABLE).values({
+                                courseId: course?.courseId,
+                                contentType: 'notes',
+                                contentId: String(i),
+                                status: 'pending',
+                                originalContent: chapterNotes[0].notes,
+                                priority: 'normal',
+                                flaggedBy: 'system',
+                                flagReason: `Auto-queued: AI-generated notes for chapter ${i + 1}`,
+                                autoFlagged: true,
+                                createdAt: new Date(),
+                                updatedAt: new Date(),
+                            });
+                        }
+                    }
+                    return 'Review items created';
+                } catch (reviewErr) {
+                    console.error('Failed to create review items (non-fatal):', reviewErr.message);
+                    return 'Review creation skipped';
+                }
+            });
+
             return { success: true };
         } catch (err) {
             console.error('GenerateNotes unhandled error:', err);
@@ -323,6 +373,34 @@ export const GenerateStudyTypeContent=inngest.createFunction(
                 
                 return 'Data Inserted'
             })
+
+            // Auto-queue for admin content review
+            await step.run('Queue Content for Review', async () => {
+                try {
+                    const contentTypeMap = {
+                        'Flashcard': 'flashcards',
+                        'Quiz': 'quiz',
+                        'MCQ': 'mcq',
+                    };
+                    await db.insert(CONTENT_REVIEW_TABLE).values({
+                        courseId: courseId,
+                        contentType: contentTypeMap[studyType] || studyType.toLowerCase(),
+                        contentId: String(recordId),
+                        status: 'pending',
+                        originalContent: AiResult,
+                        priority: 'normal',
+                        flaggedBy: 'system',
+                        flagReason: `Auto-queued: AI-generated ${studyType} content`,
+                        autoFlagged: true,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    });
+                    return 'Review item created';
+                } catch (reviewErr) {
+                    console.error('Failed to create review item (non-fatal):', reviewErr.message);
+                    return 'Review creation skipped';
+                }
+            });
 
             return { success: true };
         } catch (err) {

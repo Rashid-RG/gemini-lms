@@ -308,7 +308,8 @@ export const ADMIN_TABLE = pgTable('admins', {
     email: varchar().notNull().unique(),
     passwordHash: varchar().notNull(),
     name: varchar().notNull(),
-    role: varchar().default('admin'), // 'admin', 'super_admin'
+    role: varchar().default('admin'), // 'admin', 'super_admin', 'tutor'
+    profilePic: text(), // base64 data URL for profile picture
     isActive: boolean().default(true),
     lastLoginAt: timestamp(),
     createdAt: timestamp().defaultNow(),
@@ -331,6 +332,19 @@ export const ADMIN_SESSION_TABLE = pgTable('adminSessions', {
     adminIdIdx: index('admin_session_admin_id_idx').on(table.adminId),
 }));
 
+// Password Reset Tokens Table
+export const PASSWORD_RESET_TABLE = pgTable('passwordResetTokens', {
+    id: serial().primaryKey(),
+    adminId: integer().notNull(),
+    token: varchar().notNull().unique(),
+    expiresAt: timestamp().notNull(),
+    used: boolean().default(false),
+    createdAt: timestamp().defaultNow(),
+}, (table) => ({
+    tokenIdx: index('password_reset_token_idx').on(table.token),
+    adminIdIdx: index('password_reset_admin_id_idx').on(table.adminId),
+}));
+
 // Admin Activity Log Table - tracks all admin actions for audit
 export const ADMIN_ACTIVITY_LOG_TABLE = pgTable('adminActivityLog', {
     id: serial().primaryKey(),
@@ -347,6 +361,68 @@ export const ADMIN_ACTIVITY_LOG_TABLE = pgTable('adminActivityLog', {
     adminEmailIdx: index('admin_activity_log_admin_email_idx').on(table.adminEmail),
     actionIdx: index('admin_activity_log_action_idx').on(table.action),
     createdAtIdx: index('admin_activity_log_created_at_idx').on(table.createdAt),
+}));
+
+// Content Review Table - manual review of AI-generated content
+export const CONTENT_REVIEW_TABLE = pgTable('contentReview', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    contentType: varchar().notNull(), // 'course_outline', 'notes', 'flashcards', 'quiz', 'mcq', 'assignment'
+    contentId: varchar(), // chapterId, studyTypeContent id, etc.
+    status: varchar().default('pending'), // 'pending', 'approved', 'rejected', 'edited'
+    originalContent: json(), // snapshot of AI-generated content
+    editedContent: json(), // admin-edited version (null if approved as-is)
+    reviewedBy: varchar(), // admin email
+    reviewNotes: text(), // admin comments about changes
+    priority: varchar().default('normal'), // 'low', 'normal', 'high', 'urgent'
+    flaggedBy: varchar(), // 'system' or student email
+    flagReason: text(), // why it was flagged
+    autoFlagged: boolean().default(false), // true if system detected potential issue
+    createdAt: timestamp().defaultNow(),
+    reviewedAt: timestamp(),
+    updatedAt: timestamp().defaultNow()
+}, (table) => ({
+    courseIdIdx: index('content_review_course_id_idx').on(table.courseId),
+    statusIdx: index('content_review_status_idx').on(table.status),
+    contentTypeIdx: index('content_review_content_type_idx').on(table.contentType),
+    priorityIdx: index('content_review_priority_idx').on(table.priority),
+}));
+
+// Student Content Feedback Table - students report AI mistakes
+export const CONTENT_FEEDBACK_TABLE = pgTable('contentFeedback', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    contentType: varchar().notNull(), // 'notes', 'flashcards', 'quiz', 'mcq'
+    contentId: varchar(), // chapterId or studyTypeContent id
+    studentEmail: varchar().notNull(),
+    issueType: varchar().notNull(), // 'inaccurate', 'unclear', 'incomplete', 'wrong_answer', 'inappropriate', 'other'
+    description: text().notNull(), // student's explanation of the issue
+    specificContent: text(), // the specific piece of content with the issue
+    status: varchar().default('open'), // 'open', 'acknowledged', 'fixed', 'dismissed'
+    adminResponse: text(), // admin's response to the feedback
+    resolvedBy: varchar(), // admin email
+    resolvedAt: timestamp(),
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    courseIdIdx: index('content_feedback_course_id_idx').on(table.courseId),
+    statusIdx: index('content_feedback_status_idx').on(table.status),
+    studentEmailIdx: index('content_feedback_student_email_idx').on(table.studentEmail),
+}));
+
+// Tutor Course Assignments Table - maps tutors/reviewers to courses they can review
+export const TUTOR_ASSIGNMENT_TABLE = pgTable('tutorAssignments', {
+    id: serial().primaryKey(),
+    adminId: integer().notNull(), // references ADMIN_TABLE.id (tutor)
+    courseId: varchar().notNull(), // references STUDY_MATERIAL_TABLE.courseId
+    assignedBy: varchar().notNull(), // email of admin who assigned
+    canReview: boolean().default(true),
+    canEdit: boolean().default(true),
+    canApprove: boolean().default(false), // only if super_admin grants
+    createdAt: timestamp().defaultNow(),
+}, (table) => ({
+    adminIdIdx: index('tutor_assignment_admin_id_idx').on(table.adminId),
+    courseIdIdx: index('tutor_assignment_course_id_idx').on(table.courseId),
+    uniqueAssignment: index('tutor_assignment_unique_idx').on(table.adminId, table.courseId),
 }));
 
 // Announcements Table - platform-wide announcements from admins

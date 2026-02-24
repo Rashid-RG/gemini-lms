@@ -11,6 +11,7 @@ import { useAdaptiveDifficulty } from '../_hooks/useAdaptiveDifficulty'
 import { Zap, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import ReportContentIssue from '@/components/ReportContentIssue'
 
 function Quiz() {
     const { courseId } = useParams()
@@ -348,6 +349,12 @@ function Quiz() {
             {/* Difficulty Badge */}
             <div className='flex justify-between items-center mb-6'>
                 <h2 className='font-bold text-2xl'>Quiz</h2>
+                <div className='flex items-center gap-3'>
+                <ReportContentIssue 
+                    courseId={courseId} 
+                    contentType="quiz" 
+                    compact={true}
+                />
                 <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-white ${
                     difficulty === 'Hard' ? 'bg-red-500' :
                     difficulty === 'Medium' ? 'bg-yellow-500' :
@@ -355,6 +362,7 @@ function Quiz() {
                 }`}>
                     <Zap className='w-4 h-4' />
                     {difficulty || 'Easy'} Level
+                </div>
                 </div>
             </div>
 

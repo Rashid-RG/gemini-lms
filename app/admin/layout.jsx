@@ -23,7 +23,10 @@ import {
     History,
     DollarSign,
     Menu,
-    X
+    X,
+    Eye,
+    UsersRound,
+    UserCircle
 } from 'lucide-react'
 
 function AdminLayoutContent({ children }) {
@@ -32,8 +35,15 @@ function AdminLayoutContent({ children }) {
     const pathname = usePathname()
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
+    // Sanitize profile pic URL - only allow safe data: image URLs
+    const getSafeProfilePic = (pic) => {
+        if (!pic) return null
+        const safePattern = /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/
+        return safePattern.test(pic) ? pic : null
+    }
+
     // Public admin routes that don't require auth
-    const publicRoutes = ['/admin/login', '/admin/setup']
+    const publicRoutes = ['/admin/login', '/admin/setup', '/admin/forgot-password', '/admin/reset-password']
     const isPublicRoute = publicRoutes.includes(pathname)
 
     // Close sidebar when route changes (mobile)
@@ -68,24 +78,33 @@ function AdminLayoutContent({ children }) {
 
     const navItems = [
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-        { href: '/admin/payments', label: 'Payments', icon: DollarSign },
-        { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
-        { href: '/admin/users', label: 'Users', icon: Users },
-        { href: '/admin/courses', label: 'Courses', icon: BookOpen },
-        { href: '/admin/email-students', label: 'Email Students', icon: Mail },
-        { href: '/admin/credits', label: 'Credits', icon: CreditCard },
-        { href: '/admin/all-submissions', label: 'Submissions', icon: FileText },
-        { href: '/admin/review-requests', label: 'Reviews', icon: CheckSquare },
-        { href: '/admin/assignment-unlocks', label: 'Unlock Requests', icon: Key },
-        { href: '/admin/support', label: 'Support Tickets', icon: MessageSquare },
-        { href: '/admin/activity-log', label: 'Activity Log', icon: History },
+        { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'super_admin'] },
+        { href: '/admin/payments', label: 'Payments', icon: DollarSign, roles: ['admin', 'super_admin'] },
+        { href: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
+        { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin', 'super_admin'] },
+        { href: '/admin/courses', label: 'Courses', icon: BookOpen, roles: ['admin', 'super_admin'] },
+        { href: '/admin/content-review', label: 'Content Review', icon: Eye },
+        { href: '/admin/profile', label: 'My Profile', icon: UserCircle },
+        { href: '/admin/email-students', label: 'Email Students', icon: Mail, roles: ['admin', 'super_admin'] },
+        { href: '/admin/credits', label: 'Credits', icon: CreditCard, roles: ['admin', 'super_admin'] },
+        { href: '/admin/all-submissions', label: 'Submissions', icon: FileText, roles: ['admin', 'super_admin'] },
+        { href: '/admin/review-requests', label: 'Reviews', icon: CheckSquare, roles: ['admin', 'super_admin'] },
+        { href: '/admin/assignment-unlocks', label: 'Unlock Requests', icon: Key, roles: ['admin', 'super_admin'] },
+        { href: '/admin/support', label: 'Support Tickets', icon: MessageSquare, roles: ['admin', 'super_admin'] },
+        { href: '/admin/activity-log', label: 'Activity Log', icon: History, roles: ['admin', 'super_admin'] },
+        { href: '/admin/team', label: 'Manage Team', icon: UsersRound, roles: ['super_admin'] },
     ]
 
     // Super admin only items
     if (admin?.role === 'super_admin') {
         navItems.push({ href: '/admin/settings', label: 'Settings', icon: Settings })
     }
+
+    // Filter by role
+    const filteredNavItems = navItems.filter(item => {
+        if (!item.roles) return true // visible to all roles
+        return item.roles.includes(admin?.role)
+    })
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -110,7 +129,10 @@ function AdminLayoutContent({ children }) {
                             </div>
                             <div>
                                 <h1 className="font-bold text-gray-900 dark:text-white">Admin Panel</h1>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{admin?.role}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {admin?.role === 'super_admin' ? 'Super Admin' : 
+                                     admin?.role === 'tutor' ? 'Tutor' : 'Admin'}
+                                </p>
                             </div>
                         </div>
                         {/* Close button for mobile */}
@@ -125,7 +147,7 @@ function AdminLayoutContent({ children }) {
 
                 {/* Navigation - scrollable */}
                 <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
-                    {navItems.map((item) => {
+                    {filteredNavItems.map((item) => {
                         const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                         return (
                             <Link
@@ -146,9 +168,20 @@ function AdminLayoutContent({ children }) {
 
                 {/* User Info & Logout - fixed at bottom */}
                 <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                    <div className="mb-3 px-4">
-                        <p className="font-medium text-gray-900 dark:text-white truncate">{admin?.name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{admin?.email}</p>
+                    <div className="mb-3 px-4 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                            {getSafeProfilePic(admin?.profilePic) ? (
+                                <img src={getSafeProfilePic(admin.profilePic)} alt={admin.name} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-sm">
+                                    {admin?.role === 'super_admin' ? '🛡️' : admin?.role === 'tutor' ? '🎓' : '🔑'}
+                                </span>
+                            )}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-white truncate">{admin?.name}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{admin?.email}</p>
+                        </div>
                     </div>
                     <button
                         onClick={logout}

@@ -16,7 +16,8 @@ import {
     Filter,
     Eye,
     Trash2,
-    AlertTriangle
+    AlertTriangle,
+    Shield
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -32,6 +33,7 @@ function AdminCoursesPage() {
     const [stats, setStats] = useState(null)
     const [deleteModal, setDeleteModal] = useState({ open: false, course: null })
     const [deleting, setDeleting] = useState(false)
+    const [queueing, setQueueing] = useState(null)
 
     useEffect(() => {
         if (!authLoading && admin) {
@@ -89,6 +91,21 @@ function AdminCoursesPage() {
             toast.error('Failed to delete course')
         } finally {
             setDeleting(false)
+        }
+    }
+
+    const handleQueueForReview = async (course) => {
+        try {
+            setQueueing(course.courseId)
+            const response = await axios.post('/api/admin/queue-review', {
+                courseId: course.courseId
+            })
+            toast.success(response.data.message)
+        } catch (error) {
+            const msg = error.response?.data?.error || 'Failed to queue for review'
+            toast.error(msg)
+        } finally {
+            setQueueing(null)
         }
     }
 
@@ -273,10 +290,26 @@ function AdminCoursesPage() {
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Link href={`/course/${course.courseId}`} target="_blank">
-                                                    <Button size="sm" variant="ghost">
+                                                    <Button size="sm" variant="ghost" title="View course">
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
                                                 </Link>
+                                                {course.status === 'Ready' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                        onClick={() => handleQueueForReview(course)}
+                                                        disabled={queueing === course.courseId}
+                                                        title="Queue all content for admin review"
+                                                    >
+                                                        {queueing === course.courseId ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Shield className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"

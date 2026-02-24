@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Loader2, Shield, Eye, EyeOff, AlertCircle } from 'lucide-react'
@@ -14,6 +15,7 @@ export default function AdminLoginPage() {
     const [loading, setLoading] = useState(false)
     const [checking, setChecking] = useState(true)
     const [error, setError] = useState('')
+    const [role, setRole] = useState('super_admin')
 
     // Check if already logged in
     useEffect(() => {
@@ -41,7 +43,8 @@ export default function AdminLoginPage() {
         try {
             const response = await axios.post('/api/admin/auth/login', {
                 email,
-                password
+                password,
+                role
             })
 
             if (response.data.success) {
@@ -87,6 +90,35 @@ export default function AdminLoginPage() {
                             </div>
                         )}
 
+                        {/* Role Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Login As
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { value: 'super_admin', label: 'Super Admin', icon: '🛡️' },
+                                    { value: 'admin', label: 'Admin', icon: '🔑' },
+                                    { value: 'tutor', label: 'Tutor', icon: '🎓' },
+                                ].map((r) => (
+                                    <button
+                                        key={r.value}
+                                        type="button"
+                                        onClick={() => setRole(r.value)}
+                                        disabled={loading}
+                                        className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all ${
+                                            role === r.value
+                                                ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                                                : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
+                                        }`}
+                                    >
+                                        <span className="text-lg">{r.icon}</span>
+                                        <span className="text-xs font-medium">{r.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Email Address
@@ -126,6 +158,15 @@ export default function AdminLoginPage() {
                                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Link
+                                href="/admin/forgot-password"
+                                className="text-sm text-primary hover:underline"
+                            >
+                                Forgot password?
+                            </Link>
                         </div>
 
                         <Button

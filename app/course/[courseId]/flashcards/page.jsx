@@ -16,6 +16,7 @@ import {
     CarouselPrevious,
   } from "@/components/ui/carousel"
 import FlashcardItem from './_components/FlashcardItem';
+import ReportContentIssue from '@/components/ReportContentIssue';
   
 function Flashcards() {
 
@@ -391,7 +392,11 @@ function Flashcards() {
         </div>
 
         {flashCards?.content && (
-            <div className='mt-8 flex gap-4 justify-center'>
+            <div className='mt-8 flex gap-4 justify-center flex-wrap'>
+                <ReportContentIssue 
+                    courseId={courseId} 
+                    contentType="flashcards"
+                />
                 <Button 
                     onClick={markChapterComplete}
                     disabled={marking || !user}
