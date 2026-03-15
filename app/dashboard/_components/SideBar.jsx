@@ -24,11 +24,6 @@ function SideBar({ onNavigate }) {
             path:'/dashboard'
         },
         {
-            name:'Create Course',
-            icon:BookOpen,
-            path:'/create'
-        },
-        {
             name:'Explore Courses',
             icon:Compass,
             path:'/dashboard/explore'
@@ -185,6 +180,20 @@ function SideBar({ onNavigate }) {
             </div>
 
             <div className='mt-10 pb-32'>
+                <Link href={'/create'} className="w-full block">
+                    <Button 
+                        className={`w-full text-white font-semibold transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-lg ${
+                            !isMember && userCredits <= 0
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 animate-pulse'
+                        }`}
+                        disabled={!isMember && userCredits <= 0}
+                        title={!isMember && userCredits <= 0 ? 'No credits available. Please upgrade or purchase credits.' : 'Create a new course'}
+                    >
+                        + Create New {isMember && '✨'}
+                    </Button>
+                </Link>
+
                 <div className='mt-5 pb-32 overflow-y-auto max-h-[calc(100vh-250px)]'>
                     {MenuList.map((menu,index)=>(
                         <Link href={menu.path} key={index} prefetch={true} onClick={onNavigate}>
