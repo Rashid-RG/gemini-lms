@@ -36,6 +36,7 @@ export const STUDY_MATERIAL_TABLE=pgTable('studyMaterial',{
     courseId:varchar().notNull(),
     courseType:varchar().notNull(),
     topic:varchar().notNull(),
+    description:text(), // Course description
     difficultyLevel:varchar().default('Easy'),
     courseLayout:json(),
     createdBy:varchar().notNull(),
@@ -51,11 +52,26 @@ export const STUDY_MATERIAL_TABLE=pgTable('studyMaterial',{
     averageRating:decimal('3,2').default('0'),
     reviewCount:integer().default(0),
     totalStudents:integer().default(0),
-    createdAt:timestamp().defaultNow()
+    // Advanced Features - Scheduling
+    publishDate:timestamp(), // When course becomes available
+    startDate:timestamp(), // Course start date
+    endDate:timestamp(), // Course end date
+    // Advanced Features - Pricing & Enrollment
+    price:decimal({ precision: 10, scale: 2 }).default('0'), // Course price (0 = free)
+    currency:varchar().default('usd'),
+    enrollmentLimit:integer(), // Max students allowed (null = unlimited)
+    prerequisites:json(), // Array of prerequisite course IDs
+    // Advanced Features - Media
+    courseImage:text(), // Course cover image URL
+    // Advanced Features - Quiz Types
+    quizTypes:json().default('["multiple-choice"]'), // Supported quiz types
+    createdAt:timestamp().defaultNow(),
+    updatedAt:timestamp().defaultNow()
 }, (table) => ({
     courseIdIdx: index('study_material_course_id_idx').on(table.courseId),
     createdByIdx: index('study_material_created_by_idx').on(table.createdBy),
     statusIdx: index('study_material_status_idx').on(table.status),
+    publishDateIdx: index('study_material_publish_date_idx').on(table.publishDate),
 }))
 
 export const CHAPTER_NOTES_TABLE=pgTable('chapterNotes',{
@@ -70,11 +86,68 @@ export const CHAPTER_NOTES_TABLE=pgTable('chapterNotes',{
 export const STUDY_TYPE_CONTENT_TABLE=pgTable('studyTypeContent',{
     id:serial().primaryKey(),
     courseId:varchar().notNull(),
+    chapterId:integer(), // Chapter number for better organization
     content:json(),
-    type:varchar().notNull(),
-    status:varchar().default('Generating')
+    type:varchar().notNull(), // 'flashcards', 'quiz', 'summary'
+    quizType:varchar(), // For quizzes: 'multiple-choice', 'true-false', 'short-answer', 'matching', 'fill-blank'
+    status:varchar().default('Generating'),
+    difficulty:varchar().default('Medium'), // Quiz difficulty level
+    createdAt:timestamp().defaultNow()
 }, (table) => ({
     courseIdTypeIdx: index('study_type_content_course_id_type_idx').on(table.courseId, table.type),
+    courseChapterIdx: index('study_type_content_course_chapter_idx').on(table.courseId, table.chapterId),
+}))
+
+// Course Media Files - for advanced rich media support
+export const COURSE_MEDIA_TABLE=pgTable('courseMedia',{
+    id:serial().primaryKey(),
+    courseId:varchar().notNull(),
+    chapterId:integer(), // Optional: specific chapter
+    fileName:varchar().notNull(),
+    fileType:varchar().notNull(), // 'video', 'pdf', 'image', 'document'
+    fileUrl:text().notNull(), // Cloud storage URL (S3, CloudStorage, etc.)
+    fileSize:integer(), // File size in bytes
+    duration:integer(), // For videos: duration in seconds
+    uploadedBy:varchar().notNull(), // Email of uploader
+    isPublic:boolean().default(true),
+    metadata:json(), // Custom metadata
+    createdAt:timestamp().defaultNow()
+}, (table) => ({
+    courseIdIdx: index('course_media_course_id_idx').on(table.courseId),
+    fileTypeIdx: index('course_media_file_type_idx').on(table.fileType),
+}))
+
+// Course Enrollments & Analytics
+export const COURSE_ENROLLMENT_TABLE=pgTable('courseEnrollments',{
+    id:serial().primaryKey(),
+    courseId:varchar().notNull(),
+    studentEmail:varchar().notNull(),
+    enrolledAt:timestamp().defaultNow(),
+    completionPercentage:integer().default(0),
+    status:varchar().default('Active'), // 'Active', 'Completed', 'Dropped'
+    lastAccessedAt:timestamp(),
+    totalTimeSpent:integer().default(0), // in minutes
+    performanceScore:decimal('3,2'), // Average quiz/assignment score
+    certificateIssued:boolean().default(false),
+    certificateIssuedAt:timestamp()
+}, (table) => ({
+    courseStudentIdx: index('course_enrollment_course_student_idx').on(table.courseId, table.studentEmail),
+    courseStatusIdx: index('course_enrollment_course_status_idx').on(table.courseId, table.status),
+}))
+
+// Course Analytics (aggregated stats)
+export const COURSE_ANALYTICS_TABLE=pgTable('courseAnalytics',{
+    id:serial().primaryKey(),
+    courseId:varchar().notNull().unique(),
+    totalEnrollments:integer().default(0),
+    totalCompleted:integer().default(0),
+    totalDropped:integer().default(0),
+    averageCompletionTime:integer(), // in minutes
+    averageScore:decimal('3,2').default('0'),
+    totalRevenue:decimal({ precision: 10, scale: 2 }).default('0'),
+    lastUpdatedAt:timestamp().defaultNow()
+}, (table) => ({
+    courseIdIdx: index('course_analytics_course_id_idx').on(table.courseId),
 }))
 
 export const PAYMENT_RECORD_TABLE=pgTable('paymentRecord',{
@@ -88,8 +161,8 @@ export const PAYMENT_RECORD_TABLE=pgTable('paymentRecord',{
     planType:varchar().default('subscription'), // 'subscription', 'one_time', 'credits'
     creditsAdded:integer().default(0), // Number of credits added by this payment
     status:varchar().default('completed'), // 'pending', 'completed', 'failed', 'refunded'
-    paymentMethod:varchar(), // 'card', 'paypal', etc.
-    stripePaymentId:varchar(), // Stripe payment intent ID
+    paymentMethod:varchar(), // 'card', 'paypal', 'payhere', etc.
+    gatewayPaymentId:varchar(), // Payment gateway transaction ID (PayHere, etc.)
     invoiceUrl:varchar(), // Link to invoice
     metadata:json(), // Additional data
     createdAt:timestamp().defaultNow(),
@@ -307,6 +380,8 @@ export const ADMIN_TABLE = pgTable('admins', {
     id: serial().primaryKey(),
     email: varchar().notNull().unique(),
     passwordHash: varchar().notNull(),
+    temporaryPassword: varchar(), // Plain password shown to user after approval
+    passwordSetAt: timestamp(), // When password was last set
     name: varchar().notNull(),
     role: varchar().default('admin'), // 'admin', 'super_admin', 'tutor'
     profilePic: text(), // base64 data URL for profile picture
@@ -445,4 +520,25 @@ export const ANNOUNCEMENTS_TABLE = pgTable('announcements', {
     isActiveIdx: index('announcements_is_active_idx').on(table.isActive),
     priorityIdx: index('announcements_priority_idx').on(table.priority),
     createdAtIdx: index('announcements_created_at_idx').on(table.createdAt),
+}));
+
+// Tutor Requests Table - users applying to become tutors
+export const TUTOR_REQUESTS_TABLE = pgTable('tutorRequests', {
+    id: serial().primaryKey(),
+    userEmail: varchar().notNull(),
+    userName: varchar().notNull(),
+    experienceLevel: varchar().notNull(), // 'beginner', 'intermediate', 'advanced', 'expert'
+    subjectExpertise: text().notNull(), // areas they can teach
+    motivation: text().notNull(), // why they want to be a tutor
+    certifications: text(), // qualifications/certs
+    status: varchar().default('pending'), // 'pending', 'approved', 'rejected'
+    reviewedBy: varchar(), // admin email who reviewed
+    reviewedAt: timestamp(),
+    rejectionReason: text(), // if rejected, why
+    requestedAt: timestamp().defaultNow(),
+    updatedAt: timestamp().defaultNow()
+}, (table) => ({
+    userEmailIdx: index('tutor_requests_user_email_idx').on(table.userEmail),
+    statusIdx: index('tutor_requests_status_idx').on(table.status),
+    requestedAtIdx: index('tutor_requests_requested_at_idx').on(table.requestedAt),
 }));

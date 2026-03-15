@@ -6,21 +6,27 @@ import { LayoutDashboard, Shield, UserCircle, TrendingUp, Award, Compass, Trophy
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import React, { useContext, useMemo, useEffect } from 'react'
+import React, { useContext, useMemo, useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
 
 function SideBar({ onNavigate }) {
+    const [mounted, setMounted] = useState(false);
     const { user } = useUser();
     const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
     const adminEmails = useMemo(() => (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean), []);
-    const isAdmin = !!(userEmail && adminEmails.includes(userEmail));
+    const isAdmin = mounted && !!(userEmail && adminEmails.includes(userEmail));
 
     const MenuList=[
         {
             name:'Dashboard',
             icon:LayoutDashboard,
             path:'/dashboard'
+        },
+        {
+            name:'Create Course',
+            icon:BookOpen,
+            path:'/create'
         },
         {
             name:'Explore Courses',
@@ -124,6 +130,11 @@ function SideBar({ onNavigate }) {
 
     const {totalCourse, setTotalCourse, userCredits, setUserCredits, isMember, setIsMember}=useContext(CourseCountContext);
     const path=usePathname();
+
+    // Set mounted flag to ensure consistent hydration
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Fetch credits and course count when sidebar mounts, user changes, or path changes
     useEffect(() => {

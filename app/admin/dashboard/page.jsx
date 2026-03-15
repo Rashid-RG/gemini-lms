@@ -95,14 +95,58 @@ export default function AdminDashboardPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
                     <p className="text-gray-600 dark:text-gray-400">Welcome back, {admin?.name}</p>
                 </div>
-                <Button 
-                    onClick={fetchDashboardData} 
-                    disabled={refreshing}
-                    variant="outline"
-                >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
+                <div className="flex gap-3">
+                    {admin?.role === 'tutor' && (
+                        <>
+                            <style>{`
+                                @keyframes pulse-glow {
+                                    0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+                                    50% { box-shadow: 0 0 30px rgba(147, 51, 234, 0.7); }
+                                }
+                                @keyframes shimmer {
+                                    0% { background-position: -1000px 0; }
+                                    100% { background-position: 1000px 0; }
+                                }
+                                @keyframes float {
+                                    0%, 100% { transform: translateY(0px); }
+                                    50% { transform: translateY(-2px); }
+                                }
+                                .coming-soon-btn-dashboard {
+                                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+                                    animation: pulse-glow 2s ease-in-out infinite, float 3s ease-in-out infinite;
+                                    position: relative;
+                                    overflow: hidden;
+                                }
+                                .coming-soon-btn-dashboard::before {
+                                    content: '';
+                                    position: absolute;
+                                    top: 0;
+                                    left: -1000px;
+                                    width: 1000px;
+                                    height: 100%;
+                                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                                    animation: shimmer 3s infinite;
+                                }
+                            `}</style>
+                            <button
+                                disabled
+                                className="coming-soon-btn-dashboard flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg transition-all shadow-lg cursor-not-allowed hover:shadow-2xl relative"
+                                title="This feature is coming soon! We're working on making it amazing."
+                            >
+                                <BookOpen className="h-4 w-4 relative z-10" />
+                                <span className="relative z-10">Create Course</span>
+                            </button>
+                        </>
+                    )}
+                    <Button 
+                        onClick={fetchDashboardData} 
+                        disabled={refreshing}
+                        variant="outline"
+                    >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Grid */}

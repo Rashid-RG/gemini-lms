@@ -26,7 +26,8 @@ import {
     X,
     Eye,
     UsersRound,
-    UserCircle
+    UserCircle,
+    Plus
 } from 'lucide-react'
 
 function AdminLayoutContent({ children }) {
@@ -82,6 +83,8 @@ function AdminLayoutContent({ children }) {
         { href: '/admin/payments', label: 'Payments', icon: DollarSign, roles: ['admin', 'super_admin'] },
         { href: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
         { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin', 'super_admin'] },
+        { href: '/admin/tutor-requests', label: 'Tutor Requests', icon: Users, roles: ['admin', 'super_admin'] },
+        { href: '/admin/team-passwords', label: 'Team Passwords', icon: Key, roles: ['admin', 'super_admin'] },
         { href: '/admin/courses', label: 'Courses', icon: BookOpen, roles: ['admin', 'super_admin'] },
         { href: '/admin/content-review', label: 'Content Review', icon: Eye },
         { href: '/admin/profile', label: 'My Profile', icon: UserCircle },
@@ -165,6 +168,61 @@ function AdminLayoutContent({ children }) {
                         )
                     })}
                 </nav>
+
+                {/* Create Course Button - Coming Soon with Beautiful Animation */}
+                {admin?.role === 'tutor' && (
+                    <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20">
+                        <style>{`
+                            @keyframes pulse-glow {
+                                0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+                                50% { box-shadow: 0 0 30px rgba(147, 51, 234, 0.7); }
+                            }
+                            @keyframes shimmer {
+                                0% { background-position: -1000px 0; }
+                                100% { background-position: 1000px 0; }
+                            }
+                            @keyframes float {
+                                0%, 100% { transform: translateY(0px); }
+                                50% { transform: translateY(-2px); }
+                            }
+                            .coming-soon-btn {
+                                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+                                animation: pulse-glow 2s ease-in-out infinite, float 3s ease-in-out infinite;
+                                position: relative;
+                                overflow: hidden;
+                            }
+                            .coming-soon-btn::before {
+                                content: '';
+                                position: absolute;
+                                top: 0;
+                                left: -1000px;
+                                width: 1000px;
+                                height: 100%;
+                                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                                animation: shimmer 3s infinite;
+                            }
+                            .coming-soon-badge {
+                                display: inline-block;
+                                padding: 2px 8px;
+                                background: rgba(255, 255, 255, 0.2);
+                                border-radius: 20px;
+                                font-size: 11px;
+                                font-weight: 600;
+                                letter-spacing: 0.5px;
+                                backdrop-filter: blur(10px);
+                            }
+                        `}</style>
+                        <button 
+                            disabled
+                            className="coming-soon-btn flex items-center justify-center gap-2 w-full px-4 py-3 text-white font-semibold rounded-lg transition-all shadow-lg cursor-not-allowed hover:shadow-2xl"
+                            title="This feature is coming soon! We're working on making it amazing."
+                        >
+                            <Plus className="h-5 w-5 relative z-10" />
+                            <span className="relative z-10">Create Course</span>
+                            <span className="coming-soon-badge relative z-10">Soon</span>
+                        </button>
+                    </div>
+                )}
 
                 {/* User Info & Logout - fixed at bottom */}
                 <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">

@@ -438,6 +438,18 @@ ${course.courseLayout.chapters.map((ch, idx) => {
                                         Correct Answer: <span className='underline'>{correctAns}</span>
                                     </p>
                                 )}
+                                
+                                {/* EXPLANATION - Shown after answer submission */}
+                                {mcq[stepCount]?.explanation && (
+                                    <div className='mt-4 pt-4 border-t-2 border-current border-opacity-20'>
+                                        <p className='text-sm font-semibold mb-2 flex items-center gap-2'>
+                                            <span className='text-xl'>💡</span> Learning Explanation
+                                        </p>
+                                        <p className={`text-base leading-relaxed ${isCorrectAns ? 'text-green-800' : 'text-red-800'}`}>
+                                            {mcq[stepCount].explanation}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

@@ -274,3 +274,79 @@ export async function PUT(req) {
         );
     }
 }
+
+/**
+ * DELETE /api/admin/team
+ * Delete a team member from the database
+ */
+export async function DELETE(req) {
+    const auth = await requireSuperAdmin();
+    if (!auth.authenticated) return auth.error;
+
+    try {
+        const { memberId } = await req.json();
+
+        if (!memberId) {
+            return NextResponse.json(
+                { error: "memberId is required" },
+                { status: 400 }
+            );
+        }
+
+        // Get the member
+        const existing = await db
+            .select()
+            .from(ADMIN_TABLE)
+            .where(eq(ADMIN_TABLE.id, memberId));
+
+        if (existing.length === 0) {
+            return NextResponse.json(
+                { error: "Team member not found" },
+                { status: 404 }
+            );
+        }
+
+        const member = existing[0];
+
+        // Prevent deleting yourself
+        if (member.email === auth.admin.email) {
+            return NextResponse.json(
+                { error: "You cannot delete your own account" },
+                { status: 400 }
+            );
+        }
+
+        // Delete all assignments for this team member
+        await db.delete(TUTOR_ASSIGNMENT_TABLE)
+            .where(eq(TUTOR_ASSIGNMENT_TABLE.adminId, memberId));
+
+        // Delete the team member
+        await db.delete(ADMIN_TABLE)
+            .where(eq(ADMIN_TABLE.id, memberId));
+
+        // Log the action
+        await db.insert(ADMIN_ACTIVITY_LOG_TABLE).values({
+            adminEmail: auth.admin.email,
+            action: 'team_delete_member',
+            targetType: 'admin',
+            targetId: String(memberId),
+            details: {
+                memberEmail: member.email,
+                memberName: member.name,
+                memberRole: member.role,
+            },
+            createdAt: new Date(),
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: `Team member "${member.name}" deleted successfully`,
+        });
+    } catch (error) {
+        console.error("Team DELETE Error:", error);
+        return NextResponse.json(
+            { error: "Failed to delete team member" },
+            { status: 500 }
+        );
+    }
+}

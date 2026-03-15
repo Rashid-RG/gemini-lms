@@ -179,10 +179,20 @@ function AdminCoursesPage() {
                         Manage all courses in the system
                     </p>
                 </div>
-                <Button onClick={fetchCourses} variant="outline" disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
+                <div className="flex gap-3">
+                    {admin?.role === 'tutor' && (
+                        <Link href="/admin/create-course">
+                            <Button className="flex items-center gap-2">
+                                <BookOpen className="h-4 w-4" />
+                                Create Course
+                            </Button>
+                        </Link>
+                    )}
+                    <Button onClick={fetchCourses} variant="outline" disabled={loading}>
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             {/* Stats */}

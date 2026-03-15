@@ -139,7 +139,7 @@ export async function POST(req) {
             creditsAdded: plan.credits,
             status: paymentStatus,
             paymentMethod: method || 'payhere',
-            stripePaymentId: paymentId, // Using this field for PayHere payment ID
+            gatewayPaymentId: paymentId,
             sessionId: orderId,
             metadata: {
                 statusCode,

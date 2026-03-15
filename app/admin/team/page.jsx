@@ -18,11 +18,14 @@ export default function TeamPage() {
     const [showAssignModal, setShowAssignModal] = useState(false)
     const [selectedMember, setSelectedMember] = useState(null)
     const [roleFilter, setRoleFilter] = useState('')
+    const [showInactive, setShowInactive] = useState(false)
 
     const fetchTeam = useCallback(async () => {
         try {
             const params = new URLSearchParams()
             if (roleFilter) params.set('role', roleFilter)
+            // Show inactive members if toggle is ON
+            if (showInactive) params.set('active', 'false')
             const res = await axios.get(`/api/admin/team?${params.toString()}`)
             setMembers(res.data.members)
             setStats(res.data.stats)
@@ -31,7 +34,7 @@ export default function TeamPage() {
         } finally {
             setLoading(false)
         }
-    }, [roleFilter])
+    }, [roleFilter, showInactive])
 
     useEffect(() => {
         fetchTeam()
@@ -77,7 +80,7 @@ export default function TeamPage() {
             </div>
 
             {/* Filter */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
                 {['', 'super_admin', 'admin', 'tutor'].map(role => (
                     <button
                         key={role}
@@ -91,6 +94,19 @@ export default function TeamPage() {
                         {role === '' ? 'All' : role === 'super_admin' ? 'Super Admin' : role.charAt(0).toUpperCase() + role.slice(1)}
                     </button>
                 ))}
+                
+                {/* Show Inactive Toggle */}
+                <button
+                    onClick={() => setShowInactive(!showInactive)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ml-2 ${
+                        showInactive
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title={showInactive ? 'Showing inactive members' : 'Click to show inactive members'}
+                >
+                    {showInactive ? '👁️ Showing Inactive' : '👁️ Hide Inactive'}
+                </button>
             </div>
 
             {/* Members Table */}
@@ -149,6 +165,19 @@ export default function TeamPage() {
                                                 fetchTeam()
                                             } catch (err) {
                                                 toast.error(err.response?.data?.error || 'Failed to update role')
+                                            }
+                                        }}
+                                        onDelete={async () => {
+                                            if (window.confirm(`Delete ${member.name} and remove from database?`)) {
+                                                try {
+                                                    await axios.delete('/api/admin/team', {
+                                                        data: { memberId: member.id }
+                                                    })
+                                                    toast.success(`${member.name} deleted successfully`)
+                                                    fetchTeam()
+                                                } catch (err) {
+                                                    toast.error(err.response?.data?.error || 'Failed to delete member')
+                                                }
                                             }
                                         }}
                                     />
@@ -211,7 +240,7 @@ function StatCard({ label, value, icon: Icon, color }) {
     )
 }
 
-function MemberRow({ member, currentAdmin, onAssign, onToggleActive, onChangeRole }) {
+function MemberRow({ member, currentAdmin, onAssign, onToggleActive, onChangeRole, onDelete }) {
     const [showRoleMenu, setShowRoleMenu] = useState(false)
     const isSelf = currentAdmin?.email === member.email
 
@@ -285,19 +314,30 @@ function MemberRow({ member, currentAdmin, onAssign, onToggleActive, onChangeRol
                 {member.lastLoginAt ? new Date(member.lastLoginAt).toLocaleDateString() : 'Never'}
             </td>
             <td className="px-6 py-4 text-right">
-                {!isSelf && (
-                    <button
-                        onClick={onToggleActive}
-                        className={`p-2 rounded-lg transition-colors ${
-                            member.isActive
-                                ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                                : 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
-                        }`}
-                        title={member.isActive ? 'Deactivate' : 'Activate'}
-                    >
-                        {member.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                    </button>
-                )}
+                <div className="flex items-center justify-end gap-2">
+                    {!isSelf && (
+                        <>
+                            <button
+                                onClick={onToggleActive}
+                                className={`p-2 rounded-lg transition-colors ${
+                                    member.isActive
+                                        ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                        : 'text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
+                                }`}
+                                title={member.isActive ? 'Deactivate' : 'Activate'}
+                            >
+                                {member.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                            </button>
+                            <button
+                                onClick={onDelete}
+                                className="p-2 rounded-lg transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                title="Delete member"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </button>
+                        </>
+                    )}
+                </div>
             </td>
         </tr>
     )
