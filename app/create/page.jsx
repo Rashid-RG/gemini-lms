@@ -6,15 +6,14 @@ import TopicInput from './_components/TopicInput';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { useUser } from '@clerk/nextjs';
-import { Loader, Video, Globe, Lock, Tag, Wand2, Plus } from 'lucide-react';
+import { Loader, Video, Globe, Lock, Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 const CATEGORIES = ['General', 'Programming', 'Business', 'Design', 'Science', 'Language', 'Mathematics', 'Other'];
 
 function Create() {
-    const [step,setStep]=useState(-1); // -1 = choose method, 0 = select type, 1 = input topic
-    const [courseMethod, setCourseMethod] = useState(null); // 'ai' or 'manual'
+  const [step,setStep]=useState(0);
     const [formData,setFormData]=useState({
       includeVideos: false, 
       isPublic: false, 
@@ -69,46 +68,6 @@ function Create() {
         <h2 className='font-bold text-2xl md:text-4xl text-primary text-center'>Start Building Your Personal Study Material</h2>
         <p className='text-gray-500 text-sm md:text-lg text-center'>Fill All details in order to generate study material for your next project</p>
 
-        {/* Step -1: Choose Method */}
-        {step === -1 && (
-          <div className='mt-12 w-full max-w-2xl'>
-            <p className='text-center text-gray-600 mb-8 font-medium'>How would you like to create your course?</p>
-            <div className='grid md:grid-cols-2 gap-6'>
-              {/* AI Generation Card */}
-              <div 
-                onClick={() => { setCourseMethod('ai'); setStep(0); }}
-                className='p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary hover:shadow-lg transition-all'
-              >
-                <div className='flex items-center justify-center mb-4'>
-                  <Wand2 className='w-8 h-8 text-primary' />
-                </div>
-                <h3 className='font-bold text-lg text-center mb-2'>AI-Powered Generation</h3>
-                <p className='text-gray-600 text-center text-sm'>Let AI generate content automatically based on your topic and preferences</p>
-                <div className='mt-4 text-xs text-gray-500 text-center'>
-                  ⚡ Faster | 🤖 AI-optimized | 📚 Rich content
-                </div>
-              </div>
-
-              {/* Manual Addition Card */}
-              <div 
-                onClick={() => router.push('/add-course')}
-                className='p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary hover:shadow-lg transition-all'
-              >
-                <div className='flex items-center justify-center mb-4'>
-                  <Plus className='w-8 h-8 text-primary' />
-                </div>
-                <h3 className='font-bold text-lg text-center mb-2'>Manual Addition</h3>
-                <p className='text-gray-600 text-center text-sm'>Manually create your course with custom chapters, topics, and structure</p>
-                <div className='mt-4 text-xs text-gray-500 text-center'>
-                  ✏️ Full control | 📝 Custom content | ⏱️ No wait time
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* AI Method Steps */}
-        {courseMethod === 'ai' && (
           <>
             <div className='mt-10'>
               {step==0?  <SelectOption selectedStudyType={(value)=>handleUserInput('courseType',value)}/>
@@ -229,14 +188,12 @@ function Create() {
             </div>
             )}
           </>
-        )}
 
         <div className='flex justify-between w-full mt-32'>
            {step > 0? <Button variant="outline" onClick={()=>setStep(step-1)}>Previous</Button>
-           : step === 0 && courseMethod === 'ai' ? <Button variant="outline" onClick={()=>{ setStep(-1); setCourseMethod(null); }}>Back to Methods</Button>
            : '-'}
             {step==0?<Button onClick={()=>setStep(step+1)}>Next</Button>:
-            step == 1 && courseMethod === 'ai' ? <Button onClick={GenerateCourseOutline} disabled={loading} >
+            step == 1 ? <Button onClick={GenerateCourseOutline} disabled={loading} >
               {loading?<Loader className=' animate-spin' />:'Generate' }</Button>
             : '-'}
         </div>
