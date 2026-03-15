@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -19,6 +19,14 @@ import axios from 'axios';
 import { useAdminAuth } from '@/app/_context/AdminAuthContext';
 
 export default function CourseAnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <CourseAnalyticsContent />
+    </Suspense>
+  );
+}
+
+function CourseAnalyticsContent() {
   const { admin, loading: authLoading } = useAdminAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -302,3 +310,4 @@ export default function CourseAnalyticsPage() {
     </div>
   );
 }
+

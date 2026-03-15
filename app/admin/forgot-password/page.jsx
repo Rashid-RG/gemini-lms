@@ -1,12 +1,12 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Loader2, Mail, ArrowLeft, CheckCircle, Shield, Lock, AlertCircle } from 'lucide-react'
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     
@@ -346,5 +346,13 @@ export default function ForgotPasswordPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function ForgotPasswordPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <ForgotPasswordContent />
+        </Suspense>
     )
 }
