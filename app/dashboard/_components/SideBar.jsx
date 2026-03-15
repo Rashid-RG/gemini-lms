@@ -185,16 +185,6 @@ function SideBar({ onNavigate }) {
             </div>
 
             <div className='mt-10 pb-32'>
-                <Link href={'/create'} className="w-full">
-                <Button 
-                    className={`w-full ${isMember ? 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700' : ''}`}
-                    disabled={!isMember && userCredits <= 0}
-                    title={!isMember && userCredits <= 0 ? 'No credits available. Please upgrade or purchase credits.' : 'Create a new course'}
-                >
-                    + Create New {isMember && '✨'}
-                </Button>
-                </Link>
-
                 <div className='mt-5 pb-32 overflow-y-auto max-h-[calc(100vh-250px)]'>
                     {MenuList.map((menu,index)=>(
                         <Link href={menu.path} key={index} prefetch={true} onClick={onNavigate}>
