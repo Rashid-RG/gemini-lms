@@ -148,7 +148,9 @@ export async function POST(req) {
       longestStreak = Math.max(longestStreak, streakCount);
 
       // Award badges based on streak milestones
-      const newBadges = new Set(Array.isArray(prev.badges) ? prev.badges : JSON.parse(prev.badges || '[]'));
+      let parsedBadges = [];
+      try { parsedBadges = Array.isArray(prev.badges) ? prev.badges : JSON.parse(prev.badges || '[]'); } catch { parsedBadges = []; }
+      const newBadges = new Set(parsedBadges);
       [3, 7, 14, 30, 60, 100].forEach((threshold) => {
         if (streakCount >= threshold) newBadges.add(`streak-${threshold}`);
       });

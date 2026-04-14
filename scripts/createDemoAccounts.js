@@ -11,8 +11,15 @@ function hashPassword(password) {
 }
 
 async function createDemoAccounts() {
+    const adminPassword = process.env.DEMO_ADMIN_PASSWORD;
+    const tutorPassword = process.env.DEMO_TUTOR_PASSWORD;
+    if (!adminPassword || !tutorPassword) {
+        console.error('Set DEMO_ADMIN_PASSWORD and DEMO_TUTOR_PASSWORD env vars');
+        return;
+    }
+
     // Create a demo Admin
-    const adminHash = hashPassword('Admin@123');
+    const adminHash = hashPassword(adminPassword);
     try {
         await sql`INSERT INTO admins (email, "passwordHash", name, role, "isActive", "createdAt", "updatedAt")
                   VALUES ('admin@demo.com', ${adminHash}, 'Demo Admin', 'admin', true, NOW(), NOW())
@@ -23,7 +30,7 @@ async function createDemoAccounts() {
     }
 
     // Create a demo Tutor
-    const tutorHash = hashPassword('Tutor@123');
+    const tutorHash = hashPassword(tutorPassword);
     try {
         await sql`INSERT INTO admins (email, "passwordHash", name, role, "isActive", "createdAt", "updatedAt")
                   VALUES ('tutor@demo.com', ${tutorHash}, 'Demo Tutor', 'tutor', true, NOW(), NOW())

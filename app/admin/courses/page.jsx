@@ -109,6 +109,38 @@ function AdminCoursesPage() {
         }
     }
 
+    const [approving, setApproving] = useState(null)
+    const handleApproveAndPublish = async (course) => {
+        if (!confirm('Approve all content and publish this course to students?')) return
+        try {
+            setApproving(course.courseId)
+            // Approve all pending review items for this course
+            const reviewRes = await axios.get(`/api/admin/content-review?status=pending&courseId=${course.courseId}&limit=100`)
+            const pendingReviews = reviewRes.data.reviews || []
+            for (const review of pendingReviews) {
+                await axios.post('/api/admin/content-review', {
+                    reviewId: review.id,
+                    action: 'approve',
+                    reviewNotes: 'Bulk approved via course management'
+                })
+            }
+            // If there were no pending reviews left, manually set status to Ready
+            if (pendingReviews.length === 0) {
+                await axios.put('/api/admin/courses', {
+                    courseId: course.courseId,
+                    updates: { status: 'Ready' }
+                })
+            }
+            toast.success('Course approved and published!')
+            fetchCourses()
+        } catch (error) {
+            console.error('Approve error:', error)
+            toast.error('Failed to approve course')
+        } finally {
+            setApproving(null)
+        }
+    }
+
     const getStatusBadge = (status) => {
         switch (status?.toLowerCase()) {
             case 'ready':
@@ -123,6 +155,13 @@ function AdminCoursesPage() {
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full text-xs">
                         <Clock className="h-3 w-3" />
                         Generating
+                    </span>
+                )
+            case 'pendingreview':
+                return (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs">
+                        <Clock className="h-3 w-3" />
+                        Pending Review
                     </span>
                 )
             case 'failed':
@@ -240,6 +279,7 @@ function AdminCoursesPage() {
                     >
                         <option value="all">All Status</option>
                         <option value="Ready">Ready</option>
+                        <option value="PendingReview">Pending Review</option>
                         <option value="Generating">Generating</option>
                         <option value="Failed">Failed</option>
                     </select>
@@ -304,6 +344,22 @@ function AdminCoursesPage() {
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
                                                 </Link>
+                                                {course.status === 'PendingReview' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                        onClick={() => handleApproveAndPublish(course)}
+                                                        disabled={approving === course.courseId}
+                                                        title="Approve all content and publish"
+                                                    >
+                                                        {approving === course.courseId ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                )}
                                                 {course.status === 'Ready' && (
                                                     <Button
                                                         size="sm"

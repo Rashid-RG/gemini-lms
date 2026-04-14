@@ -138,6 +138,7 @@ export default function InstructorCreateCoursePage() {
   };
 
   const handleInputChange = (field, value) => {
+    if (field === '__proto__' || field === 'constructor' || field === 'prototype') return;
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -145,6 +146,7 @@ export default function InstructorCreateCoursePage() {
   };
 
   const handleChapterChange = (index, field, value) => {
+    if (field === '__proto__' || field === 'constructor' || field === 'prototype') return;
     const newChapters = [...formData.chapters];
     newChapters[index][field] = value;
     setFormData(prev => ({
@@ -163,6 +165,7 @@ export default function InstructorCreateCoursePage() {
   };
 
   const handleFlashcardChange = (index, field, value) => {
+    if (field === '__proto__' || field === 'constructor' || field === 'prototype') return;
     const newFlashcards = [...formData.flashcards];
     newFlashcards[index][field] = value;
     setFormData(prev => ({
@@ -172,6 +175,7 @@ export default function InstructorCreateCoursePage() {
   };
 
   const handleQuizChange = (index, field, value) => {
+    if (field === '__proto__' || field === 'constructor' || field === 'prototype') return;
     const newQuizzes = [...formData.quizzes];
     newQuizzes[index][field] = value;
     setFormData(prev => ({
@@ -738,7 +742,7 @@ export default function InstructorCreateCoursePage() {
                     placeholder="https://example.com/image.jpg"
                     className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  {formData.courseImage && (
+                  {formData.courseImage && /^https?:\/\//i.test(formData.courseImage) && (
                     <img src={formData.courseImage} alt="Course cover" className="mt-3 max-h-40 rounded-lg" />
                   )}
                 </div>

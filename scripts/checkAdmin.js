@@ -19,7 +19,11 @@ async function checkAdmin() {
 
     // Now verify the password directly
     const crypto = require('crypto');
-    const password = 'Admin@123';
+    const password = process.env.ADMIN_DEFAULT_PASSWORD;
+    if (!password) {
+        console.error('Set ADMIN_DEFAULT_PASSWORD env var to verify passwords');
+        return;
+    }
     
     for (const admin of rows) {
         const [salt, hash] = admin.passwordHash.split(':');

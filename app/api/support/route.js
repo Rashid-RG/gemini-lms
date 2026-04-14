@@ -5,7 +5,10 @@ import { NextResponse } from "next/server";
 
 const isAdminRequest = (req) => {
     const adminEmail = req.headers.get('x-admin-email')?.toLowerCase();
-    const adminList = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+    const adminList = (process.env.ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+        .split(',')
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean);
     return adminEmail && adminList.includes(adminEmail);
 }
 
@@ -20,6 +23,14 @@ export async function POST(req) {
 
         if (!userEmail || !subject || !message) {
             return NextResponse.json({ error: 'userEmail, subject, and message are required' }, { status: 400 });
+        }
+
+        // Input validation: length limits
+        if (typeof subject !== 'string' || subject.length > 200) {
+            return NextResponse.json({ error: 'Subject must be under 200 characters' }, { status: 400 });
+        }
+        if (typeof message !== 'string' || message.length > 5000) {
+            return NextResponse.json({ error: 'Message must be under 5000 characters' }, { status: 400 });
         }
 
         const [inserted] = await db.insert(SUPPORT_TICKETS_TABLE).values({

@@ -94,7 +94,9 @@ function Quiz() {
                 : rawContent || {}
 
             setQuizData(content)
-            setQuiz(content?.questions || [])
+            // Handle both formats: array of questions or {questions: [...]}
+            const questions = Array.isArray(content) ? content : (content?.questions || [])
+            setQuiz(questions)
             setTopicName(content?.topic || '')
             setError('')
             setErrorType(null)

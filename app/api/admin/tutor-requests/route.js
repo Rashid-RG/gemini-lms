@@ -32,7 +32,7 @@ export async function GET(req) {
 export async function PATCH(req) {
   try {
     const body = await req.json()
-    const { id } = await req.json() // Will be provided via URL in the next function
+    const { id } = body
 
     if (!id) {
       return NextResponse.json(

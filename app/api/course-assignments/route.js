@@ -1,5 +1,5 @@
 import { db } from "@/configs/db";
-import { COURSE_ASSIGNMENTS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/schema";
+import { COURSE_ASSIGNMENTS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, STUDY_MATERIAL_TABLE, STUDENT_PROGRESS_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { inngest } from "@/inngest/client";

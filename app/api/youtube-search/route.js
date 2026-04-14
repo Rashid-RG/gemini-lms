@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * Search YouTube for videos related to course topics
@@ -10,6 +11,21 @@ export async function POST(req) {
 
     if (!chapters || !Array.isArray(chapters)) {
       return NextResponse.json({ error: 'Invalid chapters data' }, { status: 400 });
+    }
+
+    // Rate limit: 5 searches per minute (uses IP since no user email available here)
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const rateCheck = checkRateLimit(clientIp, 'youtube-search');
+    if (rateCheck.limited) {
+      return NextResponse.json(
+        { error: rateCheck.message },
+        { status: 429, headers: { 'Retry-After': Math.ceil(rateCheck.resetIn / 1000).toString() } }
+      );
+    }
+
+    // Limit chapters array size to prevent abuse
+    if (chapters.length > 10) {
+      return NextResponse.json({ error: 'Maximum 10 chapters allowed per request' }, { status: 400 });
     }
 
     const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;

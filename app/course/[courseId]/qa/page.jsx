@@ -74,8 +74,8 @@ function QAPage() {
                 : rawContent || {}
 
             setQAData(content)
-            // Handle different response formats
-            const questionList = content?.questions || content?.qa || []
+            // Handle different response formats: array or {questions: [...]}
+            const questionList = Array.isArray(content) ? content : (content?.questions || content?.qa || [])
             setQuestions(questionList)
             setError('')
             setErrorType(null)

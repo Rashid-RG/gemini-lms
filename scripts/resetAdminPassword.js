@@ -11,7 +11,11 @@ function hashPassword(password) {
     return `${salt}:${hash}`;
 }
 
-const NEW_PASSWORD = 'Admin@123';
+const NEW_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD;
+if (!NEW_PASSWORD) {
+    console.error('Set ADMIN_DEFAULT_PASSWORD env var');
+    process.exit(1);
+}
 
 async function resetAdminPassword() {
     try {

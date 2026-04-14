@@ -62,7 +62,7 @@ export async function POST(req) {
         // Get existing quiz scores to include in final score calculation
         let quizScores;
         if (typeof progress[0].quizScores === 'string') {
-            quizScores = JSON.parse(progress[0].quizScores || '{}');
+            try { quizScores = JSON.parse(progress[0].quizScores || '{}'); } catch { quizScores = {}; }
         } else {
             quizScores = progress[0].quizScores || {};
         }

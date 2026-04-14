@@ -3,6 +3,7 @@ import { db } from "@/configs/db";
 import { CHAT_CONVERSATIONS_TABLE, CHAT_MESSAGES_TABLE } from "@/configs/schema";
 import { eq, desc, asc } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -71,6 +72,20 @@ export async function POST(req) {
 
     if (!userEmail || !message) {
       return new Response("userEmail and message are required", { status: 400 });
+    }
+
+    // Rate limit: 10 messages per minute per user
+    const rateCheck = checkRateLimit(userEmail, 'ai-chat');
+    if (rateCheck.limited) {
+      return NextResponse.json(
+        { error: rateCheck.message },
+        { status: 429, headers: { 'Retry-After': Math.ceil(rateCheck.resetIn / 1000).toString() } }
+      );
+    }
+
+    // Input validation: limit message length
+    if (typeof message !== 'string' || message.length > 2000) {
+      return new Response("Message must be a string under 2000 characters", { status: 400 });
     }
 
     let convoId = conversationId;

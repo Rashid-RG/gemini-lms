@@ -82,6 +82,14 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
         }
 
+        // Input validation: length limits
+        if (typeof title !== 'string' || title.length > 200) {
+            return NextResponse.json({ error: 'Title must be under 200 characters' }, { status: 400 });
+        }
+        if (typeof content !== 'string' || content.length > 10000) {
+            return NextResponse.json({ error: 'Content must be under 10000 characters' }, { status: 400 });
+        }
+
         if (!adminEmail) {
             return NextResponse.json({ error: 'Admin email is required' }, { status: 400 });
         }

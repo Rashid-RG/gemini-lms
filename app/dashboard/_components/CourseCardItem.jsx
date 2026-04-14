@@ -1,7 +1,7 @@
 "use client"
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { RefreshCw, CheckCircle, Trash2, AlertTriangle } from 'lucide-react'
+import { RefreshCw, CheckCircle, Trash2, AlertTriangle, Clock } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import React, { memo, useState, useEffect } from 'react'
@@ -76,6 +76,7 @@ const CourseCardItem = memo(function CourseCardItem({course, onStatusChange, onD
   const progress = getGenerationProgress(currentStatus);
   const isGenerating = currentStatus === 'Generating';
   const isError = currentStatus === 'Error';
+  const isPendingReview = currentStatus === 'PendingReview';
   const showDeleteButton = isError || (isGenerating && isStuck);
 
   return (
@@ -102,6 +103,11 @@ const CourseCardItem = memo(function CourseCardItem({course, onStatusChange, onD
                 {isError && (
                   <p className="text-xs text-red-500 mt-1">
                     ⚠️ Generation failed (AI quota exceeded). Delete to get credit back.
+                  </p>
+                )}
+                {isPendingReview && (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    ⏳ Course generated. Waiting for admin/tutor review before publishing.
                   </p>
                 )}
                 {isStuck && isGenerating && (
@@ -134,6 +140,10 @@ const CourseCardItem = memo(function CourseCardItem({course, onStatusChange, onD
                 <h2 className='text-sm p-1 px-2 flex gap-2 items-center rounded-full bg-gray-400 text-white'>
                     <RefreshCw className='h-5 w-5 animate-spin'/>
                     Generating...</h2>
+               : isPendingReview ?
+                <h2 className='text-sm p-1 px-2 flex gap-2 items-center rounded-full bg-yellow-500 text-white'>
+                    <Clock className='h-5 w-5'/>
+                    Pending Review</h2>
                : currentStatus === 'Ready' && !isError ?
                 <div className='flex gap-2 items-center'>
                   <CheckCircle className='h-4 w-4 text-green-500' />

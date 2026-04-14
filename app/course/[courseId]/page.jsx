@@ -92,6 +92,25 @@ function Course() {
         );
     }
 
+    // Block access to courses pending review (only course creator can see a notice)
+    if (course.status === 'PendingReview') {
+        return (
+            <div className='p-10 text-center'>
+                <div className='text-yellow-600 font-semibold text-xl mb-2'>⏳ Course Under Review</div>
+                <div className='text-gray-500 text-sm mb-4'>
+                    This course has been generated and is now being reviewed by our team.
+                    <br />It will be available once an admin or tutor approves the content.
+                </div>
+                <button 
+                    onClick={() => GetCourse()}
+                    className='px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition'
+                >
+                    Check Again
+                </button>
+            </div>
+        );
+    }
+
   return (
     <div>
      

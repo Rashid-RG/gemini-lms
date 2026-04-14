@@ -87,7 +87,8 @@ function MCQPage() {
 
             console.log('Parsed MCQ Content:', mcqContent);
             setMcqData(result.data);
-            const questions = mcqContent?.questions || [];
+            // Handle both array and object formats
+            const questions = Array.isArray(mcqContent) ? mcqContent : (mcqContent?.questions || []);
             console.log('Questions array:', questions);
             
             if (questions.length === 0) {

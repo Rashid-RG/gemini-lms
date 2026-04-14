@@ -18,6 +18,7 @@ export async function GET(req) {
         const status = searchParams.get("status") || "pending";
         const contentType = searchParams.get("contentType");
         const priority = searchParams.get("priority");
+        const courseId = searchParams.get("courseId");
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "20");
         const offset = (page - 1) * limit;
@@ -33,26 +34,13 @@ export async function GET(req) {
         if (priority) {
             conditions.push(eq(CONTENT_REVIEW_TABLE.priority, priority));
         }
-
-        // TUTOR FILTERING: If tutor, restrict to assigned courses only
-        if (auth.admin.role === 'tutor') {
-            const assignments = await db
-                .select({ courseId: TUTOR_ASSIGNMENT_TABLE.courseId })
-                .from(TUTOR_ASSIGNMENT_TABLE)
-                .where(eq(TUTOR_ASSIGNMENT_TABLE.adminId, auth.admin.id));
-
-            const assignedCourseIds = assignments.map(a => a.courseId);
-            
-            if (assignedCourseIds.length === 0) {
-                // Tutor has no assignments — return empty
-                return NextResponse.json({
-                    reviews: [],
-                    stats: { pending: 0, approved: 0, rejected: 0, edited: 0, total: 0 },
-                    pagination: { page, limit, total: 0, totalPages: 0 },
-                });
-            }
-            conditions.push(inArray(CONTENT_REVIEW_TABLE.courseId, assignedCourseIds));
+        if (courseId) {
+            conditions.push(eq(CONTENT_REVIEW_TABLE.courseId, courseId));
         }
+
+        // Note: Tutors can VIEW all pending reviews to facilitate the review workflow.
+        // Permission checks (canEdit, canApprove) are enforced in the POST handler
+        // when tutors attempt to approve/edit content.
 
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -170,6 +158,8 @@ export async function POST(req) {
         const review = existing[0];
 
         // TUTOR PERMISSION CHECK
+        // Tutors can approve/edit/reject any content in the review queue.
+        // For courses with specific tutor assignments, respect granular permissions.
         if (auth.admin.role === 'tutor') {
             const assignment = await db
                 .select()
@@ -179,28 +169,25 @@ export async function POST(req) {
                     eq(TUTOR_ASSIGNMENT_TABLE.courseId, review.courseId)
                 ));
 
-            if (assignment.length === 0) {
-                return NextResponse.json(
-                    { error: "You are not assigned to review this course" },
-                    { status: 403 }
-                );
-            }
+            // If tutor has a specific assignment, respect its permissions
+            if (assignment.length > 0) {
+                const perms = assignment[0];
 
-            const perms = assignment[0];
+                if (action === 'edit' && !perms.canEdit) {
+                    return NextResponse.json(
+                        { error: "You don't have edit permission for this course" },
+                        { status: 403 }
+                    );
+                }
 
-            if (action === 'edit' && !perms.canEdit) {
-                return NextResponse.json(
-                    { error: "You don't have edit permission for this course" },
-                    { status: 403 }
-                );
+                if (action === 'approve' && !perms.canApprove) {
+                    return NextResponse.json(
+                        { error: "You don't have approve permission. An admin must approve this." },
+                        { status: 403 }
+                    );
+                }
             }
-
-            if (action === 'approve' && !perms.canApprove) {
-                return NextResponse.json(
-                    { error: "You don't have approve permission. An admin must approve this." },
-                    { status: 403 }
-                );
-            }
+            // If no assignment exists, tutor can still review (approve/edit/reject)
         }
 
         // Map action to status
@@ -232,6 +219,25 @@ export async function POST(req) {
         if (action === "approve" || action === "edit") {
             const contentToApply = action === "edit" ? editedContent : review.originalContent;
             await applyContentChanges(review.courseId, review.contentType, review.contentId, contentToApply);
+
+            // Check if ALL review items for this course are now approved/edited
+            // If so, publish the course by setting status to 'Ready'
+            const pendingReviews = await db
+                .select({ id: CONTENT_REVIEW_TABLE.id })
+                .from(CONTENT_REVIEW_TABLE)
+                .where(and(
+                    eq(CONTENT_REVIEW_TABLE.courseId, review.courseId),
+                    eq(CONTENT_REVIEW_TABLE.status, "pending")
+                ))
+                .limit(1);
+
+            if (pendingReviews.length === 0) {
+                // No more pending reviews — publish the course
+                await db
+                    .update(STUDY_MATERIAL_TABLE)
+                    .set({ status: "Ready" })
+                    .where(eq(STUDY_MATERIAL_TABLE.courseId, review.courseId));
+            }
         }
 
         // Log the admin action
@@ -315,7 +321,7 @@ async function applyContentChanges(courseId, contentType, contentId, content) {
                     if (existing.length > 0) {
                         await db
                             .update(STUDY_TYPE_CONTENT_TABLE)
-                            .set({ content })
+                            .set({ content, status: 'Ready' })
                             .where(
                                 and(
                                     eq(STUDY_TYPE_CONTENT_TABLE.courseId, courseId),

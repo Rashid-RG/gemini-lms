@@ -82,6 +82,10 @@ export async function POST(req) {
       );
     }
 
+    // Input validation: clamp numeric values and limit array sizes
+    const safeProgress = typeof progressPercentage === 'number' ? Math.min(100, Math.max(0, progressPercentage)) : progressPercentage;
+    const safeChapters = Array.isArray(completedChapters) ? completedChapters.slice(0, 50) : completedChapters;
+
     // Update or create progress
     const existing = await db
       .select()
@@ -139,11 +143,11 @@ export async function POST(req) {
       result = await db
         .update(STUDENT_PROGRESS_TABLE)
         .set({
-          completedChapters: JSON.stringify(completedChapters || []),
+          completedChapters: JSON.stringify(safeChapters || []),
           quizScores: JSON.stringify(quizScores || {}),
           assignmentScores: JSON.stringify(assignmentScores || {}),
           mcqScores: JSON.stringify(mcqScores || {}),
-          progressPercentage: progressPercentage || 0,
+          progressPercentage: safeProgress || 0,
           finalScore,
           streakCount,
           longestStreak,
@@ -169,11 +173,11 @@ export async function POST(req) {
         .values({
           courseId,
           studentEmail,
-          completedChapters: JSON.stringify(completedChapters || []),
+          completedChapters: JSON.stringify(safeChapters || []),
           quizScores: JSON.stringify(quizScores || {}),
           assignmentScores: JSON.stringify(assignmentScores || {}),
           mcqScores: JSON.stringify(mcqScores || {}),
-          progressPercentage: progressPercentage || 0,
+          progressPercentage: safeProgress || 0,
           finalScore: 0,
           totalChapters: 0,
           streakCount: 1,
@@ -223,7 +227,9 @@ export async function POST(req) {
 
         longestStreak = Math.max(longestStreak, streakCount);
 
-        const newBadges = new Set(Array.isArray(prev.badges) ? prev.badges : JSON.parse(prev.badges || '[]'));
+        let parsedBadges = [];
+        try { parsedBadges = Array.isArray(prev.badges) ? prev.badges : JSON.parse(prev.badges || '[]'); } catch { parsedBadges = []; }
+        const newBadges = new Set(parsedBadges);
         [3, 7, 14, 30, 60, 100].forEach((threshold) => {
           if (streakCount >= threshold) newBadges.add(`streak-${threshold}`);
         });

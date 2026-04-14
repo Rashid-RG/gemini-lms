@@ -3,6 +3,7 @@ import { ASSIGNMENT_SUBMISSIONS_TABLE, COURSE_ASSIGNMENTS_TABLE } from "@/config
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { inngest } from "@/inngest/client";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 /**
  * GET /api/submit-assignment?assignmentId=xyz&studentEmail=abc@example.com
@@ -111,6 +112,24 @@ export async function POST(req) {
     if (!assignmentId || !courseId || !studentEmail || !submission) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Rate limit: 10 submissions per 5 minutes per student
+    const rateCheck = checkRateLimit(studentEmail, 'assignment');
+    if (rateCheck.limited) {
+      return NextResponse.json(
+        { error: rateCheck.message },
+        { status: 429, headers: { 'Retry-After': Math.ceil(rateCheck.resetIn / 1000).toString() } }
+      );
+    }
+
+    // Input validation: limit submission size (50KB max)
+    const submissionStr = typeof submission === 'string' ? submission : JSON.stringify(submission);
+    if (submissionStr.length > 50000) {
+      return NextResponse.json(
+        { error: "Submission too large. Maximum 50KB allowed." },
         { status: 400 }
       );
     }

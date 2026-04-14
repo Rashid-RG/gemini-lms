@@ -21,7 +21,7 @@ async function updateStudentProgressWithScore(courseId, studentEmail, assignment
             // Parse assignmentScores
             let assignmentScores;
             if (typeof progress[0].assignmentScores === 'string') {
-                assignmentScores = JSON.parse(progress[0].assignmentScores || '{}');
+                try { assignmentScores = JSON.parse(progress[0].assignmentScores || '{}'); } catch { assignmentScores = {}; }
             } else {
                 assignmentScores = progress[0].assignmentScores || {};
             }
@@ -32,7 +32,7 @@ async function updateStudentProgressWithScore(courseId, studentEmail, assignment
             // Calculate new final score
             let quizScores;
             if (typeof progress[0].quizScores === 'string') {
-                quizScores = JSON.parse(progress[0].quizScores || '{}');
+                try { quizScores = JSON.parse(progress[0].quizScores || '{}'); } catch { quizScores = {}; }
             } else {
                 quizScores = progress[0].quizScores || {};
             }

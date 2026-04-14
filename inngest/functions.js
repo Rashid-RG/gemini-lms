@@ -160,10 +160,24 @@ export const GenerateNotes=inngest.createFunction(
                                 await new Promise(resolve => setTimeout(resolve, delay));
                             }
                             
-                            // Simplified prompt for faster generation
-                            const PROMPT=`Generate study notes in HTML for: ${chapter.chapter_title || chapter.chapterTitle}
+                            // Rich HTML prompt for beautifully formatted notes
+                            const PROMPT=`Generate beautifully formatted study notes in HTML for:
+Chapter: ${chapter.chapter_title || chapter.chapterTitle}
 Topics: ${(chapter.topics || []).join(', ')}
-Use <h3> headings, <ul><li> lists, <pre><code> for code. Max 1200 words.`;
+
+FORMAT RULES (strictly follow):
+- Start with an <h2> chapter title with an emoji prefix (e.g. "📘 Chapter Title")
+- Add a brief intro paragraph after the title
+- Use <h3> with emoji for each topic heading (e.g. "🔹 Topic Name")
+- Use <h4> for subtopics
+- Use <p> for paragraphs (3-4 sentences max)
+- Use <strong> to bold key terms and definitions
+- Use <ul><li> or <ol><li> for lists
+- Use <pre><code> for code examples with inline comments
+- Add a <blockquote> for important tips or common mistakes
+- End with a <div class="summary-box"><h4>📝 Key Takeaways</h4><ul>...</ul></div>
+- Use <hr> between major sections
+- Max 1200 words, clean semantic HTML only, no CSS or style attributes`;
                             
                             // Longer timeout to handle slow API responses
                             const timeoutPromise = new Promise((_, reject) => 
@@ -210,10 +224,10 @@ Use <h3> headings, <ul><li> lists, <pre><code> for code. Max 1200 words.`;
                 return Chapters;
             })
 
-            // Update Status to 'Ready'
-            const updateCourseStatusResult=await step.run('Update Course Status to Ready',async()=>{
+            // Update Status to 'PendingReview' - course must be reviewed by admin/tutor before students can access
+            const updateCourseStatusResult=await step.run('Update Course Status to PendingReview',async()=>{
                 const result=await db.update(STUDY_MATERIAL_TABLE).set({
-                    status:'Ready'
+                    status:'PendingReview'
                 }).where(eq(STUDY_MATERIAL_TABLE.courseId,course?.courseId))
                 return 'Success';
             });

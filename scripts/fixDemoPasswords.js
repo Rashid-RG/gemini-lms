@@ -12,19 +12,24 @@ function hashPassword(password) {
 }
 
 async function fixPasswords() {
+    const adminPassword = process.env.DEMO_ADMIN_PASSWORD;
+    const tutorPassword = process.env.DEMO_TUTOR_PASSWORD;
+    if (!adminPassword || !tutorPassword) {
+        console.error('Set DEMO_ADMIN_PASSWORD and DEMO_TUTOR_PASSWORD env vars');
+        return;
+    }
+
     // Fix Admin password
-    const adminHash = hashPassword('Admin@123');
+    const adminHash = hashPassword(adminPassword);
     await sql`UPDATE admins SET "passwordHash" = ${adminHash}, "updatedAt" = NOW() WHERE email = 'admin@demo.com'`;
-    console.log('✅ Fixed admin@demo.com password → Admin@123');
+    console.log('✅ Fixed admin@demo.com password');
 
     // Fix Tutor password
-    const tutorHash = hashPassword('Tutor@123');
+    const tutorHash = hashPassword(tutorPassword);
     await sql`UPDATE admins SET "passwordHash" = ${tutorHash}, "updatedAt" = NOW() WHERE email = 'tutor@demo.com'`;
-    console.log('✅ Fixed tutor@demo.com password → Tutor@123');
+    console.log('✅ Fixed tutor@demo.com password');
 
-    console.log('\n🔐 You can now login:');
-    console.log('   Admin: admin@demo.com / Admin@123');
-    console.log('   Tutor: tutor@demo.com / Tutor@123');
+    console.log('\n🔐 Passwords updated. Login with the credentials from your env vars.');
 }
 
 fixPasswords().catch(console.error);

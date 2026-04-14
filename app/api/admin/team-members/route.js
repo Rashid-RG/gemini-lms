@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server'
 import { db } from '@/configs/db'
 import { ADMIN_TABLE } from '@/configs/schema'
 import { eq } from 'drizzle-orm'
+import { requireAdminAuth } from '@/lib/adminApiAuth'
 
 export async function GET(req) {
+  const auth = await requireAdminAuth();
+  if (!auth.authenticated) return auth.error;
+
   try {
     // Get query parameters
     const { searchParams } = new URL(req.url)

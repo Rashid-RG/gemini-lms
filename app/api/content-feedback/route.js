@@ -1,6 +1,6 @@
 import { db } from "@/configs/db";
-import { CONTENT_FEEDBACK_TABLE, CONTENT_REVIEW_TABLE, STUDY_MATERIAL_TABLE } from "@/configs/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { CONTENT_FEEDBACK_TABLE, CONTENT_REVIEW_TABLE, SUPPORT_TICKETS_TABLE } from "@/configs/schema";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 /**
@@ -65,7 +65,7 @@ export async function POST(req) {
             createdAt: new Date(),
         }).returning();
 
-        // Auto-create a review item for ALL student reports
+        // Auto-create or update a review item for ALL student reports
         // Priority is based on issue severity
         const priorityMap = {
             inappropriate: "urgent",
@@ -76,7 +76,11 @@ export async function POST(req) {
             other: "low",
         };
         try {
-            // Check if there's already a pending review for this content
+            // Check if there's already a pending review for this exact content target
+            const contentIdCondition = contentId
+                ? eq(CONTENT_REVIEW_TABLE.contentId, String(contentId))
+                : isNull(CONTENT_REVIEW_TABLE.contentId);
+
             const existingReview = await db
                 .select()
                 .from(CONTENT_REVIEW_TABLE)
@@ -84,9 +88,13 @@ export async function POST(req) {
                     and(
                         eq(CONTENT_REVIEW_TABLE.courseId, courseId),
                         eq(CONTENT_REVIEW_TABLE.contentType, contentType),
+                        contentIdCondition,
                         eq(CONTENT_REVIEW_TABLE.status, "pending")
                     )
                 );
+
+            const newPriority = priorityMap[issueType] || "normal";
+            const reportLine = `Student reported by ${studentEmail}: ${issueType} - ${sanitizedDescription}`;
 
             if (existingReview.length === 0) {
                 await db.insert(CONTENT_REVIEW_TABLE).values({
@@ -94,23 +102,35 @@ export async function POST(req) {
                     contentType,
                     contentId: contentId || null,
                     status: "pending",
-                    priority: priorityMap[issueType] || "normal",
+                    priority: newPriority,
                     flaggedBy: studentEmail,
-                    flagReason: `Student reported: ${issueType} - ${sanitizedDescription}`,
+                    flagReason: reportLine,
                     autoFlagged: false,
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 });
             } else {
-                // Update existing review to higher priority if this report is more urgent
-                const currentPriority = existingReview[0].priority;
-                const newPriority = priorityMap[issueType] || "normal";
+                // Always append the latest student report; optionally elevate priority
+                const currentPriority = existingReview[0].priority || "normal";
                 const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+                const combinedFlagReason = existingReview[0].flagReason
+                    ? `${existingReview[0].flagReason}\n---\n${reportLine}`
+                    : reportLine;
+
                 if ((priorityOrder[newPriority] ?? 3) < (priorityOrder[currentPriority] ?? 3)) {
                     await db.update(CONTENT_REVIEW_TABLE)
                         .set({
                             priority: newPriority,
-                            flagReason: `${existingReview[0].flagReason}\n---\nStudent reported: ${issueType} - ${sanitizedDescription}`,
+                            flagReason: combinedFlagReason,
+                            flaggedBy: studentEmail,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(CONTENT_REVIEW_TABLE.id, existingReview[0].id));
+                } else {
+                    await db.update(CONTENT_REVIEW_TABLE)
+                        .set({
+                            flagReason: combinedFlagReason,
+                            flaggedBy: studentEmail,
                             updatedAt: new Date(),
                         })
                         .where(eq(CONTENT_REVIEW_TABLE.id, existingReview[0].id));
@@ -118,6 +138,36 @@ export async function POST(req) {
             }
         } catch (reviewErr) {
             console.error("Failed to auto-create review (non-fatal):", reviewErr);
+        }
+
+        // Also create a support ticket so admins get real-time notification in support inbox.
+        // This is non-fatal and should not block student feedback submission.
+        try {
+            const [ticket] = await db.insert(SUPPORT_TICKETS_TABLE).values({
+                userEmail: studentEmail,
+                subject: `Content Flag: ${contentType} in course ${courseId}`,
+                message: `Issue type: ${issueType}\nDescription: ${sanitizedDescription}`,
+                category: "AI Content",
+                aiIssue: true,
+                status: "Open",
+                metadata: {
+                    courseId,
+                    contentType,
+                    contentId: contentId || null,
+                    issueType,
+                    source: "content-feedback",
+                    feedbackId: result[0]?.id || null,
+                },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }).returning();
+
+            const { notifyAdmins } = await import('@/app/api/notifications/stream/route');
+            if (ticket && typeof notifyAdmins === 'function') {
+                notifyAdmins(ticket);
+            }
+        } catch (notifyErr) {
+            console.error("Failed to create/notify admin support ticket (non-fatal):", notifyErr);
         }
 
         return NextResponse.json({
