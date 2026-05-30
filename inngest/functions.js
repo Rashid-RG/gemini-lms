@@ -865,7 +865,8 @@ export const GenerateAssignments = inngest.createFunction(
 )
 
 export const SendWeeklyProgressReminders = inngest.createFunction(
-    { id: 'weekly-progress-reminders', cron: '0 9 * * 1' },
+    { id: 'weekly-progress-reminders' },
+    { cron: '0 9 * * 1' },
     async ({ step }) => {
         if (!process.env.RESEND_API_KEY) {
             console.error('SendWeeklyProgressReminders: RESEND_API_KEY missing; skipping run');

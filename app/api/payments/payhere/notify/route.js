@@ -51,15 +51,48 @@ const PRICING = {
     }
 };
 
-function verifyPayHereSignature(merchantId, orderId, paymentId, amount, currency, statusCode, merchantSecret, receivedMd5sig) {
+function isLikelyBase64(value) {
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length % 4 === 0;
+}
+
+function getMerchantSecretCandidates(secret) {
+    if (!secret) return [];
+
+    const trimmed = String(secret).trim();
+    const encoding = (process.env.PAYHERE_MERCHANT_SECRET_ENCODING || 'auto').toLowerCase();
+
+    if (encoding === 'raw') return [trimmed];
+
+    let decoded = null;
+    const shouldTryDecode = encoding === 'base64' || (encoding === 'auto' && isLikelyBase64(trimmed));
+    if (shouldTryDecode) {
+        try {
+            decoded = Buffer.from(trimmed, 'base64').toString('utf8').trim();
+        } catch {
+            decoded = null;
+        }
+    }
+
+    const candidates = [trimmed];
+    if (decoded && decoded !== trimmed) candidates.unshift(decoded);
+    return [...new Set(candidates)];
+}
+
+function verifyPayHereSignature(merchantId, orderId, amount, currency, statusCode, merchantSecret, receivedMd5sig) {
+    if (!receivedMd5sig) return false;
+
     // PayHere verification: md5(merchant_id + order_id + payhere_amount + payhere_currency + status_code + md5(merchant_secret))
-    const secretHash = crypto.createHash('md5').update(merchantSecret).digest('hex').toUpperCase();
-    const localMd5sig = crypto.createHash('md5')
-        .update(merchantId + orderId + amount + currency + statusCode + secretHash)
-        .digest('hex')
-        .toUpperCase();
-    
-    return localMd5sig === receivedMd5sig.toUpperCase();
+    const candidates = getMerchantSecretCandidates(merchantSecret);
+
+    return candidates.some((candidate) => {
+        const secretHash = crypto.createHash('md5').update(candidate).digest('hex').toUpperCase();
+        const localMd5sig = crypto.createHash('md5')
+            .update(merchantId + orderId + amount + currency + statusCode + secretHash)
+            .digest('hex')
+            .toUpperCase();
+
+        return localMd5sig === String(receivedMd5sig).toUpperCase();
+    });
 }
 
 export async function POST(req) {
@@ -95,7 +128,6 @@ export async function POST(req) {
         const isValid = verifyPayHereSignature(
             merchantId,
             orderId,
-            paymentId,
             payhereAmount,
             payhereCurrency,
             statusCode,

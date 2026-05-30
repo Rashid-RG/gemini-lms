@@ -75,6 +75,31 @@ function generatePayHereHash(merchantId, orderId, amount, currency, merchantSecr
     return hash;
 }
 
+function isLikelyBase64(value) {
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length % 4 === 0;
+}
+
+function normalizeMerchantSecret(secret) {
+    if (!secret) return '';
+
+    const trimmed = String(secret).trim();
+    const encoding = (process.env.PAYHERE_MERCHANT_SECRET_ENCODING || 'auto').toLowerCase();
+
+    // Safe default: use the value exactly as provided unless base64 is explicitly requested.
+    // Many gateways provide secrets that happen to look like base64; auto-decoding can break hashes.
+    if (encoding === 'raw' || encoding === 'auto') return trimmed;
+
+    const tryDecode = encoding === 'base64' || (encoding === 'auto' && isLikelyBase64(trimmed));
+    if (!tryDecode) return trimmed;
+
+    try {
+        const decoded = Buffer.from(trimmed, 'base64').toString('utf8').trim();
+        return decoded || trimmed;
+    } catch {
+        return trimmed;
+    }
+}
+
 export async function POST(req) {
     try {
         const { 
@@ -98,17 +123,19 @@ export async function POST(req) {
 
         // PayHere credentials from environment
         const merchantId = process.env.PAYHERE_MERCHANT_ID;
-        const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET;
+        const merchantSecretRaw = process.env.PAYHERE_MERCHANT_SECRET;
+        const merchantSecret = normalizeMerchantSecret(merchantSecretRaw);
         const isProduction = process.env.PAYHERE_PRODUCTION === 'true';
 
         console.log('PayHere Config:', { 
             merchantId, 
             secretLength: merchantSecret?.length,
+            secretEncoding: (process.env.PAYHERE_MERCHANT_SECRET_ENCODING || 'auto').toLowerCase(),
             isProduction 
         });
 
-        if (!merchantId || !merchantSecret) {
-            return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 500 });
+        if (!merchantId || !merchantSecretRaw || merchantSecretRaw.includes('REPLACE_WITH_')) {
+            return NextResponse.json({ error: 'Payment gateway not configured: set valid PAYHERE merchant credentials for this domain' }, { status: 500 });
         }
 
         // Generate unique order ID
