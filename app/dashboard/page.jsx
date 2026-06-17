@@ -156,13 +156,13 @@ function Dashboard() {
     <div>
         {!profileCompleteness.isComplete && (
           <div className='mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900'>
-            <div className='flex items-start justify-between gap-4'>
+            <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
               <div>
                 <p className='font-semibold'>Complete your student profile</p>
                 <p className='mt-1 text-sm'>You need to complete your profile before enrolling in courses or appearing with full details in admin reports.</p>
                 <p className='mt-2 text-sm'>Missing: {profileCompleteness.missingLabels.join(', ')}</p>
               </div>
-              <Link href='/dashboard/profile?focus=student-details' className='inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700'>
+              <Link href='/dashboard/profile?focus=student-details' className='inline-flex items-center justify-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 sm:justify-start'>
                 Complete Profile
               </Link>
             </div>
@@ -173,13 +173,13 @@ function Dashboard() {
 
         {studentProfile?.studentIdentifier && (
           <div className='mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sky-900'>
-            <div className='flex items-center justify-between gap-4'>
+            <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
               <div>
                 <p className='text-xs font-semibold uppercase tracking-wide text-sky-700'>Student ID</p>
-                <p className='mt-1 text-2xl font-bold'>{studentProfile.studentIdentifier}</p>
+                <p className='mt-1 break-all text-xl font-bold sm:text-2xl'>{studentProfile.studentIdentifier}</p>
                 <p className='mt-1 text-sm text-sky-800'>Use this ID for academic records and admin reports.</p>
               </div>
-              <Link href='/dashboard/profile' className='inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700'>
+              <Link href='/dashboard/profile' className='inline-flex items-center justify-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 sm:justify-start'>
                 View Profile
               </Link>
             </div>
@@ -189,12 +189,12 @@ function Dashboard() {
         <CourseList/>
 
         <div className='mt-10 space-y-4'>
-          <div className='flex items-center justify-between gap-4'>
+          <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
             <div>
               <p className='text-lg font-semibold text-slate-800'>Adaptive Insights</p>
               <p className='text-sm text-slate-500'>Track mastery, weak topics, and recommended difficulty per course.</p>
             </div>
-            <div className='w-64'>
+            <div className='w-full lg:w-64'>
               <Select value={selectedCourseId} onValueChange={setSelectedCourseId} disabled={loadingCourses || courses.length === 0}>
                 <SelectTrigger>
                   <SelectValue placeholder={loadingCourses ? 'Loading courses...' : 'Select course'} />
@@ -225,13 +225,13 @@ function Dashboard() {
           )}
         </div>
 
-        <div className='mt-8 space-y-3 border border-slate-200 rounded-lg p-4 bg-white'>
-          <div className='flex items-center justify-between gap-3'>
+        <div className='mt-8 space-y-3 rounded-lg border border-slate-200 bg-white p-4'>
+          <div className='flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between'>
             <div>
               <p className='text-base font-semibold text-slate-800'>Progress Reminders</p>
               <p className='text-sm text-slate-500'>Send weekly summaries with weak topics and next steps.</p>
             </div>
-            <div className='flex items-center gap-3'>
+            <div className='flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center'>
               <label className='flex items-center gap-2 text-sm text-slate-700'>
                 <input type='checkbox' checked={reminderEnabled} onChange={toggleReminder} className='h-4 w-4 accent-blue-600' />
                 Enable reminders

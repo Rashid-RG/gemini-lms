@@ -95,11 +95,11 @@ function CourseList() {
 
   return (
     <div className='mt-10'>
-        <h2 className='font-bold text-2xl flex justify-between items-center'>Your Study Material 
+        <h2 className='flex flex-col gap-3 text-2xl font-bold sm:flex-row sm:items-center sm:justify-between'>Your Study Material 
             <Button variant="outline" 
             onClick={() => GetCourseList(true)}
             disabled={loading}
-            className="border-primary text-primary"> <RefreshCw className={loading ? 'animate-spin' : ''}/> {loading ? 'Loading...' : 'Refresh'}</Button>
+            className="border-primary text-primary sm:w-auto w-full"> <RefreshCw className={loading ? 'animate-spin' : ''}/> {loading ? 'Loading...' : 'Refresh'}</Button>
         </h2>
         
         {error && (
@@ -108,7 +108,7 @@ function CourseList() {
             </div>
         )}
    
-        <div className='grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 mt-2 gap-5'>
+                <div className='mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
             {!loading && courseList?.length > 0 ? courseList?.map((course,index)=>(
                <CourseCardItem 
                  course={course} 
@@ -122,7 +122,7 @@ function CourseList() {
                 </div>
             ))
             : (
-                <div className='col-span-3 text-center py-10 text-gray-500'>
+                <div className='py-10 text-center text-gray-500 sm:col-span-2 lg:col-span-3'>
                     No courses found. Create one to get started!
                 </div>
             )

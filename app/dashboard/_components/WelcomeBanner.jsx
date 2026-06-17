@@ -47,23 +47,24 @@ function WelcomeBanner({ studentIdentifier }) {
         </div>
       )}
 
-      <div className='p-5 bg-blue-500 w-full text-white rounded-lg flex items-center gap-6'>
-        <Image src={'/laptop.png'} alt='laptop' width={100} height={100} />
-        <div className='flex-1'>
-            <h2 className='font-bold text-3xl'>Hello, {user?.fullName}</h2>
+      <div className='w-full rounded-lg bg-blue-500 p-5 text-white sm:p-6'>
+        <div className='flex flex-col gap-5 md:flex-row md:items-center md:gap-6'>
+        <Image src={'/laptop.png'} alt='laptop' width={100} height={100} className='mx-auto md:mx-0' />
+        <div className='flex-1 text-center md:text-left'>
+            <h2 className='text-2xl font-bold sm:text-3xl'>Hello, {user?.fullName}</h2>
             <p className=''>Welcome Back, Its time to get back and start learning new course</p>
             {studentIdentifier && (
-                <div className='mt-4 inline-flex items-center gap-3 rounded-xl bg-white/15 px-4 py-3 border border-white/20'>
+                <div className='mt-4 flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/15 px-4 py-3 md:inline-flex md:w-auto md:justify-start'>
                     <div>
                         <p className='text-[11px] uppercase tracking-[0.18em] text-blue-100'>Student ID</p>
-                        <p className='text-lg font-bold text-white'>{studentIdentifier}</p>
+                        <p className='break-all text-base font-bold text-white sm:text-lg'>{studentIdentifier}</p>
                     </div>
                 </div>
             )}
         </div>
         
         {!loading && (
-            <div className='flex-shrink-0'>
+            <div className='flex shrink-0 justify-center md:justify-end'>
                 {isPending && (
                     <div className='px-4 py-2 bg-white/20 rounded-lg border border-white/30'>
                         <p className='text-sm font-medium'>📋 Tutor Request Pending</p>
@@ -81,6 +82,7 @@ function WelcomeBanner({ studentIdentifier }) {
                 )}
             </div>
         )}
+        </div>
 
         <BecomeTutorModal
             isOpen={showTutorModal}
