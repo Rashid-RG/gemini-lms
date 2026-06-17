@@ -1,14 +1,37 @@
 import { db } from "@/configs/db";
-import { CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE } from "@/configs/schema";
+import { CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, STUDY_MATERIAL_TABLE } from "@/configs/schema";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { withDbRetry } from "@/lib/dbUtils";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 export const maxDuration = 30;
 
 export async function POST(req) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const {courseId,studyType}=await req.json();
+
+        // Enforce ownership check (BOLA)
+        const course = await withDbRetry(() => db.select({ createdBy: STUDY_MATERIAL_TABLE.createdBy, isPublic: STUDY_MATERIAL_TABLE.isPublic })
+            .from(STUDY_MATERIAL_TABLE)
+            .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId))
+            .limit(1)
+        );
+        
+        if (course.length === 0) {
+            return NextResponse.json({ error: "Course not found" }, { status: 404 });
+        }
+        
+        if (course[0].createdBy.toLowerCase() !== authEmail && !course[0].isPublic) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
 
         if(studyType=='ALL')
         {

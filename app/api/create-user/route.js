@@ -7,6 +7,8 @@ import { withDbRetry } from "@/lib/dbUtils";
 import cache, { CACHE_TTL } from "@/lib/cache";
 import { captureError, startTimer } from "@/lib/monitoring";
 import { ensureStudentIdentifierForUser, hasStudentIdentifier } from "@/lib/studentIdentifier";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 // In-memory request deduplication to prevent duplicate DB queries
 const pendingRequests = new Map();
@@ -23,11 +25,21 @@ export async function POST(req) {
     const timer = startTimer('create-user-api');
     
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const { user, forceRefresh } = await req.json();
         const normalizedEmail = user?.email?.trim()?.toLowerCase();
         
         if (!normalizedEmail) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
+        }
+
+        if (authEmail !== normalizedEmail) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const cacheKey = `user:${normalizedEmail}:data`;

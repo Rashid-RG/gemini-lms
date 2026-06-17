@@ -20,6 +20,13 @@ const PRICING = {
 };
 
 export async function POST(req) {
+    const authHeader = req.headers.get('authorization');
+    const expectedKey = process.env.ADMIN_SETUP_KEY;
+    
+    if (!expectedKey || authHeader !== `Bearer ${expectedKey}`) {
+        return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
+    }
+
     const timer = startTimer('payment-verify');
     captureMessage('Payment Verify API Called', {}, SEVERITY.INFO);
     

@@ -3,8 +3,10 @@ import { STUDY_MATERIAL_TABLE } from "@/configs/schema";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { withDbRetry } from "@/lib/dbUtils";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
-export const maxDuration = 30;
+export const maxDuration = 45;
 
 // In-memory cache for courses list to avoid repeated DB queries
 const coursesCache = new Map();
@@ -12,10 +14,20 @@ const CACHE_TIME = 30 * 1000; // 30 seconds
 
 export async function POST(req) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const {createdBy}=await req.json();
         
         if(!createdBy) {
             return NextResponse.json({error: 'createdBy is required'}, {status: 400});
+        }
+
+        if (authEmail !== createdBy.trim().toLowerCase()) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         // Check in-memory cache first
@@ -37,7 +49,7 @@ export async function POST(req) {
         // Query only necessary fields to reduce payload and improve speed - with retry
         // TIMEOUT: Abort database query if it takes >15 seconds
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        const timeout = setTimeout(() => controller.abort(), 30000);
         
         try {
             const result = await withDbRetry(async () => {
@@ -116,6 +128,12 @@ export async function POST(req) {
 
 export async function GET(req) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const reqUrl=req.url;
         const {searchParams}=new URL(reqUrl);
         const courseId=searchParams?.get('courseId');
@@ -138,8 +156,11 @@ export async function GET(req) {
             );
         }
 
-        // Ensure courseLayout is properly returned
         const courseData = course[0];
+        // Enforce ownership check (BOLA) unless the course is public
+        if (courseData.createdBy.toLowerCase() !== authEmail && !courseData.isPublic) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
         if (courseData.courseLayout && typeof courseData.courseLayout === 'string') {
             // Parse if it's stored as string
             try {

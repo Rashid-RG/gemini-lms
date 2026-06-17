@@ -2,15 +2,15 @@
 import { CourseCountContext } from '@/app/_context/CourseCountContext'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { LayoutDashboard, Shield, UserCircle, TrendingUp, Award, Compass, Trophy, LifeBuoy, ShieldCheck, ClipboardCheck, ClipboardList, Users, Settings, CreditCard, BarChart3, Mail, BookOpen, Megaphone, History, GraduationCap } from 'lucide-react'
+import { LayoutDashboard, Shield, UserCircle, TrendingUp, Award, Compass, Trophy, LifeBuoy, ShieldCheck, ClipboardCheck, ClipboardList, Users, Settings, CreditCard, BarChart3, Mail, BookOpen, Megaphone, History, GraduationCap, Code, ChevronLeft } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import React, { useContext, useMemo, useEffect, useState } from 'react'
+import React, { useContext, useMemo, useEffect, useState, useCallback } from 'react'
 import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
 
-function SideBar({ onNavigate }) {
+function SideBar({ onNavigate, onCollapseToggle }) {
     const [mounted, setMounted] = useState(false);
     const { user } = useUser();
     const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
@@ -42,6 +42,11 @@ function SideBar({ onNavigate }) {
             name:'My Grades',
             icon:GraduationCap,
             path:'/grades'
+        },
+        {
+            name:'Code Playground',
+            icon:Code,
+            path:'/dashboard/playground'
         },
         {
             name:'Instructor GradeBook',
@@ -141,132 +146,156 @@ function SideBar({ onNavigate }) {
         setMounted(true);
     }, []);
 
-    // Fetch credits and course count ONLY on mount and user change (not on path change!)
-    useEffect(() => {
-        const fetchUserData = async () => {
-            if (!user?.primaryEmailAddress?.emailAddress) return;
-            
+    const fetchUserData = useCallback(async (forceRefresh = false) => {
+        if (!user?.primaryEmailAddress?.emailAddress) return;
+        
+        try {
+            // Fetch courses
+            let coursesResult;
             try {
-                // Check if we should force refresh (after payment)
-                const urlParams = new URLSearchParams(window.location.search);
-                const forceRefresh = urlParams.has('refresh');
-                
-                try {
-                    // Fetch courses with aggressive caching - INCREASED TIMEOUT to 30 seconds
-                    // to handle database latency on first load
-                    const coursesResult = await axios.post('/api/courses', {
+                coursesResult = await axios.post('/api/courses', {
+                    createdBy: user.primaryEmailAddress.emailAddress
+                }, { timeout: 45000 });
+            } catch (firstErr) {
+                if (firstErr?.code === 'ECONNABORTED' || firstErr?.message?.includes('timeout')) {
+                    coursesResult = await axios.post('/api/courses', {
                         createdBy: user.primaryEmailAddress.emailAddress
-                    }, { timeout: 30000 });
-                    const courses = coursesResult?.data?.result || [];
-                    setTotalCourse(courses.length);
-                } catch (courseError) {
-                    console.error('Error fetching courses:', courseError?.message);
-                    setTotalCourse(0);
+                    }, { timeout: 45000 });
+                } else {
+                    throw firstErr;
                 }
-                
-                try {
-                    // Fetch user credits from create-user API (which returns user data)
-                    // Keep this bounded so the sidebar can fall back quickly on slow cold starts.
-                    const userResult = await axios.post('/api/create-user', {
-                        user: {
-                            fullName: user?.fullName,
-                            email: user.primaryEmailAddress.emailAddress
-                        },
-                        forceRefresh: forceRefresh
-                    }, { timeout: 8000 });
-                    
-                    if (userResult?.data?.result) {
-                        const userData = userResult.data.result;
-                        setUserCredits(userData.credits ?? 5);
-                        setIsMember(userData.isMember ?? false);
-                    } else {
-                        // Fallback to defaults if no result
-                        setUserCredits(5);
-                        setIsMember(false);
-                    }
-                } catch (userError) {
-                    const isTimeout = userError?.code === 'ECONNABORTED' || userError?.message?.includes('timeout');
-                    if (!isTimeout && process.env.NODE_ENV !== 'production') {
-                        console.warn('Sidebar user data fallback:', userError?.message);
-                    }
-                    // Fallback to defaults
-                    setUserCredits(5);
-                    setIsMember(false);
-                }
-            } catch (error) {
-                console.error('Unexpected error in fetchUserData:', error);
-                // Fallback: Set default values on any error
+            }
+            const courses = coursesResult?.data?.result || [];
+            setTotalCourse(courses.length);
+        } catch (courseError) {
+            console.error('Error fetching courses:', courseError?.message);
+            setTotalCourse(0);
+        }
+        
+        try {
+            // Fetch user credits
+            const userResult = await axios.post('/api/create-user', {
+                user: {
+                    fullName: user?.fullName,
+                    email: user.primaryEmailAddress.emailAddress
+                },
+                forceRefresh
+            }, { timeout: 8000 });
+            
+            if (userResult?.data?.result) {
+                const userData = userResult.data.result;
+                setUserCredits(userData.credits ?? 5);
+                setIsMember(userData.isMember ?? false);
+            } else {
                 setUserCredits(5);
                 setIsMember(false);
-                setTotalCourse(0);
             }
-        };
-        
-        if (user?.primaryEmailAddress?.emailAddress && mounted) {
-            fetchUserData();
+        } catch (userError) {
+            setUserCredits(5);
+            setIsMember(false);
         }
-        // REMOVED: path dependency - don't refetch on every navigation!
-    }, [user?.primaryEmailAddress?.emailAddress, mounted, setTotalCourse, setUserCredits, setIsMember]);
+    }, [user, setTotalCourse, setUserCredits, setIsMember]);
+
+    // Load data on user change
+    useEffect(() => {
+        if (user?.primaryEmailAddress?.emailAddress && mounted) {
+            fetchUserData(false);
+        }
+    }, [user?.primaryEmailAddress?.emailAddress, mounted, fetchUserData]);
+
+    // Dynamic refetch when returning to the dashboard page to ensure real-time credit updates
+    useEffect(() => {
+        if (user?.primaryEmailAddress?.emailAddress && mounted && path === '/dashboard') {
+            fetchUserData(true);
+        }
+    }, [path, user?.primaryEmailAddress?.emailAddress, mounted, fetchUserData]);
 
     return (
-        <div className='h-screen shadow-md p-5 relative'>
-            <div className='flex gap-2 items-center'>
-                <Image src={'/logo.svg'} alt='logo' width={40} height={40}/>
-                <h2 className="font-bold text-2xl">GEMINI LMS</h2>
-            </div>
+        <div className='h-screen border-r border-slate-100 bg-white p-5 flex flex-col justify-between relative shadow-sm'>
+            <div className='flex flex-col flex-1 overflow-hidden'>
+                <div className='flex gap-2 items-center px-2 py-1 justify-between w-full'>
+                    <div className='flex gap-2 items-center'>
+                        <Image src={'/logo.svg'} alt='logo' width={32} height={32}/>
+                        <h2 className="font-black text-xl tracking-tight text-slate-800">GEMINI LMS</h2>
+                    </div>
+                    {onCollapseToggle && (
+                        <button
+                            onClick={onCollapseToggle}
+                            className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-700"
+                            aria-label="Collapse Sidebar"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
 
-            <div className='mt-10 pb-32'>
-                <Link href={'/create'} className="w-full block">
-                    <Button 
-                        className={`w-full text-white font-semibold transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-lg ${
-                            !isMember && userCredits <= 0
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 animate-pulse'
-                        }`}
-                        disabled={!isMember && userCredits <= 0}
-                        title={!isMember && userCredits <= 0 ? 'No credits available. Please upgrade or purchase credits.' : 'Create a new course'}
-                    >
-                        + Create New {isMember && '✨'}
-                    </Button>
-                </Link>
+                <div className='mt-8 flex-1 flex flex-col overflow-hidden'>
+                    <Link href={'/create'} className="w-full block px-1">
+                        <Button 
+                            className={`w-full text-white font-bold transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-lg ${
+                                !isMember && userCredits <= 0
+                                    ? 'bg-slate-300 cursor-not-allowed text-slate-500'
+                                    : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-200'
+                            }`}
+                            disabled={!isMember && userCredits <= 0}
+                            title={!isMember && userCredits <= 0 ? 'No credits available. Please upgrade or purchase credits.' : 'Create a new course'}
+                        >
+                            + Create New {isMember && '✨'}
+                        </Button>
+                    </Link>
 
-                <div className='mt-5 pb-32 overflow-y-auto max-h-[calc(100vh-250px)]'>
-                    {MenuList.map((menu,index)=>(
-                        <Link href={menu.path} key={index} prefetch={true} onClick={onNavigate}>
-                        <div 
-                        className={`flex gap-5 items-center p-3
-                        hover:bg-slate-200 rounded-lg cursor-pointer mt-3
-                        ${path==menu.path&&'bg-slate-200'}`}>
-                            <menu.icon/>
-                            <h2>{menu.name}</h2>
-                        </div>
-                        </Link>
-                    ))}
+                    <div className='mt-6 pr-1 overflow-y-auto flex-1 space-y-1'>
+                        {MenuList.map((menu, index) => {
+                            const isActive = path === menu.path;
+                            return (
+                                <Link href={menu.path} key={index} prefetch={true} onClick={onNavigate} className="block">
+                                    <div className={`
+                                        flex gap-4 items-center px-4 py-3 rounded-xl cursor-pointer
+                                        transition-all duration-200 group relative
+                                        ${isActive 
+                                            ? 'bg-indigo-50/75 text-indigo-600 font-bold' 
+                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                        }
+                                    `}>
+                                        {isActive && (
+                                            <div className="absolute left-0 top-3 bottom-3 w-1 bg-indigo-600 rounded-r-md" />
+                                        )}
+                                        <menu.icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                                        <span className="text-sm tracking-wide">{menu.name}</span>
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
-                        <div className='border p-3 bg-slate-100 rounded-lg
-            absolute bottom-10 w-[85%]'>
+            <div className='border border-slate-100 p-4 bg-gradient-to-br from-indigo-50/40 via-purple-50/20 to-slate-50/40 rounded-2xl w-full shadow-sm flex flex-col gap-2 mt-auto mb-2'>
                 {isMember ? (
                     <>
-                        <h2 className='text-lg mb-2 text-primary font-semibold'>✨ Premium Member</h2>
-                        <Progress value={100} className="bg-primary/20" />
-                        <h2 className='text-sm text-gray-600'>Unlimited course creation</h2>
+                        <h2 className='text-xs font-black text-indigo-950 flex items-center gap-1.5'>
+                            ✨ Premium Member
+                        </h2>
+                        <Progress value={100} className="h-1.5 bg-indigo-100 [&>div]:bg-indigo-600" />
+                        <h2 className='text-[10px] text-slate-500 font-medium'>Unlimited course creation enabled</h2>
                     </>
                 ) : (
                     <>
-                        <h2 className='text-lg mb-2'>Available Credits : {userCredits}</h2>
-                        <Progress value={userCredits > 0 ? ((userCredits) / (userCredits + totalCourse)) * 100 : 0} />
-                        <h2 className='text-sm'>{totalCourse} Courses Created</h2>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-700">Available Credits</span>
+                            <span className="font-black text-indigo-600">{userCredits} / 5</span>
+                        </div>
+                        <Progress value={userCredits > 0 ? (userCredits / 5) * 100 : 0} className="h-1.5 bg-indigo-50 [&>div]:bg-indigo-600" />
+                        <h2 className='text-[10px] text-slate-500 font-medium'>{totalCourse} Courses Created</h2>
                     </>
                 )}
                 
-                <Link href={'/dashboard/upgrade'} className='text-primary text-xs mt-3 block'>
-                    {isMember ? 'Manage subscription' : 'Upgrade to create more'}
+                <Link href={'/dashboard/upgrade'} className='text-indigo-600 hover:text-indigo-700 text-xs font-bold mt-1 transition-colors hover:underline block'>
+                    {isMember ? 'Manage subscription' : 'Upgrade for more credits →'}
                 </Link>
             </div>
-    </div>
-  )
+        </div>
+    )
 }
 
 export default SideBar

@@ -43,8 +43,59 @@ function StudyMaterialSection({courseId,course}) {
             icon:'/certificate.png',
             path:'/certificate',
             type:'certificate'
+        },
+        {
+            name:'Mock Exam',
+            desc:'Simulated timed assessment',
+            icon:'/quiz.png',
+            path:'/mock-exam',
+            type:'mock-exam'
+        },
+        {
+            name:'Playground',
+            desc:'Interactive coding sandbox',
+            icon:'/notes.png',
+            path:'/playground',
+            type:'playground'
         }
-    ]
+    ];
+
+    // Helper heuristic to detect if a course is coding-related
+    const isCodingRelated = (courseObj) => {
+        if (!courseObj) return false;
+        
+        // 1. Explicitly Coding Prep type
+        if (courseObj.courseType === 'Coding Prep') return true;
+        
+        // 2. Keyword matching on topic or description
+        const codingKeywords = [
+            'python', 'javascript', 'js', 'ts', 'typescript', 'java', 'c++', 'c#', 'rust', 'golang',
+            'html', 'css', 'react', 'nextjs', 'node', 'express', 'sql', 'mysql', 'postgres', 'mongodb', 
+            'programming', 'coding', 'software', 'algorithm', 'web development', 'vue', 'angular',
+            'git', 'github', 'docker', 'kubernetes'
+        ];
+        
+        const topic = (courseObj.topic || '').toLowerCase();
+        const desc = (courseObj.description || '').toLowerCase();
+        
+        return codingKeywords.some(keyword => {
+            if (keyword === 'c') {
+                return /\bc\b/.test(topic) || /\bc\b/.test(desc);
+            }
+            if (keyword === 'js') {
+                return /\bjs\b/.test(topic) || /\bjs\b/.test(desc);
+            }
+            return topic.includes(keyword) || desc.includes(keyword);
+        });
+    };
+
+    const isCoding = isCodingRelated(course);
+    const filteredMaterialList = MaterialList.filter(item => {
+        if (item.type === 'playground') {
+            return isCoding;
+        }
+        return true;
+    });
 
     useEffect(()=>{
         GetStudyMaterial();
@@ -66,7 +117,7 @@ function StudyMaterialSection({courseId,course}) {
         <h2 className='font-medium text-xl'>Study Material</h2>
 
         <div className='grid grid-cols-2 md:grid-cols-4 gap-5 mt-3'>
-            {MaterialList.map((item,index)=>(
+            {filteredMaterialList.map((item,index)=>(
                 
                 <MaterialCardItem item={item} key={index}
                     studyTypeContent={studyTypeContent}

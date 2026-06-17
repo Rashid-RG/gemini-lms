@@ -25,7 +25,7 @@ function CourseList() {
     const [courseList,setCourseList]=useState(() => courseCache.data || []);
     const [loading,setLoading]=useState(false);
     const [error,setError]=useState(null);
-    const {totalCourse,setTotalCourse}=useContext(CourseCountContext);
+    const {totalCourse,setTotalCourse,setUserCredits}=useContext(CourseCountContext);
     const fetchedRef = useRef(false);
     
     const GetCourseList = useCallback(async (forceRefresh = false, retryCount = 0) => {
@@ -91,6 +91,7 @@ function CourseList() {
             return updated;
         });
         setTotalCourse(prev => Math.max(0, prev - 1));
+        setUserCredits(prev => Math.min(5, prev + 1));
     };
 
   return (

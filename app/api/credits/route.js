@@ -2,6 +2,8 @@ import { db } from "@/configs/db";
 import { USER_TABLE, CREDIT_TRANSACTION_TABLE } from "@/configs/schema";
 import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 /**
  * GET /api/credits
@@ -9,6 +11,12 @@ import { NextResponse } from "next/server";
  */
 export async function GET(req) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const { searchParams } = new URL(req.url);
         const email = searchParams.get('email');
 
@@ -17,6 +25,10 @@ export async function GET(req) {
                 { error: "Email is required" },
                 { status: 400 }
             );
+        }
+
+        if (authEmail !== email.trim().toLowerCase()) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         // Get user credits

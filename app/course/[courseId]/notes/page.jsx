@@ -10,6 +10,8 @@ import EndScreen from '../_components/EndScreen';
 import { useChapter } from '../_context/ChapterContext';
 import { toast } from 'sonner';
 import ReportContentIssue from '@/components/ReportContentIssue';
+import VoiceReader from '@/components/VoiceReader';
+import ChapterDiscussion from '@/components/ChapterDiscussion';
 
 function ViewNotes() {
 
@@ -28,6 +30,19 @@ function ViewNotes() {
             GetNotes();
         }
     },[courseId, user?.primaryEmailAddress?.emailAddress, currentChapterIndex])
+
+    // Sync active course & chapter context for chatbot widget
+    useEffect(() => {
+        if (courseId) {
+            const activeChapterId = notes && notes[stepCount] ? String(notes[stepCount].chapterId) : String(currentChapterIndex || 0);
+            window.localStorage.setItem('active-course-id', courseId);
+            window.localStorage.setItem('active-chapter-id', activeChapterId);
+        }
+        return () => {
+            window.localStorage.removeItem('active-course-id');
+            window.localStorage.removeItem('active-chapter-id');
+        };
+    }, [courseId, currentChapterIndex, stepCount, notes]);
 
     // Track note completion when user views a note
     useEffect(() => {
@@ -76,7 +91,12 @@ function ViewNotes() {
         });
 
         console.log(result?.data);
-        setNotes(result?.data);
+        const sortedNotes = (result?.data || []).sort((a, b) => Number(a.chapterId) - Number(b.chapterId));
+        setNotes(sortedNotes);
+        
+        if (currentChapterIndex !== undefined && currentChapterIndex !== null && currentChapterIndex >= 0 && currentChapterIndex < sortedNotes.length) {
+            setStepCount(Number(currentChapterIndex));
+        }
     }
 
     const handleChapterComplete = () => {
@@ -144,15 +164,22 @@ function ViewNotes() {
             stepCount={stepCount}
         />
 
-        <div className='mt-4 flex justify-end gap-3'>
-            <ReportContentIssue 
-                courseId={courseId} 
-                contentType="notes" 
-                contentId={String(stepCount)}
-            />
-            <Button onClick={downloadPdf} disabled={downloading} className='bg-slate-800 hover:bg-slate-900'>
-                {downloading ? 'Exporting...' : 'Download PDF'}
-            </Button>
+        <div className='mt-4 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-100/80'>
+            <div>
+                {notes[stepCount] && (
+                    <VoiceReader htmlContent={notes[stepCount]?.notes} />
+                )}
+            </div>
+            <div className='flex items-center gap-3 self-end md:self-auto'>
+                <ReportContentIssue 
+                    courseId={courseId} 
+                    contentType="notes" 
+                    contentId={String(stepCount)}
+                />
+                <Button onClick={downloadPdf} disabled={downloading} className='bg-slate-800 hover:bg-slate-900'>
+                    {downloading ? 'Exporting...' : 'Download PDF'}
+                </Button>
+            </div>
         </div>
 
         <div className='mt-10 noteClass'>
@@ -165,6 +192,15 @@ function ViewNotes() {
                     chapterIndex={currentChapterIndex}
                     onChapterComplete={handleChapterComplete}
                 />
+
+                {notes[stepCount] && (
+                    <div className="mt-12 border-t border-slate-100 pt-8">
+                        <ChapterDiscussion 
+                            courseId={courseId} 
+                            chapterId={notes[stepCount]?.chapterId} 
+                        />
+                    </div>
+                )}
         </div>
 
     </div>

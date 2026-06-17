@@ -47,17 +47,27 @@ function WelcomeBanner({ studentIdentifier }) {
         </div>
       )}
 
-      <div className='w-full rounded-lg bg-blue-500 p-5 text-white sm:p-6'>
-        <div className='flex flex-col gap-5 md:flex-row md:items-center md:gap-6'>
-        <Image src={'/laptop.png'} alt='laptop' width={100} height={100} className='mx-auto md:mx-0' />
-        <div className='flex-1 text-center md:text-left'>
-            <h2 className='text-2xl font-bold sm:text-3xl'>Hello, {user?.fullName}</h2>
-            <p className=''>Welcome Back, Its time to get back and start learning new course</p>
+      <div className='w-full rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-indigo-900 p-6 text-white shadow-xl relative overflow-hidden border border-slate-800 hover:shadow-indigo-950/20 transition-all duration-300'>
+        {/* Decorative ambient glowing backdrop blurs */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className='relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:gap-8'>
+        <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md self-center md:self-auto shrink-0 shadow-inner">
+            <Image src={'/laptop.png'} alt='laptop' width={80} height={80} className='mx-auto' />
+        </div>
+        <div className='flex-1 text-center md:text-left space-y-2'>
+            <h2 className='text-2xl font-black tracking-tight sm:text-3xl bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent'>
+                Hello, {user?.fullName}
+            </h2>
+            <p className='text-sm text-indigo-200/90 font-medium max-w-lg'>
+                Welcome back! Ready to continue your learning journey and explore new courses?
+            </p>
             {studentIdentifier && (
-                <div className='mt-4 flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/15 px-4 py-3 md:inline-flex md:w-auto md:justify-start'>
+                <div className='mt-2 inline-flex rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-2.5 backdrop-blur-md shadow-inner text-left'>
                     <div>
-                        <p className='text-[11px] uppercase tracking-[0.18em] text-blue-100'>Student ID</p>
-                        <p className='break-all text-base font-bold text-white sm:text-lg'>{studentIdentifier}</p>
+                        <p className='text-[10px] font-bold uppercase tracking-widest text-indigo-300'>Student Identifier</p>
+                        <p className='break-all text-sm font-black text-white font-mono mt-0.5'>{studentIdentifier}</p>
                     </div>
                 </div>
             )}
@@ -66,17 +76,17 @@ function WelcomeBanner({ studentIdentifier }) {
         {!loading && (
             <div className='flex shrink-0 justify-center md:justify-end'>
                 {isPending && (
-                    <div className='px-4 py-2 bg-white/20 rounded-lg border border-white/30'>
-                        <p className='text-sm font-medium'>📋 Tutor Request Pending</p>
-                        <p className='text-xs opacity-90'>Admins will review soon</p>
+                    <div className='px-4 py-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 text-center md:text-left shadow-lg'>
+                        <p className='text-xs font-bold text-indigo-300'>📋 Tutor Request Pending</p>
+                        <p className='text-[11px] text-slate-400 mt-0.5'>Admins are currently reviewing your request</p>
                     </div>
                 )}
                 {shouldShowButton && (
                     <Button
                         onClick={() => setShowTutorModal(true)}
-                        className='bg-white text-blue-600 hover:bg-white/90 font-semibold flex items-center gap-2'
+                        className='bg-white hover:bg-slate-50 text-indigo-950 font-bold border border-slate-100 shadow-md flex items-center gap-2 rounded-2xl py-5 px-5 hover:scale-[1.02] active:scale-95 transition-all duration-200'
                     >
-                        <BookOpen className='w-4 h-4' />
+                        <BookOpen className='w-4.5 h-4.5 text-indigo-600' />
                         Become a Tutor
                     </Button>
                 )}
@@ -94,7 +104,7 @@ function WelcomeBanner({ studentIdentifier }) {
                 setShowTutorModal(false)
             }}
         />
-    </div>
+      </div>
     </>
   )
 }

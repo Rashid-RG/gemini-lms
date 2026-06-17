@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
-import { CHAT_CONVERSATIONS_TABLE, CHAT_MESSAGES_TABLE } from "@/configs/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { CHAT_CONVERSATIONS_TABLE, CHAT_MESSAGES_TABLE, CHAPTER_NOTES_TABLE } from "@/configs/schema";
+import { eq, desc, asc, and } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -31,16 +33,20 @@ async function buildContext(conversationId) {
   }));
 }
 
-function systemPrompt(userEmail) {
-  return `You are Gemini LMS in-app study assistant. Keep answers short (4-6 sentences). Be encouraging and practical. If user asks about account or billing, ask them to contact support. If code is requested, provide concise snippets. User email: ${userEmail}.`;
+function systemPrompt(userEmail, notesContext = "") {
+  let prompt = `You are Gemini LMS in-app study assistant. Keep answers short (4-6 sentences). Be encouraging and practical. If user asks about account or billing, ask them to contact support. If code is requested, provide concise snippets. User email: ${userEmail}.`;
+  if (notesContext) {
+    prompt += `\n\nYou are currently helping the user study the following chapter material. Use it as reference context to answer their questions:\n---START CONTEXT---\n${notesContext}\n---END CONTEXT---`;
+  }
+  return prompt;
 }
 
-async function generateReply(userEmail, conversationId, message) {
+async function generateReply(userEmail, conversationId, message, notesContext = "") {
   const history = await buildContext(conversationId);
   const chat = model.startChat({
     generationConfig,
     history: [
-      { role: "user", parts: [{ text: systemPrompt(userEmail) }] },
+      { role: "user", parts: [{ text: systemPrompt(userEmail, notesContext) }] },
       ...history,
     ],
   });
@@ -49,12 +55,12 @@ async function generateReply(userEmail, conversationId, message) {
   return result.response.text();
 }
 
-async function* streamReply(userEmail, conversationId, message) {
+async function* streamReply(userEmail, conversationId, message, notesContext = "") {
   const history = await buildContext(conversationId);
   const chat = model.startChat({
     generationConfig,
     history: [
-      { role: "user", parts: [{ text: systemPrompt(userEmail) }] },
+      { role: "user", parts: [{ text: systemPrompt(userEmail, notesContext) }] },
       ...history,
     ],
   });
@@ -68,10 +74,40 @@ async function* streamReply(userEmail, conversationId, message) {
 
 export async function POST(req) {
   try {
-    const { message, userEmail, conversationId } = await req.json();
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
+    const { message, userEmail, conversationId, courseId, chapterId } = await req.json();
 
     if (!userEmail || !message) {
       return new Response("userEmail and message are required", { status: 400 });
+    }
+
+    if (authEmail !== userEmail.trim().toLowerCase()) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    // Query chapter notes context if courseId and chapterId are provided (RAG)
+    let notesContext = "";
+    if (courseId && chapterId !== undefined && chapterId !== null) {
+      try {
+        const dbNotes = await db.select({ notes: CHAPTER_NOTES_TABLE.notes })
+          .from(CHAPTER_NOTES_TABLE)
+          .where(
+            and(
+              eq(CHAPTER_NOTES_TABLE.courseId, courseId),
+              eq(CHAPTER_NOTES_TABLE.chapterId, Number(chapterId))
+            )
+          ).limit(1);
+        if (dbNotes.length > 0 && dbNotes[0].notes) {
+          notesContext = dbNotes[0].notes.replace(/<[^>]*>/g, ' ');
+        }
+      } catch (err) {
+        console.error("Failed to fetch notes context for chat:", err);
+      }
     }
 
     // Rate limit: 10 messages per minute per user
@@ -134,7 +170,7 @@ export async function POST(req) {
         try {
           safeEnqueue(encoder.encode(`data: ${JSON.stringify({ conversationId: convoId })}\n\n`));
 
-          for await (const chunk of streamReply(userEmail, convoId, message)) {
+          for await (const chunk of streamReply(userEmail, convoId, message, notesContext)) {
             if (isClosed) break;
             fullReply += chunk;
             safeEnqueue(encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`));
@@ -183,10 +219,40 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
-    const { message, userEmail, conversationId } = await req.json();
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = (sessionClaims?.email || sessionClaims?.primaryEmailAddress?.emailAddress)?.toLowerCase();
+
+    const { message, userEmail, conversationId, courseId, chapterId } = await req.json();
 
     if (!userEmail || !message) {
       return NextResponse.json({ error: "userEmail and message are required" }, { status: 400 });
+    }
+
+    if (authEmail !== userEmail.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Query chapter notes context if courseId and chapterId are provided (RAG)
+    let notesContext = "";
+    if (courseId && chapterId !== undefined && chapterId !== null) {
+      try {
+        const dbNotes = await db.select({ notes: CHAPTER_NOTES_TABLE.notes })
+          .from(CHAPTER_NOTES_TABLE)
+          .where(
+            and(
+              eq(CHAPTER_NOTES_TABLE.courseId, courseId),
+              eq(CHAPTER_NOTES_TABLE.chapterId, Number(chapterId))
+            )
+          ).limit(1);
+        if (dbNotes.length > 0 && dbNotes[0].notes) {
+          notesContext = dbNotes[0].notes.replace(/<[^>]*>/g, ' ');
+        }
+      } catch (err) {
+        console.error("Failed to fetch notes context for chat:", err);
+      }
     }
 
     let convoId = conversationId;
@@ -205,7 +271,7 @@ export async function PUT(req) {
       content: message,
     });
 
-    const reply = await generateReply(userEmail, convoId, message);
+    const reply = await generateReply(userEmail, convoId, message, notesContext);
 
     await db.insert(CHAT_MESSAGES_TABLE).values({
       conversationId: convoId,
@@ -229,12 +295,22 @@ export async function PUT(req) {
 
 export async function GET(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = (sessionClaims?.email || sessionClaims?.primaryEmailAddress?.emailAddress)?.toLowerCase();
+
     const { searchParams } = new URL(req.url);
     const conversationId = searchParams.get("conversationId");
     const userEmail = searchParams.get("userEmail");
 
     if (!conversationId || !userEmail) {
       return NextResponse.json({ error: "conversationId and userEmail are required" }, { status: 400 });
+    }
+
+    if (authEmail !== userEmail.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const [conversation] = await db

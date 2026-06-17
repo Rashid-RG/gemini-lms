@@ -4,16 +4,27 @@ import { inngest } from "@/inngest/client";
 import { NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { withDbRetry } from "@/lib/dbUtils";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 export const maxDuration = 30;
 
 export async function POST(req) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const {chapters,courseId,type,courseType,topic,courseDetails,createdBy}=await req.json();
 
+        if (authEmail !== createdBy.trim().toLowerCase()) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         // 🛡️ Rate limiting - 20 requests per 15 minutes per user
-        const userIdentifier = createdBy || 'anonymous';
-        const rateCheck = checkRateLimit(userIdentifier, 'study-content');
+        const rateCheck = checkRateLimit(authEmail, 'study-content');
         if (rateCheck.limited) {
           return NextResponse.json(
             { error: rateCheck.message, retryAfter: Math.ceil(rateCheck.resetIn / 1000) },

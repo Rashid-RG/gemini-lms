@@ -250,6 +250,7 @@ FORMAT RULES (strictly follow):
                             success = true;
                         } catch (chapterErr) {
                             lastError = chapterErr;
+                            handleAIError(chapterErr);
                             console.error('Error generating notes for chapter', index, 'attempt', attempt + 1, ':', chapterErr.message);
                             
                             // Check if it's a rate limit - wait longer
@@ -424,6 +425,7 @@ export const GenerateStudyTypeContent=inngest.createFunction(
                     baseDelayMs: 2000,
                     maxDelayMs: 20000,
                     onRetry: (attempt, max, delay, err) => {
+                        handleAIError(err);
                         console.log(`AI retry ${attempt}/${max} for ${studyType} after ${delay}ms. Error: ${err.message}`);
                     }
                 });
@@ -661,6 +663,7 @@ Grade CORRECTNESS ONLY.`;
                         
                     } catch (attemptErr) {
                         lastError = attemptErr;
+                        handleAIError(attemptErr);
                         console.error(`AI Grading attempt ${attempt + 1}/${maxRetries} failed:`, attemptErr.message);
                         
                         // Check if it's a rate limit/quota error
@@ -865,6 +868,7 @@ export const GenerateAssignments = inngest.createFunction(
                             await new Promise(resolve => setTimeout(resolve, waitTime));
                             retries++;
                         } else {
+                            handleAIError(aiErr);
                             console.error('AI Assignment Generation Error:', aiErr.message);
                             // Return default assignments if AI fails after all retries
                             return [

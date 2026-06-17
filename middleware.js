@@ -7,7 +7,15 @@ const isProtectedRoute = createRouteMatcher(['/dashboard(.*)','/create','/course
 // Admin routes - handled separately with database auth
 const isAdminRoute = createRouteMatcher(['/admin(.*)'])
 
+// Inngest routes - uses its own signing key authentication
+const isInngestRoute = createRouteMatcher(['/api/inngest(.*)'])
+
 export default clerkMiddleware(async (auth, req) => {
+  // Skip Clerk protection for Inngest routes - they use signing key auth
+  if (isInngestRoute(req)) {
+    return NextResponse.next()
+  }
+
   // Skip Clerk protection for admin routes - they use database auth
   if (isAdminRoute(req)) {
     // Admin routes are handled by their own authentication system

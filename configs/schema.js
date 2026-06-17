@@ -726,3 +726,57 @@ export const PREDICTIVE_ANALYTICS_TABLE = pgTable('predictiveAnalytics', {
     courseStudentIdx: index('predictive_analytics_course_student_idx').on(table.courseId, table.studentEmail),
     riskLevelIdx: index('predictive_analytics_risk_level_idx').on(table.riskLevel),
 }));
+
+// Mock Exams Table
+export const MOCK_EXAMS_TABLE = pgTable('mockExams', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    title: varchar().notNull(),
+    questions: json().notNull(), // Array of questions: [{id, question, options: [], answer}]
+    durationMinutes: integer().default(60),
+    passingScore: integer().default(70),
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    courseIdIdx: index('mock_exams_course_id_idx').on(table.courseId),
+}));
+
+// Mock Exam Submissions Table
+export const MOCK_EXAM_SUBMISSIONS_TABLE = pgTable('mockExamSubmissions', {
+    id: serial().primaryKey(),
+    studentEmail: varchar().notNull(),
+    mockExamId: integer().notNull(),
+    answers: json().notNull(), // Key-value object of responses: {questionId: selectedOption}
+    score: integer().notNull(), // percentage scored
+    passed: boolean().default(false),
+    timeSpentSeconds: integer().default(0),
+    submittedAt: timestamp().defaultNow()
+}, (table) => ({
+    studentIdx: index('mock_exam_sub_student_idx').on(table.studentEmail),
+    examIdx: index('mock_exam_sub_exam_idx').on(table.mockExamId),
+}));
+
+// Peer Discussions Table
+export const COURSE_DISCUSSIONS_TABLE = pgTable('courseDiscussions', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    chapterId: integer().notNull(),
+    studentEmail: varchar().notNull(),
+    studentName: varchar().notNull(),
+    content: text().notNull(),
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    courseChapterIdx: index('course_disc_course_chap_idx').on(table.courseId, table.chapterId),
+}));
+
+// Discussion Replies Table
+export const DISCUSSION_REPLIES_TABLE = pgTable('discussionReplies', {
+    id: serial().primaryKey(),
+    discussionId: integer().notNull(),
+    authorEmail: varchar().notNull(),
+    authorName: varchar().notNull(),
+    role: varchar().default('student'), // 'student', 'tutor', 'admin'
+    content: text().notNull(),
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    discussionIdx: index('disc_replies_disc_idx').on(table.discussionId),
+}));

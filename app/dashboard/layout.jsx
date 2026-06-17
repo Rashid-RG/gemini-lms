@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import SideBar from './_components/SideBar'
 import DashboardHeader from './_components/DashboardHeader'
 import { CourseCountContext } from '../_context/CourseCountContext'
@@ -11,6 +11,14 @@ function DashboardLayout({children}) {
     const [userCredits, setUserCredits] = useState(5); // Default 5 credits
     const [isMember, setIsMember] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('sidebarCollapsed');
+        if (saved !== null) {
+            setIsSidebarCollapsed(saved === 'true');
+        }
+    }, []);
     
   return (
     <CourseCountContext.Provider value={{
@@ -18,40 +26,57 @@ function DashboardLayout({children}) {
         userCredits, setUserCredits,
         isMember, setIsMember
     }}>
-    <div>
-        {/* Mobile Menu Button */}
-        <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className='md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md'
-        >
-            {mobileMenuOpen ? <X className='w-6 h-6' /> : <Menu className='w-6 h-6' />}
-        </button>
-
-        {/* Mobile Sidebar Overlay */}
+    <div className="min-h-screen bg-slate-50/50">
+        {/* Mobile Sidebar Overlay with backdrop-blur */}
         {mobileMenuOpen && (
             <div 
-                className='md:hidden fixed inset-0 bg-black/50 z-40'
+                className='md:hidden fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-40 transition-opacity duration-300'
                 onClick={() => setMobileMenuOpen(false)}
             />
         )}
 
         {/* Sidebar - Desktop fixed, Mobile slide-in */}
         <div className={`
-            md:w-64 md:block fixed z-50 bg-white
-            ${mobileMenuOpen ? 'block w-64' : 'hidden'}
-            transition-transform duration-300
+            fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-slate-100 w-64
+            transition-transform duration-300 ease-in-out
+            ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+            ${isSidebarCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}
         `}>
-            <SideBar onNavigate={() => setMobileMenuOpen(false)} />
+            <SideBar 
+                onNavigate={() => setMobileMenuOpen(false)} 
+                onCollapseToggle={() => {
+                    const next = !isSidebarCollapsed;
+                    setIsSidebarCollapsed(next);
+                    localStorage.setItem('sidebarCollapsed', String(next));
+                }}
+            />
         </div>
 
-        <div className='md:ml-64'>
-            <DashboardHeader/>
-            <div className='p-4 md:p-10 pt-16 md:pt-4'>
+        {/* Main Content Pane */}
+        <div className={`
+            flex flex-col min-h-screen transition-all duration-300 ease-in-out
+            ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-64'}
+        `}>
+            <DashboardHeader 
+                onMenuClick={() => {
+                    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                        setMobileMenuOpen(true);
+                    } else {
+                        const next = !isSidebarCollapsed;
+                        setIsSidebarCollapsed(next);
+                        localStorage.setItem('sidebarCollapsed', String(next));
+                    }
+                }} 
+                isSidebarCollapsed={isSidebarCollapsed}
+            />
+            <main className='flex-1 p-4 md:p-8 pt-6'>
                 <AnnouncementBanner />
-                {children}
-            </div>
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    {children}
+                </div>
+            </main>
         </div>
-        </div>
+    </div>
      </CourseCountContext.Provider>
   )
 }

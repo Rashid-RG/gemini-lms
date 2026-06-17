@@ -11,8 +11,8 @@ function MaterialCardItem({item,studyTypeContent,course,refreshData}) {
   const [loading,setLoading]=useState(false);
   
   // Certificate doesn't need generation
-  const isCertificate = item.type === 'certificate';
-  
+  const isCertificateOrMockOrPlayground = item.type === 'certificate' || item.type === 'mock-exam' || item.type === 'playground';
+
   const GenerateContent=async()=>{
 
     toast(' Generating your content...')
@@ -48,10 +48,14 @@ function MaterialCardItem({item,studyTypeContent,course,refreshData}) {
   return (
    
     <div className={`border shadow-md rounded-lg p-5 flex flex-col items-center
-      ${!isCertificate && studyTypeContent?.[item.type]?.length==0&&'grayscale'}
+      ${!isCertificateOrMockOrPlayground && studyTypeContent?.[item.type]?.length==0&&'grayscale'}
     `}>
-       {isCertificate ? (
+       {item.type === 'certificate' ? (
         <h2 className='p-1 px-2 bg-yellow-500 text-white rounded-full text-[10px] mb-2'>Certificate</h2>
+       ) : item.type === 'mock-exam' ? (
+        <h2 className='p-1 px-2 bg-purple-500 text-white rounded-full text-[10px] mb-2'>Timed Exam</h2>
+       ) : item.type === 'playground' ? (
+        <h2 className='p-1 px-2 bg-blue-500 text-white rounded-full text-[10px] mb-2'>Sandbox</h2>
        ) : studyTypeContent?.[item.type]?.length==0 ? (
         <h2 className='p-1 px-2 bg-gray-500 text-white rounded-full text-[10px] mb-2'>Generate</h2>
        ) : (
@@ -69,7 +73,11 @@ function MaterialCardItem({item,studyTypeContent,course,refreshData}) {
         <h2 className='font-medium mt-3'>{item.name}</h2>
         <p className='text-gray-500 text-sm text-center'>{item.desc}</p>
 
-        {isCertificate ? (
+        {item.type === 'playground' ? (
+          <Link href={`/dashboard/playground?courseId=${course?.courseId}`}>
+            <Button className="mt-3 w-full" variant="outline">View</Button>
+          </Link>
+        ) : isCertificateOrMockOrPlayground ? (
           <Link href={'/course/'+course?.courseId+item.path}>
             <Button className="mt-3 w-full" variant="outline">View</Button>
           </Link>

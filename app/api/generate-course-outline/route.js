@@ -43,6 +43,8 @@ import { inngest } from "@/inngest/client";
 import { NextResponse } from "next/server";
 import { eq, isNotNull } from "drizzle-orm";
 import { checkRateLimit, safeJsonParse, retryWithBackoff } from "@/lib/rateLimit";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 import { hasEnoughCredits, deductCredits, CREDIT_TYPES } from "@/lib/credits";
 import { withDbRetry } from "@/lib/dbUtils";
 import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
@@ -181,10 +183,20 @@ async function callAIWithRetry(prompt, retries = 4, delayMs = 3000) {
 
 export async function POST(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { courseId, topic, courseType, difficultyLevel, createdBy, includeVideos, isPublic, category, tags } = await req.json();
 
     if (!courseId || !topic || !courseType || !difficultyLevel || !createdBy) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (authEmail !== createdBy.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // 🛡️ Rate limiting - 5 courses per hour per user

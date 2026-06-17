@@ -122,6 +122,9 @@ function ChatBotWidget() {
 
     setMessages((prev) => [...prev, tempUserMsg, tempBotMsg]);
 
+    const activeCourseId = typeof window !== "undefined" ? window.localStorage.getItem('active-course-id') : null;
+    const activeChapterId = typeof window !== "undefined" ? window.localStorage.getItem('active-chapter-id') : null;
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -130,6 +133,8 @@ function ChatBotWidget() {
           message: userMsg,
           userEmail,
           conversationId,
+          courseId: activeCourseId,
+          chapterId: activeChapterId,
         }),
       });
 

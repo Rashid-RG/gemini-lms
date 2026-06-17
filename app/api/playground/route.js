@@ -1,0 +1,166 @@
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import axios from "axios";
+import { exec } from "child_process";
+import fs from "fs";
+import path from "path";
+
+async function runLocally(language, code) {
+    const tempDir = path.join(process.cwd(), "tmp");
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    const uniqueId = Date.now();
+    let ext = "js";
+    let tempFilePath = "";
+    let cmd = "";
+    
+    if (language === "javascript") {
+        ext = "js";
+        tempFilePath = path.join(tempDir, `playground_${uniqueId}.${ext}`);
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `node "${tempFilePath}"`;
+    } else if (language === "typescript") {
+        ext = "ts";
+        tempFilePath = path.join(tempDir, `playground_${uniqueId}.${ext}`);
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `npx ts-node "${tempFilePath}"`;
+    } else if (language === "python") {
+        ext = "py";
+        tempFilePath = path.join(tempDir, `playground_${uniqueId}.${ext}`);
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `python "${tempFilePath}"`;
+    } else if (language === "java") {
+        const javaTempDir = path.join(tempDir, `java_${uniqueId}`);
+        fs.mkdirSync(javaTempDir, { recursive: true });
+        tempFilePath = path.join(javaTempDir, "Main.java");
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `javac "${tempFilePath}" && java -cp "${javaTempDir}" Main`;
+    } else if (language === "cpp") {
+        ext = "cpp";
+        const cppTempDir = path.join(tempDir, `cpp_${uniqueId}`);
+        fs.mkdirSync(cppTempDir, { recursive: true });
+        tempFilePath = path.join(cppTempDir, "playground.cpp");
+        const exePath = path.join(cppTempDir, "playground.exe");
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `g++ "${tempFilePath}" -o "${exePath}" && "${exePath}"`;
+    }
+
+    return new Promise((resolve) => {
+        exec(cmd, (error, stdout, stderr) => {
+            // Clean up temp files
+            try {
+                if (language === "java" || language === "cpp") {
+                    const dirToDelete = path.dirname(tempFilePath);
+                    fs.rmSync(dirToDelete, { recursive: true, force: true });
+                } else {
+                    fs.unlinkSync(tempFilePath);
+                }
+            } catch (_) {}
+
+            if (language === "python" && error && (error.code === 127 || error.message.includes("not recognized"))) {
+                // Fallback to python3
+                fs.writeFileSync(tempFilePath, code);
+                exec(`python3 "${tempFilePath}"`, (error3, stdout3, stderr3) => {
+                    try { fs.unlinkSync(tempFilePath); } catch (_) {}
+                    resolve({
+                        run: {
+                            stdout: stdout3 || "",
+                            stderr: stderr3 || (error3 ? error3.message : ""),
+                            code: error3 ? (error3.code || 1) : 0,
+                            output: stdout3 || stderr3 || (error3 ? error3.message : "")
+                        }
+                    });
+                });
+            } else {
+                resolve({
+                    run: {
+                        stdout: stdout || "",
+                        stderr: stderr || (error ? error.message : ""),
+                        code: error ? (error.code || 1) : 0,
+                        output: stdout || stderr || (error ? error.message : "")
+                    }
+                });
+            }
+        });
+    });
+}
+
+export const maxDuration = 15;
+
+const LANGUAGE_VERSIONS = {
+    javascript: "18.15.0",
+    python: "3.10.0",
+    typescript: "5.0.3",
+    java: "15.0.2",
+    cpp: "10.2.0"
+};
+
+/**
+ * POST /api/playground
+ * Evaluates and executes source code in a secure sandboxed environment via Piston API.
+ */
+export async function POST(req) {
+    try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { language, code } = await req.json();
+
+        if (!language || !code) {
+            return NextResponse.json({ error: "Language and code are required" }, { status: 400 });
+        }
+
+        const normalizedLang = language.toLowerCase();
+        const version = LANGUAGE_VERSIONS[normalizedLang];
+
+        if (!version) {
+            return NextResponse.json({ error: `Language '${language}' is not supported` }, { status: 400 });
+        }
+
+        // Call Piston API for sandboxed execution
+        try {
+            const response = await axios.post("https://emkc.org/api/v2/piston/execute", {
+                language: normalizedLang,
+                version: version,
+                files: [
+                    {
+                        content: code
+                    }
+                ]
+            }, {
+                timeout: 8000
+            });
+
+            const result = response.data;
+            return NextResponse.json({
+                run: {
+                    stdout: result.run?.stdout || "",
+                    stderr: result.run?.stderr || "",
+                    code: result.run?.code ?? 0,
+                    signal: result.run?.signal || null,
+                    output: result.run?.output || ""
+                }
+            });
+        } catch (apiError) {
+            console.warn("Piston API execution failed, falling back to local runner:", apiError.message);
+            
+            try {
+                const localResult = await runLocally(normalizedLang, code);
+                return NextResponse.json(localResult);
+            } catch (fallbackError) {
+                console.error("Local execution fallback failed:", fallbackError);
+                return NextResponse.json({ 
+                    error: "Code execution engine is offline, and local execution failed." 
+                }, { status: 503 });
+            }
+        }
+
+    } catch (error) {
+        console.error("Playground API error:", error);
+        return NextResponse.json({ error: "Failed to run code" }, { status: 500 });
+    }
+}

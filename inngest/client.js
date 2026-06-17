@@ -1,7 +1,38 @@
 import { Inngest } from "inngest";
 
-// Create a client to send and receive events
-export const inngest = new Inngest({ id: "easy-study-web-app"});
+const INNGEST_EVENT_KEY = process.env.INNGEST_EVENT_KEY;
+const INNGEST_SIGNING_KEY = process.env.INNGEST_SIGNING_KEY;
+const INNGEST_SIGNING_KEY_FALLBACK = process.env.INNGEST_SIGNING_KEY_FALLBACK;
+const INNGEST_BASE_URL = process.env.INNGEST_BASE_URL?.trim();
+const INNGEST_DEV = process.env.INNGEST_DEV === "1" || process.env.INNGEST_DEV?.toLowerCase() === "true";
+
+// Create a client to send and receive events with explicit dev-mode config.
+export const inngest = new Inngest({
+	id: "easy-study-web-app",
+	eventKey: INNGEST_EVENT_KEY,
+	isDev: INNGEST_DEV,
+	baseUrl: INNGEST_BASE_URL || (INNGEST_DEV ? "http://localhost:8288/" : undefined),
+});
+
+console.log('[INGEST CLIENT] env:', {
+  INNGEST_DEV: INNGEST_DEV,
+  INNGEST_BASE_URL: INNGEST_BASE_URL || 'default',
+  INNGEST_EVENT_KEY: Boolean(INNGEST_EVENT_KEY),
+  INNGEST_SIGNING_KEY: Boolean(INNGEST_SIGNING_KEY),
+  INNGEST_SIGNING_KEY_FALLBACK: Boolean(INNGEST_SIGNING_KEY_FALLBACK),
+});
+
+if (INNGEST_SIGNING_KEY) {
+	inngest.inngestApi.setSigningKey(INNGEST_SIGNING_KEY);
+}
+
+if (INNGEST_SIGNING_KEY_FALLBACK) {
+	inngest.inngestApi.setSigningKeyFallback(INNGEST_SIGNING_KEY_FALLBACK);
+}
+
+if (!INNGEST_EVENT_KEY) {
+	console.warn('INNGEST_EVENT_KEY is not configured. Inngest event sending may fail.');
+}
 
 // Wrap `send` to fail gracefully when no event key is configured
 // (prevents unhandledRejection: "Event key not found" in dev environments)
@@ -13,10 +44,6 @@ if (typeof inngest.send === 'function') {
 		} catch (err) {
 			const msg = err && (err.message || (err.toString && err.toString()));
 			if (msg && msg.toLowerCase().includes('event key not found')) {
-				// Log a friendly warning and return null so callers can continue
-				// without crashing when INNGEST event key is not configured.
-				// This commonly happens in local dev when the env var is absent.
-				// eslint-disable-next-line no-console
 				console.warn('Inngest event key not found. Skipping event send.');
 				return null;
 			}

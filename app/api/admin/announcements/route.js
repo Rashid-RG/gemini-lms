@@ -9,7 +9,7 @@ import { eq, desc } from "drizzle-orm";
  */
 export async function GET(req) {
     try {
-        const { searchParams } = new URL(req.url);
+        const { searchParams } = new URL(req.url, 'http://localhost');
         const isAdmin = searchParams.get('admin') === 'true';
         const userEmail = searchParams.get('userEmail');
 
@@ -48,7 +48,17 @@ export async function GET(req) {
         let filteredAnnouncements = announcements;
         if (!isAdmin && userEmail) {
             filteredAnnouncements = announcements.filter(a => {
-                const dismissed = Array.isArray(a.dismissedBy) ? a.dismissedBy : [];
+                let dismissed = a.dismissedBy;
+                if (typeof dismissed === 'string') {
+                    try {
+                        dismissed = JSON.parse(dismissed);
+                    } catch (_) {
+                        dismissed = [];
+                    }
+                }
+                if (!Array.isArray(dismissed)) {
+                    dismissed = [];
+                }
                 return !dismissed.includes(userEmail);
             });
         }
@@ -147,7 +157,18 @@ export async function PUT(req) {
                 return NextResponse.json({ error: 'Announcement not found' }, { status: 404 });
             }
 
-            const dismissed = announcement[0].dismissedBy || [];
+            let dismissed = announcement[0].dismissedBy;
+            if (typeof dismissed === 'string') {
+                try {
+                    dismissed = JSON.parse(dismissed);
+                } catch (_) {
+                    dismissed = [];
+                }
+            }
+            if (!Array.isArray(dismissed)) {
+                dismissed = [];
+            }
+
             if (!dismissed.includes(userEmail)) {
                 dismissed.push(userEmail);
                 await db.update(ANNOUNCEMENTS_TABLE)
