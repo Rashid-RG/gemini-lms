@@ -241,9 +241,9 @@ function EmailStudentsPage() {
                             </div>
                         ) : (
                             <div className="max-h-[400px] overflow-y-auto">
-                                {filteredStudents.map((student) => (
+                                {filteredStudents.map((student, index) => (
                                     <div
-                                        key={student.email}
+                                        key={student.id || `${student.email}-${index}`}
                                         className={`px-4 py-3 border-b last:border-b-0 flex items-center gap-3 hover:bg-gray-50 cursor-pointer ${
                                             selectedStudents.includes(student.email) ? 'bg-primary/5' : ''
                                         }`}

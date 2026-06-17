@@ -16,13 +16,11 @@ function Course() {
     const [course,setCourse]=useState();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
-    useEffect(()=>{
-        if(courseId) {
-            GetCourse();
-        }
-    },[courseId])
-    
+
+    const includeVideos = Boolean(course?.includeVideos);
+    const hasVideoSuggestions = Boolean(course?.videos) && Object.keys(course.videos || {}).length > 0;
+    const isVideoFetchPending = includeVideos && !hasVideoSuggestions;
+
     const GetCourse=useCallback(async()=>{
         try {
             setLoading(true);
@@ -45,6 +43,26 @@ function Course() {
             setLoading(false);
         }
     }, [courseId])
+
+    useEffect(()=>{
+        if(courseId) {
+            GetCourse();
+        }
+    },[courseId, GetCourse])
+
+    useEffect(() => {
+        if (!courseId || !isVideoFetchPending) {
+            return;
+        }
+
+        const intervalId = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                GetCourse();
+            }
+        }, 15000);
+
+        return () => clearInterval(intervalId);
+    }, [courseId, isVideoFetchPending, GetCourse])
 
     if(loading)
     {
@@ -130,7 +148,24 @@ function Course() {
             )}
         
         {/* YouTube Videos Section */}
-            {course?.videos && <YouTubeVideos videos={course.videos} course={course} />}
+            {hasVideoSuggestions ? <YouTubeVideos videos={course.videos} course={course} /> : null}
+            {isVideoFetchPending && (
+                <div className='mt-8 rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-800'>
+                    <p className='font-semibold'>YouTube video suggestions are still being prepared</p>
+                    <p className='mt-1 text-sm text-blue-700'>
+                        This course was created with related videos enabled. Video suggestions are fetched in the background and may take a little longer than the course itself.
+                    </p>
+                    <p className='mt-2 text-xs text-blue-600'>
+                        If no videos appear after a refresh, YouTube may have returned no matches, timed out, or hit API quota limits.
+                    </p>
+                    <button
+                        onClick={() => GetCourse()}
+                        className='mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700'
+                    >
+                        Refresh Video Suggestions
+                    </button>
+                </div>
+            )}
         {/* Study Materials Options  */}
             <StudyMaterialSection  courseId={courseId} course={course} />
         {/* Chapter List  */}

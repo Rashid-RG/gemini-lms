@@ -27,7 +27,10 @@ import {
     Eye,
     UsersRound,
     UserCircle,
-    Plus
+    Plus,
+    GraduationCap,
+    PanelLeft,
+    PanelLeftClose
 } from 'lucide-react'
 
 function AdminLayoutContent({ children }) {
@@ -35,6 +38,7 @@ function AdminLayoutContent({ children }) {
     const router = useRouter()
     const pathname = usePathname()
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [desktopSidebarHidden, setDesktopSidebarHidden] = useState(false)
 
     // Sanitize profile pic URL - only allow safe data: image URLs
     const getSafeProfilePic = (pic) => {
@@ -50,6 +54,12 @@ function AdminLayoutContent({ children }) {
     // Close sidebar when route changes (mobile)
     useEffect(() => {
         setSidebarOpen(false)
+    }, [pathname])
+
+    useEffect(() => {
+        if (pathname.startsWith('/admin/gradebook')) {
+            setDesktopSidebarHidden(true)
+        }
     }, [pathname])
 
     useEffect(() => {
@@ -96,6 +106,7 @@ function AdminLayoutContent({ children }) {
         { href: '/admin/support', label: 'Support Tickets', icon: MessageSquare, roles: ['admin', 'super_admin'] },
         { href: '/admin/activity-log', label: 'Activity Log', icon: History, roles: ['admin', 'super_admin'] },
         { href: '/admin/team', label: 'Manage Team', icon: UsersRound, roles: ['super_admin'] },
+        { href: '/admin/gradebook', label: 'GradeBook', icon: GraduationCap, roles: ['tutor', 'admin', 'super_admin'] },
     ]
 
     // Super admin only items
@@ -120,8 +131,10 @@ function AdminLayoutContent({ children }) {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+            <aside className={`fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            } ${desktopSidebarHidden ? 'lg:-translate-x-full' : 'lg:translate-x-0'} ${
+                !desktopSidebarHidden ? 'lg:translate-x-0' : ''
             }`}>
                 {/* Logo */}
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -252,7 +265,7 @@ function AdminLayoutContent({ children }) {
             </aside>
 
             {/* Main Content */}
-            <main className="lg:ml-64 min-h-screen">
+            <main className={`${desktopSidebarHidden ? 'lg:ml-0' : 'lg:ml-64'} min-h-screen transition-[margin] duration-300`}>
                 {/* Header with mobile menu button */}
                 <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4">
                     <div className="flex items-center gap-4">
@@ -262,6 +275,13 @@ function AdminLayoutContent({ children }) {
                             className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                             <Menu className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                        </button>
+                        <button
+                            onClick={() => setDesktopSidebarHidden((current) => !current)}
+                            className="hidden lg:inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                            {desktopSidebarHidden ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                            {desktopSidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
                         </button>
                         
                         {/* Breadcrumb */}

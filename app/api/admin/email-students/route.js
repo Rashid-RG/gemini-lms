@@ -24,6 +24,12 @@ export async function GET(req) {
             createdAt: USER_TABLE.createdAt
         }).from(USER_TABLE).orderBy(desc(USER_TABLE.createdAt));
 
+        users = Array.from(
+            new Map(
+                users.map((user) => [String(user.email || '').trim().toLowerCase(), user])
+            ).values()
+        );
+
         // If filtering by course enrollment
         if (courseId && filter && filter !== 'all') {
             const progress = await db.select({

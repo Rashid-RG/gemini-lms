@@ -2,7 +2,7 @@
 import { CourseCountContext } from '@/app/_context/CourseCountContext'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { LayoutDashboard, Shield, UserCircle, TrendingUp, Award, Compass, Trophy, LifeBuoy, ShieldCheck, ClipboardCheck, ClipboardList, Users, Settings, CreditCard, BarChart3, Mail, BookOpen, Megaphone, History } from 'lucide-react'
+import { LayoutDashboard, Shield, UserCircle, TrendingUp, Award, Compass, Trophy, LifeBuoy, ShieldCheck, ClipboardCheck, ClipboardList, Users, Settings, CreditCard, BarChart3, Mail, BookOpen, Megaphone, History, GraduationCap } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -37,6 +37,16 @@ function SideBar({ onNavigate }) {
             name:'Progress',
             icon:TrendingUp,
             path:'/dashboard/progress'
+        },
+        {
+            name:'My Grades',
+            icon:GraduationCap,
+            path:'/grades'
+        },
+        {
+            name:'Instructor GradeBook',
+            icon:BarChart3,
+            path:'/instructor-gradebook'
         },
         {
             name:'Certificate',
@@ -131,7 +141,7 @@ function SideBar({ onNavigate }) {
         setMounted(true);
     }, []);
 
-    // Fetch credits and course count when sidebar mounts, user changes, or path changes
+    // Fetch credits and course count ONLY on mount and user change (not on path change!)
     useEffect(() => {
         const fetchUserData = async () => {
             if (!user?.primaryEmailAddress?.emailAddress) return;
@@ -141,36 +151,62 @@ function SideBar({ onNavigate }) {
                 const urlParams = new URLSearchParams(window.location.search);
                 const forceRefresh = urlParams.has('refresh');
                 
-                // Fetch courses
-                const coursesResult = await axios.post('/api/courses', {
-                    createdBy: user.primaryEmailAddress.emailAddress
-                });
-                const courses = coursesResult?.data?.result || [];
-                setTotalCourse(courses.length);
+                try {
+                    // Fetch courses with aggressive caching - INCREASED TIMEOUT to 30 seconds
+                    // to handle database latency on first load
+                    const coursesResult = await axios.post('/api/courses', {
+                        createdBy: user.primaryEmailAddress.emailAddress
+                    }, { timeout: 30000 });
+                    const courses = coursesResult?.data?.result || [];
+                    setTotalCourse(courses.length);
+                } catch (courseError) {
+                    console.error('Error fetching courses:', courseError?.message);
+                    setTotalCourse(0);
+                }
                 
-                // Fetch user credits from create-user API (which returns user data)
-                const userResult = await axios.post('/api/create-user', {
-                    user: {
-                        fullName: user?.fullName,
-                        email: user.primaryEmailAddress.emailAddress
-                    },
-                    forceRefresh: forceRefresh
-                });
-                
-                if (userResult?.data?.result) {
-                    const userData = userResult.data.result;
-                    setUserCredits(userData.credits ?? 5);
-                    setIsMember(userData.isMember ?? false);
+                try {
+                    // Fetch user credits from create-user API (which returns user data)
+                    // Keep this bounded so the sidebar can fall back quickly on slow cold starts.
+                    const userResult = await axios.post('/api/create-user', {
+                        user: {
+                            fullName: user?.fullName,
+                            email: user.primaryEmailAddress.emailAddress
+                        },
+                        forceRefresh: forceRefresh
+                    }, { timeout: 8000 });
+                    
+                    if (userResult?.data?.result) {
+                        const userData = userResult.data.result;
+                        setUserCredits(userData.credits ?? 5);
+                        setIsMember(userData.isMember ?? false);
+                    } else {
+                        // Fallback to defaults if no result
+                        setUserCredits(5);
+                        setIsMember(false);
+                    }
+                } catch (userError) {
+                    const isTimeout = userError?.code === 'ECONNABORTED' || userError?.message?.includes('timeout');
+                    if (!isTimeout && process.env.NODE_ENV !== 'production') {
+                        console.warn('Sidebar user data fallback:', userError?.message);
+                    }
+                    // Fallback to defaults
+                    setUserCredits(5);
+                    setIsMember(false);
                 }
             } catch (error) {
-                console.error('Error fetching user data:', error);
+                console.error('Unexpected error in fetchUserData:', error);
+                // Fallback: Set default values on any error
+                setUserCredits(5);
+                setIsMember(false);
+                setTotalCourse(0);
             }
         };
         
-        if (user?.primaryEmailAddress?.emailAddress) {
+        if (user?.primaryEmailAddress?.emailAddress && mounted) {
             fetchUserData();
         }
-    }, [user?.primaryEmailAddress?.emailAddress, path, setTotalCourse, setUserCredits, setIsMember]);
+        // REMOVED: path dependency - don't refetch on every navigation!
+    }, [user?.primaryEmailAddress?.emailAddress, mounted, setTotalCourse, setUserCredits, setIsMember]);
 
     return (
         <div className='h-screen shadow-md p-5 relative'>

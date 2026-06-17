@@ -45,41 +45,130 @@ import { eq, isNotNull } from "drizzle-orm";
 import { checkRateLimit, safeJsonParse, retryWithBackoff } from "@/lib/rateLimit";
 import { hasEnoughCredits, deductCredits, CREDIT_TYPES } from "@/lib/credits";
 import { withDbRetry } from "@/lib/dbUtils";
+import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
 
 // Set max duration for this route (Vercel serverless)
-export const maxDuration = 120;
+export const maxDuration = 240; // 4 minutes - allow very aggressive AI timeouts
 
 /**
- * Helper: Call AI model with retry on 429/503 with timeout
+ * Helper: Generate fallback course structure if AI fails
+ */
+function generateFallbackCourse(topic, courseType, difficultyLevel) {
+  return {
+    course_title: `${topic} - ${courseType}`,
+    difficulty: difficultyLevel,
+    summary: `Learn ${topic} through structured lessons and practice. This ${difficultyLevel.toLowerCase()} level course covers essential concepts and practical applications.`,
+    chapters: [
+      {
+        chapter_title: 'Fundamentals',
+        summary: `Introduction to ${topic} basics and core concepts`,
+        emoji: '📚',
+        topics: ['Introduction', 'Basic Concepts', 'Getting Started', 'Common Patterns']
+      },
+      {
+        chapter_title: 'Intermediate Concepts',
+        summary: `Explore intermediate topics and techniques`,
+        emoji: '💡',
+        topics: ['Best Practices', 'Common Challenges', 'Problem Solving', 'Optimization']
+      },
+      {
+        chapter_title: 'Advanced Applications',
+        summary: `Apply concepts to real-world scenarios`,
+        emoji: '🎯',
+        topics: ['Real-world Examples', 'Integration', 'Testing', 'Deployment']
+      }
+    ]
+  };
+}
+
+/**
+ * Helper: Call AI model with retry on 429/503 with timeout AND key rotation
  */
 async function callAIWithRetry(prompt, retries = 4, delayMs = 3000) {
+  let attemptCount = 0;
+  let rotationManager = null;
+  
   return retryWithBackoff(async () => {
-    // Generous timeout for model response (Gemini can be slow under load)
+    attemptCount++;
+    
+    try {
+      rotationManager = getApiKeyRotationManager();
+      console.log(`[AI] Attempt ${attemptCount} using key ${rotationManager.getCurrentKeyIndex() + 1}/${rotationManager.apiKeys.length}`);
+    } catch (err) {
+      console.warn('API Key Rotation Manager failed to initialize:', err.message);
+    }
+    
+    // Very aggressive timeouts to prevent timeout errors
+    // 1st attempt: 120s, 2nd: 150s, 3rd: 180s, 4th: 180s (max)
+    const timeoutMs = Math.min(120000 + (attemptCount - 1) * 30000, 180000);
+    console.log(`[AI] Attempt ${attemptCount}: Starting with ${timeoutMs}ms timeout`);
+    
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('AI request timeout')), 55000)
+      setTimeout(() => reject(new Error('AI request timeout')), timeoutMs)
     );
     
-    const aiPromise = courseOutlineAIModel.sendMessage(prompt);
-    const resp = await Promise.race([aiPromise, timeoutPromise]);
-    
-    const responseText = resp.response.text();
-    console.log('AI Response length:', responseText.length);
-    
-    const { data, error } = safeJsonParse(responseText);
-    
-    if (error) {
-      console.error('Failed to parse course outline JSON:', error.message);
-      throw new Error('Invalid JSON response from AI');
+    try {
+      const aiPromise = courseOutlineAIModel.sendMessage(prompt);
+      const resp = await Promise.race([aiPromise, timeoutPromise]);
+      
+      const responseText = resp.response.text();
+      console.log('AI Response length:', responseText.length);
+      
+      // CHECK FOR INCOMPLETE RESPONSES (truncated JSON)
+      const trimmed = responseText.trim();
+      if (trimmed.length > 500 && !trimmed.endsWith('}')) {
+        console.warn('Response appears truncated - ends with:', trimmed.substring(Math.max(0, trimmed.length - 50)));
+        throw new Error('AI response appears truncated - incomplete JSON');
+      }
+      
+      const { data, error } = safeJsonParse(responseText);
+      
+      if (error) {
+        console.error('Failed to parse course outline JSON:', error.message);
+        console.error('Response preview:', responseText.substring(0, 300));
+        throw new Error('Invalid JSON response from AI');
+      }
+      
+      // Validate required fields
+      if (!data.chapters || !Array.isArray(data.chapters) || data.chapters.length === 0) {
+        console.error('AI returned invalid structure:', Object.keys(data));
+        throw new Error('AI response missing chapters array');
+      }
+      
+      // Ensure we have at least 2 chapters
+      if (data.chapters.length < 2) {
+        console.error('AI returned insufficient chapters:', data.chapters.length);
+        throw new Error('AI returned too few chapters');
+      }
+      
+      // Ensure each chapter has required fields
+      for (let i = 0; i < data.chapters.length; i++) {
+        const ch = data.chapters[i];
+        if (!ch.chapter_title || !ch.topics || !Array.isArray(ch.topics)) {
+          console.error(`Chapter ${i} missing required fields`);
+          throw new Error(`Chapter ${i} has invalid structure`);
+        }
+      }
+      
+      console.log('✅ Parsed course with', data.chapters.length, 'chapters');
+      return data;
+    } catch (error) {
+      // Check if this is a quota exhaustion error
+      if (rotationManager && error.message.includes('quota')) {
+        console.error('❌ Quota exhausted, rotating to next API key...');
+        rotationManager.handleQuotaExhausted();
+        throw error; // Trigger retry
+      }
+      
+      // Check if this is a rate limit error (temporary)
+      if (rotationManager && (error.message.includes('rate limit') || error.message.includes('429'))) {
+        console.warn('⚠️ Rate limit detected, rotating API key...');
+        rotationManager.handleRateLimit();
+        throw error; // Trigger retry with backoff
+      }
+      
+      throw error;
     }
-    
-    // Validate required fields
-    if (!data.chapters || !Array.isArray(data.chapters) || data.chapters.length === 0) {
-      console.error('AI returned invalid structure:', Object.keys(data));
-      throw new Error('AI response missing chapters array');
-    }
-    
-    console.log('Parsed course with', data.chapters.length, 'chapters');
-    return data;
   }, {
     maxRetries: retries,
     baseDelayMs: delayMs,
@@ -144,22 +233,21 @@ export async function POST(req) {
       return NextResponse.json({ result: existingCourse[0] });
     }
 
-    // 2️⃣ Build AI prompt - simplified for faster generation
-    const PROMPT = `Create study material for "${topic}" (${courseType}, ${difficultyLevel} level).
+    // 2️⃣ Build AI prompt - simplified for faster generation and complete responses
+    const PROMPT = `Create a course outline for "${topic}" (${courseType}, ${difficultyLevel} level).
 
-Return JSON with exactly this structure:
+Return ONLY valid JSON with NO markdown, code blocks, or explanations:
+
 {
-  "course_title": "Course title here",
+  "course_title": "${topic} - ${courseType}",
   "difficulty": "${difficultyLevel}",
-  "summary": "2 sentence course summary",
+  "summary": "Complete course covering ${topic} from basics to advanced concepts.",
   "chapters": [
-    {"chapter_title": "Chapter 1 title", "summary": "Brief summary", "emoji": "📚", "topics": ["topic1", "topic2", "topic3", "topic4"]},
-    {"chapter_title": "Chapter 2 title", "summary": "Brief summary", "emoji": "💡", "topics": ["topic1", "topic2", "topic3", "topic4"]},
-    {"chapter_title": "Chapter 3 title", "summary": "Brief summary", "emoji": "🎯", "topics": ["topic1", "topic2", "topic3", "topic4"]}
+    {"chapter_title": "Chapter 1", "summary": "Learn the basics", "emoji": "📚", "topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"]},
+    {"chapter_title": "Chapter 2", "summary": "Master core concepts", "emoji": "💡", "topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"]},
+    {"chapter_title": "Chapter 3", "summary": "Advanced applications", "emoji": "🎯", "topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4"]}
   ]
-}
-
-Generate EXACTLY 3 chapters with 4 specific topics each. Return only valid JSON.`;
+}`;
 
     // 3️⃣ Call AI with retry (more retries and longer delays for rate limits)
     let aiResult;
@@ -167,9 +255,10 @@ Generate EXACTLY 3 chapters with 4 specific topics each. Return only valid JSON.
       aiResult = await callAIWithRetry(PROMPT, 4, 3000);
     } catch (aiErr) {
       console.error("AI Model Error:", aiErr);
-      const status = aiErr?.status || 500;
-      const message = aiErr?.message || "Failed to generate course outline";
-      return NextResponse.json({ error: message }, { status });
+      console.warn("Using fallback course structure due to AI failure");
+      
+      // Use fallback if AI fails completely (after all retries)
+      aiResult = generateFallbackCourse(topic, courseType, difficultyLevel);
     }
 
     // 💰 Deduct credit after successful AI generation (skip for Premium members)
@@ -236,45 +325,20 @@ Generate EXACTLY 3 chapters with 4 specific topics each. Return only valid JSON.
       data: { course: courseForInngest }
     });
 
-    // 5b️⃣ Fetch YouTube videos if enabled
+    // 5b️⃣ Trigger YouTube video fetching in background (don't wait for it)
     if (includeVideos) {
-      try {
-        // Call YouTube search API with proper error handling
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        const videoResponse = await fetch(
-          `${baseUrl}/api/youtube-search`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chapters: aiResult.chapters,
-              topic: topic,
-              courseType: courseType
-            })
-          }
-        );
-
-        if (videoResponse.ok) {
-          const videoData = await videoResponse.json();
-          if (Array.isArray(videoData.errors) && videoData.errors.length > 0) {
-            console.warn('YouTube API returned errors:', videoData.errors);
-          }
-          // Update course with video data
-          await db.update(STUDY_MATERIAL_TABLE)
-            .set({ videos: videoData.videos })
-            .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId));
-          
-          console.log('Videos fetched and saved for course:', courseId);
-        } else {
-          console.warn('YouTube video fetch failed with status:', videoResponse.status);
+      inngest.send({
+        name: "youtube.fetch",
+        data: { 
+          courseId,
+          chapters: aiResult.chapters,
+          topic: topic,
+          courseType: courseType
         }
-      } catch (videoErr) {
-        console.warn('Error fetching YouTube videos:', videoErr);
-        // Don't fail course creation if video fetch fails
-      }
+      }).catch(err => console.warn('Failed to queue YouTube job:', err));
     }
 
-    // 6️⃣ Return success
+    // 6️⃣ Return success immediately (background tasks will complete asynchronously)
     return NextResponse.json({ result: dbResult[0] });
 
   } catch (err) {

@@ -8,8 +8,36 @@ import { getMasterySummary } from "@/lib/adaptiveDifficulty";
 import { buildReminderEmailHTML } from "@/lib/reminderEmail";
 import { v4 as uuidv4 } from "uuid";
 import { safeJsonParse, retryWithBackoff } from "@/lib/rateLimit";
+import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
 import { initializeUserCredits, refundCourseCredits } from "@/lib/credits";
 import { emailService } from "@/lib/emailService";
+import { ensureStudentIdentifierForUser, hasStudentIdentifier } from "@/lib/studentIdentifier";
+
+/**
+ * Wrapper to handle API key rotation on errors
+ */
+function handleAIError(error) {
+  try {
+    const rotationManager = getApiKeyRotationManager();
+    
+    if (error && typeof error === 'object') {
+      const errorMsg = error.message || error.toString() || '';
+      
+      // Check if quota exhausted
+      if (errorMsg.includes('quota') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('429')) {
+        console.error('❌ Quota error detected, rotating API key...');
+        rotationManager.handleQuotaExhausted();
+      }
+      // Check if rate limit (temporary)
+      else if (errorMsg.includes('rate limit') || errorMsg.includes('too many requests')) {
+        console.warn('⚠️ Rate limit detected, rotating API key...');
+        rotationManager.handleRateLimit();
+      }
+    }
+  } catch (err) {
+    console.warn('Could not rotate API key:', err.message);
+  }
+}
 
 export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
@@ -28,9 +56,10 @@ export const CreateNewUser = inngest.createFunction(
         // Get Event Data
         const result = await step.run('Check User and create New if Not in DB', async () => {
             // Try multiple email sources (Clerk can have email in different places depending on auth method)
-            const email = user?.primaryEmailAddress?.emailAddress 
+            const rawEmail = user?.primaryEmailAddress?.emailAddress 
                 || user?.emailAddresses?.[0]?.emailAddress 
                 || user?.email;
+            const email = rawEmail?.trim().toLowerCase();
             
             // Validate email exists before proceeding
             if (!email) {
@@ -44,19 +73,40 @@ export const CreateNewUser = inngest.createFunction(
 
             if (result?.length == 0) {
                 //If Not, Then add to DB with initial credits
-                const userResp = await db.insert(USER_TABLE).values({
+                await db.insert(USER_TABLE).values({
                     name: user?.fullName || user?.firstName || 'User',
                     email: email,
                     credits: 5,
                     totalCreditsUsed: 0,
                     createdAt: new Date(),
                     updatedAt: new Date()
-                }).returning({ USER_TABLE })
+                }).onConflictDoNothing({ target: USER_TABLE.email })
+
+                const userResp = await db.select().from(USER_TABLE)
+                    .where(eq(USER_TABLE.email, email))
+
+                const ensuredUser = userResp?.[0]
+                    ? await ensureStudentIdentifierForUser(userResp[0])
+                    : null;
                 
                 // Log the initial credit grant
-                await initializeUserCredits(email, 5);
+                const existingTransactions = await db.select({ count: sql`count(*)` })
+                    .from(CREDIT_TRANSACTION_TABLE)
+                    .where(and(
+                        eq(CREDIT_TRANSACTION_TABLE.userEmail, email),
+                        eq(CREDIT_TRANSACTION_TABLE.type, 'initial_grant')
+                    ));
+
+                if (Number(existingTransactions[0]?.count || 0) === 0) {
+                    await initializeUserCredits(email, 5);
+                }
                 
-                return userResp;
+                return ensuredUser ? [ensuredUser] : userResp;
+            }
+
+            if (!hasStudentIdentifier(result[0]?.studentIdentifier)) {
+                const ensuredUser = await ensureStudentIdentifierForUser(result[0]);
+                return ensuredUser ? [ensuredUser] : result;
             }
 
             return result;
@@ -179,9 +229,11 @@ FORMAT RULES (strictly follow):
 - Use <hr> between major sections
 - Max 1200 words, clean semantic HTML only, no CSS or style attributes`;
                             
-                            // Longer timeout to handle slow API responses
+                            // Very aggressive timeout - prevent timeout errors
+                            // 120-150s to handle slow Gemini under load
+                            const timeoutMs = 120000 + (attempt * 15000); // 120s, 135s, 150s
                             const timeoutPromise = new Promise((_, reject) => 
-                                setTimeout(() => reject(new Error('Notes generation timeout')), 45000)
+                                setTimeout(() => reject(new Error('Notes generation timeout')), timeoutMs)
                             );
                             const result = await Promise.race([
                                 generateNotesAiModel.sendMessage(PROMPT),
@@ -329,9 +381,11 @@ export const GenerateStudyTypeContent=inngest.createFunction(
             const AiResult= await step.run('Generating Study Content using AI',async()=>{
                 // Use retry with exponential backoff for AI calls
                 const result = await retryWithBackoff(async () => {
-                    // Generous timeout for AI response
+                    // Very aggressive timeout - prevent timeout errors
+                    // 120s baseline for flashcards, quizzes, MCQ
+                    const timeoutMs = 120000 + (Math.random() * 5000); // 120-125s
                     const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Study content timeout')), 40000)
+                        setTimeout(() => reject(new Error('Study content timeout')), timeoutMs)
                     );
                     
                     const aiPromise = 
@@ -564,9 +618,11 @@ Grade CORRECTNESS ONLY.`;
                             await new Promise(resolve => setTimeout(resolve, delayMs));
                         }
 
-                        // Longer timeout for grading (60 seconds)
+                        // Very aggressive timeout for grading
+                        // 120s baseline for essay grading
+                        const timeoutMs = 120000 + Math.random() * 15000; // 120-135s
                         const timeoutPromise = new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('Grading timeout')), 60000)
+                            setTimeout(() => reject(new Error('Grading timeout')), timeoutMs)
                         );
                         const aiPromise = AssignmentGradingAiModel.sendMessage(GRADING_PROMPT);
                         const aiResponse = await Promise.race([aiPromise, timeoutPromise]);
@@ -784,9 +840,11 @@ export const GenerateAssignments = inngest.createFunction(
                 
                 while (retries < maxRetries) {
                     try {
-                        // Generous timeout for AI response
+                        // Very aggressive timeout for assignment generation
+                        // 120s baseline for assignment prompts
+                        const timeoutMs = 120000 + Math.random() * 15000; // 120-135s
                         const timeoutPromise = new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('Assignment generation timeout')), 45000)
+                            setTimeout(() => reject(new Error('Assignment generation timeout')), timeoutMs)
                         );
                         const aiPromise = GenerateAssignmentsAiModel.sendMessage(ASSIGNMENT_PROMPT);
                         const aiResponse = await Promise.race([aiPromise, timeoutPromise]);
@@ -1125,5 +1183,87 @@ export const SystemHealthCheck = inngest.createFunction(
         console.log('System Health Report:', JSON.stringify(healthReport, null, 2));
         
         return healthReport;
+    }
+);
+
+/**
+ * YouTube Video Fetching - Background job triggered after course creation
+ * Finds YouTube videos related to course chapters and saves them
+ */
+export const FetchYouTubeVideos = inngest.createFunction(
+    { 
+        id: 'fetch-youtube-videos',
+        retries: 2,
+        concurrency: { limit: 1 } // Rate limit YouTube API calls
+    },
+    { event: 'youtube.fetch' },
+    async ({ event, step }) => {
+        try {
+            const { courseId, chapters, topic, courseType } = event.data;
+
+            if (!courseId || !Array.isArray(chapters)) {
+                console.warn('FetchYouTubeVideos: Missing required data');
+                return { success: false, error: 'Missing courseId or chapters' };
+            }
+
+            const videoResult = await step.run('Fetch YouTube videos', async () => {
+                try {
+                    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                    const response = await fetch(
+                        `${baseUrl}/api/youtube-search`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chapters,
+                                topic,
+                                courseType
+                            })
+                        }
+                    );
+
+                    if (!response.ok) {
+                        console.warn('YouTube API returned status:', response.status);
+                        return { success: false, videos: [] };
+                    }
+
+                    const videoData = await response.json();
+                    
+                    if (Array.isArray(videoData.errors) && videoData.errors.length > 0) {
+                        console.warn('YouTube API errors:', videoData.errors);
+                    }
+                    
+                    return {
+                        success: true,
+                        videos: videoData.videos || []
+                    };
+                } catch (err) {
+                    console.error('Failed to fetch YouTube videos:', err.message);
+                    return { success: false, error: err.message, videos: [] };
+                }
+            });
+
+            // Save videos to course if fetch was successful
+            if (videoResult.success && videoResult.videos?.length > 0) {
+                await step.run('Save videos to course', async () => {
+                    try {
+                        await db.update(STUDY_MATERIAL_TABLE)
+                            .set({ videos: videoResult.videos })
+                            .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId));
+                        
+                        console.log(`Saved ${videoResult.videos.length} videos for course:`, courseId);
+                        return { success: true, count: videoResult.videos.length };
+                    } catch (err) {
+                        console.error('Failed to save videos to database:', err.message);
+                        return { success: false, error: err.message };
+                    }
+                });
+            }
+
+            return { success: true, message: 'YouTube videos processed' };
+        } catch (err) {
+            console.error('FetchYouTubeVideos unhandled error:', err);
+            return { success: false, error: err.message };
+        }
     }
 );

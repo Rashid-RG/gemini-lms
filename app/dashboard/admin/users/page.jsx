@@ -101,7 +101,8 @@ function AdminUsersPage() {
 
     const filteredUsers = users.filter(u => 
         u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.studentIdentifier?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     if (!isLoaded || loading) {
@@ -147,7 +148,7 @@ function AdminUsersPage() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search by name or email..."
+                        placeholder="Search by name, email, or student ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -162,6 +163,7 @@ function AdminUsersPage() {
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">User</th>
+                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Student ID</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Member</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Credits</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Courses</th>
@@ -176,6 +178,9 @@ function AdminUsersPage() {
                                             <p className="font-medium">{u.name}</p>
                                             <p className="text-sm text-gray-500">{u.email}</p>
                                         </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-200">{u.studentIdentifier || 'N/A'}</span>
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         {u.isMember ? (

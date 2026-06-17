@@ -20,6 +20,7 @@ export async function GET(req) {
             id: USER_TABLE.id,
             name: USER_TABLE.name,
             email: USER_TABLE.email,
+            studentIdentifier: USER_TABLE.studentIdentifier,
             isMember: USER_TABLE.isMember,
             credits: USER_TABLE.credits,
             totalCreditsUsed: USER_TABLE.totalCreditsUsed,

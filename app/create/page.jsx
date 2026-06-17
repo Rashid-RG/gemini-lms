@@ -47,7 +47,9 @@ function Create() {
           courseId:courseId,
           ...formData,
           createdBy:user?.primaryEmailAddress?.emailAddress
-        });
+        },
+        { timeout: 250000 } // 250 second timeout - allow aggressive AI timeouts (up to 3 min)
+        );
         setLoading(false);
         router.replace('/dashboard');
         //Toast Notification
@@ -57,7 +59,12 @@ function Create() {
         console.log(result.data.result.resp);
       } catch (err) {
         setLoading(false);
-        toast.error("Error generating course: " + (err.response?.data?.error || err.message));
+        const errorMsg = err.response?.data?.error || err.message;
+        if (err.code === 'ECONNABORTED') {
+          toast.error("Request timeout. Course generation may still be processing.");
+        } else {
+          toast.error("Error generating course: " + errorMsg);
+        }
       }
     }
 

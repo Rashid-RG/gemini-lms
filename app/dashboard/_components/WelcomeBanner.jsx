@@ -8,7 +8,7 @@ import BecomeTutorModal from '@/components/BecomeTutorModal'
 import TutorApprovalCard from '@/components/TutorApprovalCard'
 import axios from 'axios'
 
-function WelcomeBanner() {
+function WelcomeBanner({ studentIdentifier }) {
     const { user } = useUser()
     const [showTutorModal, setShowTutorModal] = useState(false)
     const [tutorStatus, setTutorStatus] = useState(null)
@@ -52,6 +52,14 @@ function WelcomeBanner() {
         <div className='flex-1'>
             <h2 className='font-bold text-3xl'>Hello, {user?.fullName}</h2>
             <p className=''>Welcome Back, Its time to get back and start learning new course</p>
+            {studentIdentifier && (
+                <div className='mt-4 inline-flex items-center gap-3 rounded-xl bg-white/15 px-4 py-3 border border-white/20'>
+                    <div>
+                        <p className='text-[11px] uppercase tracking-[0.18em] text-blue-100'>Student ID</p>
+                        <p className='text-lg font-bold text-white'>{studentIdentifier}</p>
+                    </div>
+                </div>
+            )}
         </div>
         
         {!loading && (

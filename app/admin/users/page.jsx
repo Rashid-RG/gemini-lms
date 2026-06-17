@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useAdminAuth } from '@/app/_context/AdminAuthContext'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
+import { AdminPageShell, AdminPageHeader, AdminSurface } from '@/components/admin/AdminPageShell'
 import { 
     Users, 
     Crown,
@@ -95,7 +96,8 @@ function AdminUsersPage() {
 
     const filteredUsers = users.filter(u => 
         u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.studentIdentifier?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     if (authLoading || loading) {
@@ -107,21 +109,18 @@ function AdminUsersPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Users className="h-6 w-6 text-primary" />
-                        User Management
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-400">{users.length} total users</p>
-                </div>
+        <AdminPageShell>
+            <AdminPageHeader
+                title="User Management"
+                description={`${users.length} total users`}
+                icon={Users}
+                actions={
                 <Button onClick={fetchUsers} variant="outline">
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                 </Button>
-            </div>
+                }
+            />
 
             {/* Search */}
             <div className="mb-6">
@@ -129,7 +128,7 @@ function AdminUsersPage() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search by name or email..."
+                        placeholder="Search by name, email, or student ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -138,12 +137,13 @@ function AdminUsersPage() {
             </div>
 
             {/* Users Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <AdminSurface className="overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">User</th>
+                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Student ID</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Member</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Credits</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Courses</th>
@@ -158,6 +158,9 @@ function AdminUsersPage() {
                                             <p className="font-medium text-gray-900 dark:text-white">{u.name}</p>
                                             <p className="text-sm text-gray-500">{u.email}</p>
                                         </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-200">{u.studentIdentifier || 'N/A'}</span>
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         {u.isMember ? (
@@ -223,7 +226,7 @@ function AdminUsersPage() {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </AdminSurface>
 
             {/* Add Credits Modal */}
             {creditModal.open && (
@@ -279,7 +282,7 @@ function AdminUsersPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </AdminPageShell>
     )
 }
 

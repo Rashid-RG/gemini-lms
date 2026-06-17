@@ -1,6 +1,6 @@
 import { db } from "@/configs/db";
-import { STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE } from "@/configs/schema";
-import { eq, desc, sql, like, or } from "drizzle-orm";
+import { STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE, COURSE_ENROLLMENT_TABLE, STUDENT_PROGRESS_TABLE, USER_TABLE } from "@/configs/schema";
+import { eq, desc, sql, like, or, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
 import { addCredits, CREDIT_TYPES } from "@/lib/credits";
@@ -46,7 +46,8 @@ export async function GET(req) {
                 courseLayout: STUDY_MATERIAL_TABLE.courseLayout,
                 createdBy: STUDY_MATERIAL_TABLE.createdBy,
                 status: STUDY_MATERIAL_TABLE.status,
-                createdAt: STUDY_MATERIAL_TABLE.createdAt
+                createdAt: STUDY_MATERIAL_TABLE.createdAt,
+                averageRating: STUDY_MATERIAL_TABLE.averageRating
             })
             .from(STUDY_MATERIAL_TABLE)
             .orderBy(desc(STUDY_MATERIAL_TABLE.createdAt))
@@ -58,6 +59,70 @@ export async function GET(req) {
         }
 
         const courses = await query;
+
+        const courseIds = courses.map((course) => course.courseId);
+        let enrollmentMap = new Map();
+        let progressMap = new Map();
+        let registeredStudentCount = 0;
+        let platformStudentCount = 0;
+
+        const userCountResult = await db
+            .select({ count: sql`count(distinct lower(trim(${USER_TABLE.email})))` })
+            .from(USER_TABLE);
+
+        registeredStudentCount = Number(userCountResult[0]?.count || 0);
+
+        if (courseIds.length > 0) {
+            const enrollmentCounts = await db
+                .select({
+                    courseId: COURSE_ENROLLMENT_TABLE.courseId,
+                    count: sql`count(distinct ${COURSE_ENROLLMENT_TABLE.studentEmail})`
+                })
+                .from(COURSE_ENROLLMENT_TABLE)
+                .where(inArray(COURSE_ENROLLMENT_TABLE.courseId, courseIds))
+                .groupBy(COURSE_ENROLLMENT_TABLE.courseId);
+
+            enrollmentMap = new Map(
+                enrollmentCounts.map((item) => [item.courseId, Number(item.count || 0)])
+            );
+
+            const progressCounts = await db
+                .select({
+                    courseId: STUDENT_PROGRESS_TABLE.courseId,
+                    count: sql`count(distinct ${STUDENT_PROGRESS_TABLE.studentEmail})`
+                })
+                .from(STUDENT_PROGRESS_TABLE)
+                .where(inArray(STUDENT_PROGRESS_TABLE.courseId, courseIds))
+                .groupBy(STUDENT_PROGRESS_TABLE.courseId);
+
+            progressMap = new Map(
+                progressCounts.map((item) => [item.courseId, Number(item.count || 0)])
+            );
+
+            const [platformEnrollments, platformProgress] = await Promise.all([
+                db
+                    .select({ studentEmail: COURSE_ENROLLMENT_TABLE.studentEmail })
+                    .from(COURSE_ENROLLMENT_TABLE),
+                db
+                    .select({ studentEmail: STUDENT_PROGRESS_TABLE.studentEmail })
+                    .from(STUDENT_PROGRESS_TABLE)
+            ]);
+
+            platformStudentCount = new Set(
+                [...platformEnrollments, ...platformProgress]
+                    .map((item) => String(item.studentEmail || '').trim().toLowerCase())
+                    .filter(Boolean)
+            ).size;
+        }
+
+        const coursesWithStats = courses.map((course) => ({
+            ...course,
+            totalStudents: Math.max(
+                enrollmentMap.get(course.courseId) ?? 0,
+                progressMap.get(course.courseId) ?? 0
+            ),
+            averageRating: course.averageRating ?? '0'
+        }));
 
         // Get stats
         const statsResult = await db
@@ -83,7 +148,11 @@ export async function GET(req) {
         });
 
         return NextResponse.json({
-            courses,
+            courses: coursesWithStats,
+            platformStats: {
+                totalStudents: registeredStudentCount,
+                activeGradebookStudents: platformStudentCount,
+            },
             stats,
             page,
             totalPages: Math.ceil(totalCount / limit),

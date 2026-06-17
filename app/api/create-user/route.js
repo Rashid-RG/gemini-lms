@@ -4,80 +4,152 @@ import { db } from "@/configs/db";
 import { USER_TABLE } from "@/configs/schema";
 import { eq } from "drizzle-orm";
 import { withDbRetry } from "@/lib/dbUtils";
-import cache, { CACHE_TTL, invalidateUserCache } from "@/lib/cache";
+import cache, { CACHE_TTL } from "@/lib/cache";
 import { captureError, startTimer } from "@/lib/monitoring";
-import { emailService } from "@/lib/emailService";
+import { ensureStudentIdentifierForUser, hasStudentIdentifier } from "@/lib/studentIdentifier";
+
+// In-memory request deduplication to prevent duplicate DB queries
+const pendingRequests = new Map();
+const DB_LOOKUP_TIMEOUT_MS = 4000;
+
+function withTimeout(promise, timeoutMs, message) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(message)), timeoutMs)),
+    ]);
+}
 
 export async function POST(req) {
     const timer = startTimer('create-user-api');
     
     try {
         const { user, forceRefresh } = await req.json();
+        const normalizedEmail = user?.email?.trim()?.toLowerCase();
         
-        if (!user?.email) {
+        if (!normalizedEmail) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
         }
 
-        const cacheKey = `user:${user.email}:data`;
+        const cacheKey = `user:${normalizedEmail}:data`;
         
-        // Check cache first (unless force refresh)
+        // Return cached result immediately if available
         if (!forceRefresh) {
             const cached = cache.get(cacheKey);
             if (cached) {
-                timer.end({ cached: true });
                 return NextResponse.json({ 
                     result: cached,
                     exists: true,
-                    cached: true 
+                    cached: true,
                 });
+            }
+            
+            // Check if we're already fetching this user (deduplication)
+            // Store just the data promise, not the NextResponse
+            if (pendingRequests.has(normalizedEmail)) {
+                try {
+                    const userData = await Promise.race([
+                        pendingRequests.get(normalizedEmail),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Timeout')), 3000)
+                        )
+                    ]);
+                    // Return fresh response from cached user data
+                    return NextResponse.json({ 
+                        result: userData,
+                        exists: true,
+                        deduped: true,
+                        cached: true,
+                    });
+                } catch {
+                    // Timeout or error, proceed normally
+                }
             }
         }
 
-        // Check if user exists and get full user data (with retry for cold starts)
-        const existingUser = await withDbRetry(async () => {
-            return db.select()
-                .from(USER_TABLE)
-                .where(eq(USER_TABLE.email, user.email))
-                .limit(1);
-        }, { maxRetries: 2, delayMs: 500 });
+        // Create promise for deduplication (store just data, not NextResponse)
+        const dataPromise = (async () => {
+            // Check if user exists and get full user data (with retry for cold starts)
+            const existingUser = await withTimeout(
+                withDbRetry(async () => {
+                    return db.select()
+                        .from(USER_TABLE)
+                        .where(eq(USER_TABLE.email, normalizedEmail))
+                        .limit(1);
+                }, { maxRetries: 1, delayMs: 300 }),
+                DB_LOOKUP_TIMEOUT_MS,
+                'User lookup timeout'
+            ).catch(() => null);
 
-        if (existingUser?.length > 0) {
-            // Cache user data for 1 minute (short TTL for credits that change)
-            cache.set(cacheKey, existingUser[0], CACHE_TTL.SHORT);
-            
-            timer.end({ cached: false, exists: true });
-            
-            // User exists, return full user data including credits
-            return NextResponse.json({
-                result: existingUser[0],
-                exists: true 
+            if (existingUser?.length > 0) {
+                const ensuredUser = hasStudentIdentifier(existingUser[0]?.studentIdentifier)
+                    ? existingUser[0]
+                    : await ensureStudentIdentifierForUser(existingUser[0]);
+
+                // Cache user data for 5 minutes
+                cache.set(cacheKey, ensuredUser, CACHE_TTL.MEDIUM);
+                return ensuredUser;
+            }
+
+            const normalizedUser = {
+                ...user,
+                email: normalizedEmail,
+            };
+
+            // New user - queue creation via Inngest (non-blocking)
+            inngest.send({
+                name: 'user.create',
+                data: { user: normalizedUser }
+            }).catch(err => {
+                console.error('Failed to queue user creation:', err);
             });
-        }
 
-        // New user - create via Inngest for reliable processing
-        const result = await inngest.send({
-            name: 'user.create',
-            data: { user }
-        });
-
-        timer.end({ cached: false, exists: false, queued: true });
-
-        // Return default values for new user
-        return NextResponse.json({ 
-            result: { 
+            // Return default for new user
+            return { 
                 credits: 5, 
                 isMember: false,
-                email: user.email 
-            },
-            exists: false,
-            queued: true 
-        });
+                email: normalizedEmail,
+            };
+        })();
+
+        // Store data promise for deduplication (not NextResponse)
+        if (!forceRefresh) {
+            pendingRequests.set(normalizedEmail, dataPromise);
+            
+            // Clean up after 5 seconds
+            setTimeout(() => {
+                pendingRequests.delete(normalizedEmail);
+            }, 5000);
+        }
+
+        try {
+            const userData = await dataPromise;
+            timer.end({ cached: false, exists: userData?.id ? true : false });
+            
+            return NextResponse.json({
+                result: userData,
+                exists: userData?.id ? true : false,
+            });
+        } catch (innerError) {
+            const isExpectedTimeout = innerError?.message === 'User lookup timeout' || innerError?.message === 'Timeout';
+            if (!isExpectedTimeout) {
+                console.error('Error fetching user data:', innerError?.message);
+            }
+            timer.end({ error: true });
+            
+            // Return defaults on error
+            return NextResponse.json({ 
+                result: { credits: 5, isMember: false, email: normalizedEmail },
+                error: 'Database error'
+            });
+        }
     } catch (err) {
-        captureError(err, { operation: 'create-user', email: req.body?.user?.email });
-        // Don't fail the request - return defaults
+        console.error('Error in create-user:', err?.message);
+        captureError(err, { operation: 'create-user' });
+        
+        // Return graceful default on parsing error
         return NextResponse.json({ 
             result: { credits: 5, isMember: false },
-            error: true 
+            error: 'Request error'
         });
     }
 }

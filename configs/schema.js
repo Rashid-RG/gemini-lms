@@ -1,9 +1,20 @@
-import { boolean, integer, json, pgTable, serial, text, timestamp, varchar, decimal, index } from "drizzle-orm/pg-core";
+import { boolean, integer, json, pgTable, serial, text, timestamp, varchar, decimal, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const USER_TABLE=pgTable('users',{
     id:serial().primaryKey(),
     name:varchar().notNull(),
     email:varchar().notNull(),
+    studentIdentifier:varchar(),
+    phoneNumber:varchar(),
+    address:text(),
+    city:varchar(),
+    country:varchar(),
+    postalCode:varchar(),
+    dateOfBirth:timestamp(),
+    emergencyContactName:varchar(),
+    emergencyContactPhone:varchar(),
+    guardianEmail:varchar(),
+    guardianRelationship:varchar(),
     isMember:boolean().default(false),
     customerId:varchar(),
     credits:integer().default(5), // Available credits for course creation
@@ -12,6 +23,8 @@ export const USER_TABLE=pgTable('users',{
     updatedAt:timestamp().defaultNow()
 }, (table) => ({
     emailIdx: index('user_email_idx').on(table.email),
+    emailUniqueIdx: uniqueIndex('user_email_unique_idx').on(table.email),
+    studentIdentifierUniqueIdx: uniqueIndex('user_student_identifier_unique_idx').on(table.studentIdentifier),
 }))
 
 // Credit Transaction Table - audit log for all credit changes
@@ -541,4 +554,175 @@ export const TUTOR_REQUESTS_TABLE = pgTable('tutorRequests', {
     userEmailIdx: index('tutor_requests_user_email_idx').on(table.userEmail),
     statusIdx: index('tutor_requests_status_idx').on(table.status),
     requestedAtIdx: index('tutor_requests_requested_at_idx').on(table.requestedAt),
+}));
+
+// ============================================
+// ADVANCED GRADEBOOK FEATURES - NEW TABLES
+// ============================================
+
+// Grade Comments Table - instructors can add feedback/comments to grades
+export const GRADE_COMMENTS_TABLE = pgTable('gradeComments', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    studentEmail: varchar().notNull(),
+    assessmentType: varchar().notNull(), // 'quiz', 'assignment', 'mcq'
+    assessmentId: varchar().notNull(), // quiz/assignment/mcq ID
+    instructorEmail: varchar().notNull(),
+    comment: text().notNull(),
+    isPrivate: boolean().default(false), // true = only visible to instructor
+    isPinned: boolean().default(false), // pinned comments show first
+    createdAt: timestamp().defaultNow(),
+    updatedAt: timestamp().defaultNow()
+}, (table) => ({
+    courseStudentIdx: index('grade_comments_course_student_idx').on(table.courseId, table.studentEmail),
+    assessmentIdx: index('grade_comments_assessment_idx').on(table.assessmentType, table.assessmentId),
+    instructorIdx: index('grade_comments_instructor_idx').on(table.instructorEmail),
+}));
+
+// Grade History Table - tracks grade changes over time
+export const GRADE_HISTORY_TABLE = pgTable('gradeHistory', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    studentEmail: varchar().notNull(),
+    assessmentType: varchar().notNull(), // 'quiz', 'assignment', 'mcq', 'overall'
+    assessmentId: varchar(), // null for overall grades
+    oldScore: integer(),
+    newScore: integer().notNull(),
+    oldGrade: varchar(),
+    newGrade: varchar(),
+    changedBy: varchar().notNull(), // 'system', 'AI', or instructor email
+    reason: varchar(), // 'initial', 'curve_applied', 'late_penalty', 'manual_override', 'regrade'
+    details: json(), // additional context
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    courseStudentIdx: index('grade_history_course_student_idx').on(table.courseId, table.studentEmail),
+    assessmentIdx: index('grade_history_assessment_idx').on(table.assessmentType, table.assessmentId),
+    changedByIdx: index('grade_history_changed_by_idx').on(table.changedBy),
+    createdAtIdx: index('grade_history_created_at_idx').on(table.createdAt),
+}));
+
+// Grade Curves Table - store grade curve adjustments per course
+export const GRADE_CURVES_TABLE = pgTable('gradeCurves', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull().unique(),
+    curveType: varchar().notNull(), // 'flat_bonus', 'percentage_increase', 'scale_compression', 'replacement'
+    curveValue: integer().notNull(), // bonus points or percentage
+    appliedTo: varchar().notNull(), // 'all_students', 'below_threshold', 'low_performers'
+    threshold: integer(), // score threshold if applicable
+    isActive: boolean().default(false),
+    appliedBy: varchar().notNull(), // instructor email
+    description: text(),
+    appliedAt: timestamp(),
+    createdAt: timestamp().defaultNow(),
+    updatedAt: timestamp().defaultNow()
+}, (table) => ({
+    courseIdIdx: index('grade_curves_course_id_idx').on(table.courseId),
+}));
+
+// Late Submission Penalties Table - configure late penalties per course/assignment
+export const LATE_SUBMISSION_PENALTIES_TABLE = pgTable('lateSubmissionPenalties', {
+    id: serial().primaryKey(),
+    assignmentId: varchar().notNull(),
+    courseId: varchar().notNull(),
+    penaltyType: varchar().notNull(), // 'percentage_deduction', 'points_deduction', 'no_submission_allowed'
+    penaltyValue: integer().notNull(), // percentage or points to deduct
+    penaltyPeriod: varchar().notNull(), // 'per_day', 'per_hour', 'flat'
+    maxPenalty: integer(), // max deduction allowed (null = no limit)
+    gracePeriodMinutes: integer().default(0), // grace period before penalty applies
+    isEnabled: boolean().default(true),
+    createdBy: varchar().notNull(),
+    createdAt: timestamp().defaultNow(),
+    updatedAt: timestamp().defaultNow()
+}, (table) => ({
+    assignmentCourseIdx: index('late_penalty_assignment_course_idx').on(table.assignmentId, table.courseId),
+}));
+
+// Parent Portal Access Table - allow parents to view student grades
+export const PARENT_PORTAL_ACCESS_TABLE = pgTable('parentPortalAccess', {
+    id: serial().primaryKey(),
+    parentEmail: varchar().notNull(),
+    parentName: varchar().notNull(),
+    studentEmail: varchar().notNull(),
+    relationshipToStudent: varchar(), // 'mother', 'father', 'guardian', 'other'
+    accessToken: varchar().notNull().unique(), // secure token for access
+    isActive: boolean().default(true),
+    grantedBy: varchar().notNull(), // student email who granted access
+    canViewGrades: boolean().default(true),
+    canViewAssignments: boolean().default(true),
+    canViewProgress: boolean().default(true),
+    canViewComments: boolean().default(false),
+    lastAccessedAt: timestamp(),
+    grantedAt: timestamp().defaultNow(),
+    expiresAt: timestamp(), // when access expires (null = never)
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    parentEmailIdx: index('parent_portal_parent_email_idx').on(table.parentEmail),
+    studentEmailIdx: index('parent_portal_student_email_idx').on(table.studentEmail),
+    accessTokenIdx: index('parent_portal_access_token_idx').on(table.accessToken),
+    isActiveIdx: index('parent_portal_is_active_idx').on(table.isActive),
+}));
+
+// Bulk Grade Upload Table - track CSV imports and batch updates
+export const BULK_GRADE_UPLOAD_TABLE = pgTable('bulkGradeUpload', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    uploadedBy: varchar().notNull(), // instructor email
+    fileName: varchar().notNull(),
+    fileUrl: text(), // link to uploaded file
+    totalRecords: integer().notNull(),
+    successfulRecords: integer().default(0),
+    failedRecords: integer().default(0),
+    status: varchar().default('processing'), // 'processing', 'completed', 'failed', 'partial'
+    errorDetails: json(), // array of errors for failed records
+    processingLog: json(), // detailed log of what happened
+    createdAt: timestamp().defaultNow(),
+    completedAt: timestamp(),
+    updatedAt: timestamp().defaultNow()
+}, (table) => ({
+    courseIdIdx: index('bulk_upload_course_id_idx').on(table.courseId),
+    uploadedByIdx: index('bulk_upload_uploaded_by_idx').on(table.uploadedBy),
+    statusIdx: index('bulk_upload_status_idx').on(table.status),
+}));
+
+// Grade Notifications Table - track notification history for grade changes
+export const GRADE_NOTIFICATIONS_TABLE = pgTable('gradeNotifications', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    studentEmail: varchar().notNull(),
+    notificationType: varchar().notNull(), // 'grade_posted', 'grade_changed', 'comment_added', 'assignment_due_soon', 'grade_alert'
+    assessmentType: varchar(), // 'quiz', 'assignment', 'mcq'
+    assessmentId: varchar(),
+    message: text().notNull(),
+    relatedGrade: integer(),
+    relatedGradeLetter: varchar(),
+    recipientEmail: varchar().notNull(), // student or parent email
+    recipientType: varchar().notNull(), // 'student', 'parent'
+    sentVia: varchar().notNull(), // 'email', 'in_app', 'both'
+    wasRead: boolean().default(false),
+    readAt: timestamp(),
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    courseStudentIdx: index('grade_notif_course_student_idx').on(table.courseId, table.studentEmail),
+    recipientIdx: index('grade_notif_recipient_idx').on(table.recipientEmail),
+    notificationTypeIdx: index('grade_notif_type_idx').on(table.notificationType),
+    createdAtIdx: index('grade_notif_created_at_idx').on(table.createdAt),
+}));
+
+// Predictive Analytics Cache Table - store ML predictions for students
+export const PREDICTIVE_ANALYTICS_TABLE = pgTable('predictiveAnalytics', {
+    id: serial().primaryKey(),
+    courseId: varchar().notNull(),
+    studentEmail: varchar().notNull(),
+    predictedFinalGrade: decimal('5,2'),
+    predictedGradeLetter: varchar(),
+    riskLevel: varchar(), // 'low', 'medium', 'high', 'critical'
+    confidenceScore: decimal('3,2'), // 0-1 confidence in prediction
+    strengths: json(), // array of strong areas
+    weakAreas: json(), // array of weak areas
+    recommendedInterventions: json(), // suggested help/actions
+    lastUpdatedAt: timestamp().defaultNow(),
+    updatedAt: timestamp().defaultNow()
+}, (table) => ({
+    courseStudentIdx: index('predictive_analytics_course_student_idx').on(table.courseId, table.studentEmail),
+    riskLevelIdx: index('predictive_analytics_risk_level_idx').on(table.riskLevel),
 }));

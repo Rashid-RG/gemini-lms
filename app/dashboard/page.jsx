@@ -9,10 +9,12 @@ import axios from 'axios'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 function Dashboard() {
   const { user } = useUser()
   const [courses, setCourses] = useState([])
+  const [studentProfile, setStudentProfile] = useState(null)
   const [selectedCourseId, setSelectedCourseId] = useState('')
   const [loadingCourses, setLoadingCourses] = useState(false)
   const [loadError, setLoadError] = useState('')
@@ -25,6 +27,7 @@ function Dashboard() {
   const [streak, setStreak] = useState({ count: 0, longest: 0, badges: [] })
   const [streakLoading, setStreakLoading] = useState(false)
   const [streakError, setStreakError] = useState('')
+  const [profileCompleteness, setProfileCompleteness] = useState({ isComplete: true, missingLabels: [] })
   const studentEmail = user?.primaryEmailAddress?.emailAddress
 
   useEffect(() => {
@@ -55,6 +58,18 @@ function Dashboard() {
     }
 
     loadCourses()
+
+    const loadProfileCompleteness = async () => {
+      try {
+        const res = await axios.get('/api/user/profile')
+        setStudentProfile(res?.data?.result || null)
+        setProfileCompleteness(res?.data?.completeness || { isComplete: true, missingLabels: [] })
+      } catch (err) {
+        console.error('Failed to load profile completeness', err)
+      }
+    }
+
+    loadProfileCompleteness()
   }, [studentEmail])
 
   useEffect(() => {
@@ -139,7 +154,37 @@ function Dashboard() {
 
   return (
     <div>
-        <WelcomeBanner/>
+        {!profileCompleteness.isComplete && (
+          <div className='mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900'>
+            <div className='flex items-start justify-between gap-4'>
+              <div>
+                <p className='font-semibold'>Complete your student profile</p>
+                <p className='mt-1 text-sm'>You need to complete your profile before enrolling in courses or appearing with full details in admin reports.</p>
+                <p className='mt-2 text-sm'>Missing: {profileCompleteness.missingLabels.join(', ')}</p>
+              </div>
+              <Link href='/dashboard/profile?focus=student-details' className='inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700'>
+                Complete Profile
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <WelcomeBanner studentIdentifier={studentProfile?.studentIdentifier} />
+
+        {studentProfile?.studentIdentifier && (
+          <div className='mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sky-900'>
+            <div className='flex items-center justify-between gap-4'>
+              <div>
+                <p className='text-xs font-semibold uppercase tracking-wide text-sky-700'>Student ID</p>
+                <p className='mt-1 text-2xl font-bold'>{studentProfile.studentIdentifier}</p>
+                <p className='mt-1 text-sm text-sky-800'>Use this ID for academic records and admin reports.</p>
+              </div>
+              <Link href='/dashboard/profile' className='inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700'>
+                View Profile
+              </Link>
+            </div>
+          </div>
+        )}
 
         <CourseList/>
 

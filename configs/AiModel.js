@@ -4,20 +4,14 @@ const {
     HarmBlockThreshold,
   } = require("@google/generative-ai");
   
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  const genAI = new GoogleGenerativeAI(apiKey);
-  
-  
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",  
-  });
-  
-  // Optimized config for faster response times
+  import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
+
+  // Optimized config for faster response times - INCREASED TOKEN LIMIT to prevent truncation
   const generationConfig = {
     temperature: 0.8,
     topP: 0.9,
     topK: 40,
-    maxOutputTokens: 4096,
+    maxOutputTokens: 8192,
     responseMimeType: "application/json",
   };
 
@@ -29,9 +23,30 @@ const {
     maxOutputTokens: 4096,
     responseMimeType: "text/plain",
   };
-  
 
-    export const courseOutlineAIModel = model.startChat({
+  /**
+   * Get a fresh GoogleGenerativeAI instance with current API key
+   * This allows key rotation to work properly
+   */
+  function getGenAIInstance() {
+    const rotationManager = getApiKeyRotationManager();
+    const currentKey = rotationManager.getCurrentKey();
+    const genAI = new GoogleGenerativeAI(currentKey);
+    rotationManager.recordSuccess();
+    return genAI;
+  }
+
+  /**
+   * Get the base model instance with current API key
+   */
+  function getModel() {
+    const genAI = getGenAIInstance();
+    return genAI.getGenerativeModel({
+      model: "gemini-3-flash-preview",
+    });
+  }
+
+    export const courseOutlineAIModel = getModel().startChat({
       generationConfig,
       history: [
         {
@@ -49,11 +64,11 @@ const {
       ],
     });
 
-    export const generateNotesAiModel = model.startChat({
+    export const generateNotesAiModel = getModel().startChat({
       generationConfig: generationConfig2,
     });
 
-    export const GenerateStudyTypeContentAiModel = model.startChat({
+    export const GenerateStudyTypeContentAiModel = getModel().startChat({
       generationConfig,
       history: [
         {
@@ -71,7 +86,7 @@ const {
       ],
     })
 
-   export const GenerateQuizAiModel = model.startChat({
+   export const GenerateQuizAiModel = getModel().startChat({
       generationConfig,
       history: [
         {
@@ -89,7 +104,7 @@ const {
       ],
     });
 
-    export const AssignmentGradingAiModel = model.startChat({
+    export const AssignmentGradingAiModel = getModel().startChat({
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2000,
@@ -116,7 +131,7 @@ const {
       ],
     });
 
-    export const GenerateAssignmentsAiModel = model.startChat({
+    export const GenerateAssignmentsAiModel = getModel().startChat({
       generationConfig,
       history: [
         {
@@ -134,7 +149,7 @@ const {
       ],
     });
 
-    export const GenerateMCQAiModel = model.startChat({
+    export const GenerateMCQAiModel = getModel().startChat({
       generationConfig,
       history: [
         {

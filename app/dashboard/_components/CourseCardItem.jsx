@@ -147,12 +147,12 @@ const CourseCardItem = memo(function CourseCardItem({course, onStatusChange, onD
                : currentStatus === 'Ready' && !isError ?
                 <div className='flex gap-2 items-center'>
                   <CheckCircle className='h-4 w-4 text-green-500' />
-                  <Link href={'/course/'+course?.courseId}>
+                  <Link href={'/course/'+course?.courseId} prefetch={true}>
                     <Button>View</Button>
                   </Link>
                 </div>
                : !isError && !isGenerating ?
-               <Link href={'/course/'+course?.courseId}>
+               <Link href={'/course/'+course?.courseId} prefetch={true}>
                 <Button>View</Button>
                </Link> : null }
             </div>

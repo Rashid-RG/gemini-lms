@@ -2,7 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
 // User routes protected by Clerk
-const isProtectedRoute = createRouteMatcher(['/dashboard(.*)','/create','/course(.*)'])
+const isProtectedRoute = createRouteMatcher(['/dashboard(.*)','/create','/course(.*)','/grades(.*)','/instructor-gradebook(.*)'])
 
 // Admin routes - handled separately with database auth
 const isAdminRoute = createRouteMatcher(['/admin(.*)'])

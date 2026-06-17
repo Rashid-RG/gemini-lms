@@ -4,6 +4,7 @@ import { useAdminAuth } from '@/app/_context/AdminAuthContext'
 import axios from 'axios'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { AdminPageShell, AdminPageHeader } from '@/components/admin/AdminPageShell'
 import { 
     Users, 
     BookOpen, 
@@ -88,14 +89,12 @@ export default function AdminDashboardPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Welcome back, {admin?.name}</p>
-                </div>
-                <div className="flex gap-3">
+        <AdminPageShell>
+            <AdminPageHeader
+                title="Dashboard"
+                description={`Welcome back, ${admin?.name}`}
+                actions={
+                    <div className="flex gap-3">
                     {admin?.role === 'tutor' && (
                         <>
                             <style>{`
@@ -146,8 +145,9 @@ export default function AdminDashboardPage() {
                         <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                         Refresh
                     </Button>
-                </div>
-            </div>
+                    </div>
+                }
+            />
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -271,6 +271,6 @@ export default function AdminDashboardPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </AdminPageShell>
     )
 }
