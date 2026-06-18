@@ -132,6 +132,13 @@ function DashboardHeader({ onMenuClick, isSidebarCollapsed }) {
     }
   };
 
+  // Fetch notifications on mount for unread badge count
+  useEffect(() => {
+    if (userEmail) {
+      fetchNotifications(false);
+    }
+  }, [userEmail, fetchNotifications]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

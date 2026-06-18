@@ -1,6 +1,6 @@
 
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import WelcomeBanner from './_components/WelcomeBanner'
 import CourseList from './_components/CourseList'
 import AdaptiveInsights from '@/components/AdaptiveInsights'
@@ -29,6 +29,12 @@ function Dashboard() {
   const [streakError, setStreakError] = useState('')
   const [profileCompleteness, setProfileCompleteness] = useState({ isComplete: true, missingLabels: [] })
   const studentEmail = user?.primaryEmailAddress?.emailAddress
+
+  // Find active course to resume
+  const activeCourse = useMemo(() => {
+    if (!courses || courses.length === 0) return null;
+    return courses[0];
+  }, [courses]);
 
   useEffect(() => {
     if (!studentEmail) return
@@ -169,6 +175,23 @@ function Dashboard() {
               className="inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-600/10 active:scale-[0.98] transition-all duration-200 self-start sm:self-center"
             >
               View Full Profile
+            </Link>
+          </div>
+        )}
+
+        {activeCourse && (
+          <div className="relative overflow-hidden mb-8 backdrop-blur-md bg-white border border-slate-200 dark:bg-slate-800/80 dark:border-slate-700 shadow-sm rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5 group hover:shadow-md transition-all duration-300">
+            <div className="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-2xl pointer-events-none transition-transform group-hover:scale-110 duration-500" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Continue Learning</p>
+              <p className="mt-1.5 text-xl font-bold text-slate-900 dark:text-white sm:text-2xl tracking-tight leading-tight">{activeCourse.topic || activeCourse.courseName}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Pick up right where you left off</p>
+            </div>
+            <Link 
+              href={`/course/${activeCourse.courseId || activeCourse.id}`} 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 px-6 py-3.5 text-sm font-bold text-white shadow-md shadow-indigo-600/10 active:scale-[0.98] transition-all duration-200 self-start sm:self-center z-10"
+            >
+              Resume Course
             </Link>
           </div>
         )}

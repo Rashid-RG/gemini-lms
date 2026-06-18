@@ -5,6 +5,7 @@ import DashboardHeader from './_components/DashboardHeader'
 import { CourseCountContext } from '../_context/CourseCountContext'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
 import { Menu, X } from 'lucide-react'
+import BottomNav from './_components/BottomNav'
 
 function DashboardLayout({children}) {
     const [totalCourse,setTotalCourse]=useState(0);
@@ -69,13 +70,16 @@ function DashboardLayout({children}) {
                 }} 
                 isSidebarCollapsed={isSidebarCollapsed}
             />
-            <main className='flex-1 p-4 md:p-8 pt-6'>
+            <main className='flex-1 p-4 md:p-8 pt-6 pb-20 md:pb-8'>
                 <AnnouncementBanner />
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {children}
                 </div>
             </main>
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        <BottomNav />
     </div>
      </CourseCountContext.Provider>
   )
