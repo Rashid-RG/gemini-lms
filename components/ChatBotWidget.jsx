@@ -1,9 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-
-const panelBase =
-  "fixed bottom-20 right-2 left-2 sm:left-auto sm:right-4 sm:bottom-20 w-auto sm:w-[24rem] max-h-[70vh] sm:max-h-[38rem] bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/20 flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-4 duration-300";
+import { usePathname } from "next/navigation";
 
 const quickPrompts = [
   "Summarize my last chapter",
@@ -37,7 +35,16 @@ function MessageBubble({ sender, content }) {
 
 function ChatBotWidget() {
   const { user } = useUser();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  const isDashboard = pathname?.startsWith("/dashboard");
+
+  const panelClass = `fixed bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/20 flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-4 duration-300 ${
+    isDashboard
+      ? "bottom-24 right-2 left-2 md:left-auto md:right-6 md:bottom-24 w-auto md:w-[24rem] max-h-[65vh] md:max-h-[38rem]"
+      : "bottom-20 right-2 left-2 md:left-auto md:right-6 md:bottom-24 w-auto md:w-[24rem] max-h-[70vh] md:max-h-[38rem]"
+  }`;
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -242,7 +249,11 @@ function ChatBotWidget() {
     <>
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="fixed bottom-4 right-4 z-40 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white shadow-2xl hover:shadow-3xl hover:scale-110 transition-all transform duration-200 flex items-center justify-center"
+        className={`fixed z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white shadow-2xl hover:shadow-3xl hover:scale-110 transition-all transform duration-200 flex items-center justify-center ${
+          isDashboard
+            ? "bottom-24 right-4 md:bottom-6 md:right-6"
+            : "bottom-6 right-6"
+        }`}
         aria-label="Open study assistant"
       >
         {isOpen ? (
@@ -257,7 +268,7 @@ function ChatBotWidget() {
       </button>
 
       {isOpen && (
-        <div className={panelBase}>
+        <div className={panelClass}>
           <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-indigo-600 via-indigo-500 to-blue-500 text-white">
             <div>
               <p className="text-base font-bold">{headerTitle}</p>
