@@ -1,6 +1,6 @@
 import { db } from "@/configs/db";
 import { STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE, COURSE_ENROLLMENT_TABLE, STUDENT_PROGRESS_TABLE, USER_TABLE } from "@/configs/schema";
-import { eq, desc, sql, like, or, inArray } from "drizzle-orm";
+import { eq, desc, sql, like, or, inArray, and, ilike } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
 import { addCredits, CREDIT_TYPES } from "@/lib/credits";
@@ -24,15 +24,31 @@ export async function GET(req) {
         const offset = (page - 1) * limit;
 
         // Build query conditions
-        let conditions = [];
+        let whereClauses = [];
         if (status) {
-            conditions.push(eq(STUDY_MATERIAL_TABLE.status, status));
+            whereClauses.push(eq(STUDY_MATERIAL_TABLE.status, status));
+        }
+        if (search) {
+            const searchPattern = `%${search}%`;
+            whereClauses.push(or(
+                ilike(STUDY_MATERIAL_TABLE.topic, searchPattern),
+                ilike(STUDY_MATERIAL_TABLE.createdBy, searchPattern)
+            ));
         }
 
+        const buildWhere = (q) => {
+            if (whereClauses.length === 0) return q;
+            if (whereClauses.length === 1) return q.where(whereClauses[0]);
+            return q.where(and(...whereClauses));
+        };
+
         // Get total count for pagination
-        const countResult = await db
+        let countQuery = db
             .select({ count: sql`count(*)` })
             .from(STUDY_MATERIAL_TABLE);
+        
+        countQuery = buildWhere(countQuery);
+        const countResult = await countQuery;
         const totalCount = Number(countResult[0]?.count || 0);
 
         // Get courses
@@ -54,10 +70,7 @@ export async function GET(req) {
             .limit(limit)
             .offset(offset);
 
-        if (status) {
-            query = query.where(eq(STUDY_MATERIAL_TABLE.status, status));
-        }
-
+        query = buildWhere(query);
         const courses = await query;
 
         const courseIds = courses.map((course) => course.courseId);
@@ -137,6 +150,7 @@ export async function GET(req) {
             total: totalCount,
             ready: 0,
             generating: 0,
+            pendingReview: 0,
             failed: 0
         };
 
@@ -144,6 +158,7 @@ export async function GET(req) {
             const count = Number(s.count);
             if (s.status === 'Ready') stats.ready = count;
             else if (s.status === 'Generating') stats.generating = count;
+            else if (s.status === 'PendingReview') stats.pendingReview = count;
             else if (s.status === 'Failed' || s.status === 'Error') stats.failed += count;
         });
 

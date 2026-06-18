@@ -72,7 +72,7 @@ async function generateReply(userEmail, conversationId, message, notesContext = 
     console.error("Gemini AI generation error in generateReply:", error);
     try {
       const rotationManager = getApiKeyRotationManager();
-      if (rotationManager.constructor.isQuotaError(error)) {
+      if (rotationManager.constructor.isQuotaError(error) || rotationManager.constructor.isAuthError(error)) {
         rotationManager.handleQuotaExhausted();
       } else if (rotationManager.constructor.isRateLimitError(error)) {
         rotationManager.handleRateLimit();
@@ -106,7 +106,7 @@ async function* streamReply(userEmail, conversationId, message, notesContext = "
     console.error("Gemini AI stream error in streamReply:", error);
     try {
       const rotationManager = getApiKeyRotationManager();
-      if (rotationManager.constructor.isQuotaError(error)) {
+      if (rotationManager.constructor.isQuotaError(error) || rotationManager.constructor.isAuthError(error)) {
         rotationManager.handleQuotaExhausted();
       } else if (rotationManager.constructor.isRateLimitError(error)) {
         rotationManager.handleRateLimit();

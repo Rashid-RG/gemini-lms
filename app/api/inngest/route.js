@@ -10,6 +10,7 @@ import {
   SendWeeklyProgressReminders,
   SystemHealthCheck,
   helloWorld,
+  FetchYouTubeVideos,
 } from "@/inngest/functions";
 
 export const runtime = "nodejs";
@@ -39,5 +40,6 @@ export const { GET, POST, PUT } = serve({
     SendWeeklyProgressReminders,
     CleanupStaleCourses,
     SystemHealthCheck,
+    FetchYouTubeVideos,
   ],
 });

@@ -20,13 +20,15 @@ import {
     ExternalLink,
     Filter,
     Video,
-    FileText
+    FileText,
+    CheckCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
 const STATUS_COLORS = {
     'Ready': 'bg-green-100 text-green-700',
+    'PendingReview': 'bg-orange-100 text-orange-700',
     'Generating': 'bg-yellow-100 text-yellow-700',
     'Failed': 'bg-red-100 text-red-700',
     'Error': 'bg-red-100 text-red-700'
@@ -41,7 +43,7 @@ const DIFFICULTY_COLORS = {
 function CoursesManagementPage() {
     const { user, isLoaded } = useUser()
     const [courses, setCourses] = useState([])
-    const [stats, setStats] = useState({ total: 0, ready: 0, generating: 0, failed: 0 })
+    const [stats, setStats] = useState({ total: 0, ready: 0, generating: 0, pendingReview: 0, failed: 0 })
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('')
@@ -71,7 +73,7 @@ function CoursesManagementPage() {
 
             const response = await axios.get(`/api/admin/courses?${params.toString()}`)
             setCourses(response.data.courses || [])
-            setStats(response.data.stats || { total: 0, ready: 0, generating: 0, failed: 0 })
+            setStats(response.data.stats || { total: 0, ready: 0, generating: 0, pendingReview: 0, failed: 0 })
             setTotalPages(response.data.totalPages || 1)
         } catch (error) {
             console.error('Error fetching courses:', error)
@@ -131,6 +133,38 @@ function CoursesManagementPage() {
         }
     }
 
+    const [approving, setApproving] = useState(null)
+    const handleApproveAndPublish = async (course) => {
+        if (!confirm('Approve all content and publish this course to students?')) return
+        try {
+            setApproving(course.courseId)
+            // Approve all pending review items for this course
+            const reviewRes = await axios.get(`/api/admin/content-review?status=pending&courseId=${course.courseId}&limit=100`)
+            const pendingReviews = reviewRes.data.reviews || []
+            for (const review of pendingReviews) {
+                await axios.post('/api/admin/content-review', {
+                    reviewId: review.id,
+                    action: 'approve',
+                    reviewNotes: 'Bulk approved via course management'
+                })
+            }
+            // If there were no pending reviews left, manually set status to Ready
+            if (pendingReviews.length === 0) {
+                await axios.put('/api/admin/courses', {
+                    courseId: course.courseId,
+                    updates: { status: 'Ready' }
+                })
+            }
+            toast.success('Course approved and published!')
+            fetchCourses()
+        } catch (error) {
+            console.error('Approve error:', error)
+            toast.error('Failed to approve course')
+        } finally {
+            setApproving(null)
+        }
+    }
+
     const formatDate = (dateStr) => {
         if (!dateStr) return 'N/A'
         return new Date(dateStr).toLocaleDateString('en-US', {
@@ -183,7 +217,7 @@ function CoursesManagementPage() {
             </div>
 
             {/* Stats Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 md:grid-cols-3 gap-4">
                 <StatCard 
                     label="Total Community Courses" 
                     value={stats.total} 
@@ -194,9 +228,16 @@ function CoursesManagementPage() {
                 <StatCard 
                     label="Active & Ready" 
                     value={stats.ready} 
-                    color="from-emerald-500/10 to-teal-500/10 border-emerald-200/40 text-emerald-950 dark:text-emerald-300" 
+                    color="from-emerald-500/10 to-teal-500/10 border-emerald-200/40 text-emerald-955 dark:text-emerald-300" 
                     onClick={() => { setStatusFilter('Ready'); setPage(1); }}
                     active={statusFilter === 'Ready'}
+                />
+                <StatCard 
+                    label="Pending Review" 
+                    value={stats.pendingReview || 0} 
+                    color="from-orange-500/10 to-amber-500/10 border-orange-200/40 text-orange-955 dark:text-orange-300" 
+                    onClick={() => { setStatusFilter('PendingReview'); setPage(1); }}
+                    active={statusFilter === 'PendingReview'}
                 />
                 <StatCard 
                     label="AI Generation Running" 
@@ -300,9 +341,10 @@ function CoursesManagementPage() {
                                             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
                                                 course.status === 'Ready' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400' :
                                                 course.status === 'Generating' ? 'bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400' :
+                                                course.status === 'PendingReview' ? 'bg-orange-500/10 text-orange-700 border-orange-500/20 dark:text-orange-400' :
                                                 'bg-rose-500/10 text-rose-700 border-rose-500/20 dark:text-rose-400'
                                             }`}>
-                                                {course.status}
+                                                {course.status === 'PendingReview' ? 'Pending Review' : course.status}
                                             </span>
                                         </td>
                                         <td className="px-5 py-4 text-xs font-medium text-slate-600 dark:text-slate-400 max-w-[150px] truncate">
@@ -340,6 +382,22 @@ function CoursesManagementPage() {
                                                         <EyeOff className="w-4 h-4" />
                                                     )}
                                                 </button>
+
+                                                {/* Approve Button */}
+                                                {course.status === 'PendingReview' && (
+                                                    <button
+                                                        onClick={() => handleApproveAndPublish(course)}
+                                                        disabled={approving === course.courseId}
+                                                        className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 rounded-lg transition-colors border border-transparent hover:border-emerald-200/40 text-emerald-600"
+                                                        title="Approve and publish"
+                                                    >
+                                                        {approving === course.courseId ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+                                                )}
  
                                                 {/* Delete Button */}
                                                 <button

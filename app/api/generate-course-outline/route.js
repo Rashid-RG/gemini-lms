@@ -155,20 +155,15 @@ async function callAIWithRetry(prompt, retries = 4, delayMs = 3000) {
       console.log('✅ Parsed course with', data.chapters.length, 'chapters');
       return data;
     } catch (error) {
-      // Check if this is a quota exhaustion error
-      if (rotationManager && error.message.includes('quota')) {
-        console.error('❌ Quota exhausted, rotating to next API key...');
-        rotationManager.handleQuotaExhausted();
-        throw error; // Trigger retry
+      if (rotationManager) {
+        if (rotationManager.constructor.isQuotaError(error) || rotationManager.constructor.isAuthError(error)) {
+          console.error(`❌ API key issue (quota or auth) detected, rotating to next API key...`);
+          rotationManager.handleQuotaExhausted();
+        } else if (rotationManager.constructor.isRateLimitError(error)) {
+          console.warn('⚠️ Rate limit detected, rotating API key...');
+          rotationManager.handleRateLimit();
+        }
       }
-      
-      // Check if this is a rate limit error (temporary)
-      if (rotationManager && (error.message.includes('rate limit') || error.message.includes('429'))) {
-        console.warn('⚠️ Rate limit detected, rotating API key...');
-        rotationManager.handleRateLimit();
-        throw error; // Trigger retry with backoff
-      }
-      
       throw error;
     }
   }, {
