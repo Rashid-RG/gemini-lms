@@ -126,117 +126,125 @@ function AdminUsersPage() {
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Users className="h-6 w-6 text-primary" />
-                        User Management
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-400">{users.length} total users</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm backdrop-blur-xl">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl">
+                        <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-white bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">User Directory</h1>
+                        <p className="text-sm text-slate-500 font-medium mt-0.5">{users.length} active registered student profiles</p>
+                    </div>
                 </div>
-                <Button onClick={fetchUsers} variant="outline">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
+                <Button 
+                    onClick={fetchUsers} 
+                    variant="outline"
+                    className="border-slate-200 hover:bg-slate-50 font-bold rounded-xl h-11 px-5 shadow-sm transition-all flex items-center gap-2"
+                >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Refresh List
                 </Button>
             </div>
 
             {/* Search */}
-            <div className="mb-6">
+            <div className="bg-white/80 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm backdrop-blur-xl">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                         type="text"
                         placeholder="Search by name, email, or student ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full pl-11 pr-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-950/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm placeholder-slate-400 transition-all"
                     />
                 </div>
             </div>
 
             {/* Users Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white/85 dark:bg-slate-900/85 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800/60 overflow-hidden backdrop-blur-xl">
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
+                        <thead className="bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-200/60 dark:border-slate-800/60">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">User</th>
-                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Student ID</th>
-                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Member</th>
-                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Credits</th>
-                                <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Courses</th>
-                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 dark:text-gray-300">Actions</th>
+                                <th className="px-5 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
+                                <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Student ID</th>
+                                <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Membership</th>
+                                <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Available Credits</th>
+                                <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Course Generations</th>
+                                <th className="px-5 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50">
                             {filteredUsers.map((u) => (
-                                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                    <td className="px-4 py-3">
+                                <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/30 transition-colors duration-150">
+                                    <td className="px-5 py-4">
                                         <div>
-                                            <p className="font-medium">{u.name}</p>
-                                            <p className="text-sm text-gray-500">{u.email}</p>
+                                            <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{u.name}</p>
+                                            <p className="text-xs text-slate-500 font-medium mt-0.5">{u.email}</p>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="font-mono text-sm text-gray-700 dark:text-gray-200">{u.studentIdentifier || 'N/A'}</span>
+                                    <td className="px-5 py-4 text-center">
+                                        <span className="font-mono text-xs font-bold bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-200/40 dark:border-slate-800/40">{u.studentIdentifier || 'N/A'}</span>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="px-5 py-4 text-center">
                                         {u.isMember ? (
-                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full text-xs">
-                                                <Crown className="h-3 w-3" />
-                                                Member
+                                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 rounded-full text-xs font-bold">
+                                                <Crown className="h-3 w-3 fill-amber-500" />
+                                                Premium
                                             </span>
                                         ) : (
-                                            <span className="text-gray-400 text-sm">Free</span>
+                                            <span className="text-slate-400 font-semibold text-xs bg-slate-50 dark:bg-slate-950 px-3 py-1 rounded-full border border-slate-200/40 dark:border-slate-800/40">Free</span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="inline-flex items-center gap-1">
-                                            <CreditCard className="h-4 w-4 text-primary" />
-                                            <span className="font-medium">{u.credits ?? 0}</span>
-                                            <span className="text-gray-400 text-sm">({u.totalCreditsUsed ?? 0} used)</span>
+                                    <td className="px-5 py-4 text-center">
+                                        <span className="inline-flex items-center gap-1.5 bg-indigo-50/50 dark:bg-indigo-950/30 px-3 py-1.5 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                                            <CreditCard className="h-3.5 w-3.5" />
+                                            <span className="font-bold text-sm">{u.credits ?? 0}</span>
+                                            <span className="text-indigo-400 font-normal">({u.totalCreditsUsed ?? 0} used)</span>
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="inline-flex items-center gap-1 text-green-600">
+                                    <td className="px-5 py-4">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-md border border-emerald-200/30">
                                                 <CheckCircle className="h-3 w-3" />
                                                 {u.courses?.ready || 0}
                                             </span>
-                                            <span className="inline-flex items-center gap-1 text-yellow-600">
+                                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-md border border-amber-200/30">
                                                 <Clock className="h-3 w-3" />
                                                 {u.courses?.generating || 0}
                                             </span>
-                                            <span className="inline-flex items-center gap-1 text-red-600">
+                                            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/20 px-2 py-0.5 rounded-md border border-rose-200/30">
                                                 <XCircle className="h-3 w-3" />
                                                 {u.courses?.failed || 0}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-right">
+                                    <td className="px-5 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <Button
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={() => setCreditModal({ open: true, user: u })}
+                                                className="h-8 border-slate-200 font-bold hover:bg-slate-50 rounded-lg text-xs"
                                             >
                                                 <Plus className="h-3 w-3 mr-1" />
-                                                Credits
+                                                Adjust
                                             </Button>
                                             <Button
                                                 size="sm"
                                                 variant={u.isMember ? "destructive" : "default"}
                                                 onClick={() => handleToggleMembership(u)}
                                                 disabled={actionLoading === u.email}
+                                                className={`h-8 font-bold rounded-lg text-xs ${!u.isMember ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : ''}`}
                                             >
                                                 {actionLoading === u.email ? (
                                                     <Loader2 className="h-3 w-3 animate-spin" />
                                                 ) : u.isMember ? (
-                                                    'Remove'
+                                                    'Revoke'
                                                 ) : (
-                                                    'Make Member'
+                                                    'Grant Premium'
                                                 )}
                                             </Button>
                                         </div>
@@ -250,32 +258,35 @@ function AdminUsersPage() {
 
             {/* Add Credits Modal */}
             {creditModal.open && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
-                        <h3 className="text-lg font-semibold mb-4">Add Credits</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Adding credits to: <span className="font-medium">{creditModal.user?.email}</span>
+                <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white/95 dark:bg-slate-900/95 rounded-2xl p-6 max-w-md w-full border border-slate-200/60 dark:border-slate-800/60 shadow-2xl backdrop-blur-2xl animate-in zoom-in-95 duration-200">
+                        <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-2">
+                            <CreditCard className="h-5 w-5 text-indigo-600" />
+                            Credit Manager
+                        </h3>
+                        <p className="text-sm text-slate-500 font-medium mb-5">
+                            Modifying credits for: <span className="font-semibold text-slate-700 dark:text-slate-300">{creditModal.user?.email}</span>
                         </p>
                         
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Amount</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Amount to Add</label>
                                 <input
                                     type="number"
                                     min="1"
                                     value={creditAmount}
                                     onChange={(e) => setCreditAmount(Number(e.target.value))}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-bold"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Reason (optional)</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason / Notes</label>
                                 <input
                                     type="text"
                                     value={creditReason}
                                     onChange={(e) => setCreditReason(e.target.value)}
-                                    placeholder="e.g., Support compensation, bonus..."
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
+                                    placeholder="e.g. System bonus, test credits..."
+                                    className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
                                 />
                             </div>
                         </div>
@@ -284,12 +295,14 @@ function AdminUsersPage() {
                             <Button 
                                 variant="outline" 
                                 onClick={() => setCreditModal({ open: false, user: null })}
+                                className="border-slate-200 font-semibold rounded-xl"
                             >
                                 Cancel
                             </Button>
                             <Button 
                                 onClick={handleAddCredits}
                                 disabled={actionLoading === 'credits' || creditAmount <= 0}
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md"
                             >
                                 {actionLoading === 'credits' ? (
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />

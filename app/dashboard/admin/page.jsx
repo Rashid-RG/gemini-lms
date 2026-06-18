@@ -79,212 +79,224 @@ function AdminDashboardPage() {
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 p-6 rounded-2xl border border-slate-200/60 shadow-sm backdrop-blur-xl">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                    <p className="text-gray-600 dark:text-gray-400">System overview and management</p>
+                    <h1 className="text-3xl font-black tracking-tight text-slate-800 bg-gradient-to-r from-slate-900 to-indigo-950 bg-clip-text text-transparent">Admin Command Center</h1>
+                    <p className="text-sm text-slate-500 font-medium mt-1">Platform metrics, server operations, and database monitoring</p>
                 </div>
                 <Button 
                     onClick={fetchDashboardData} 
                     disabled={refreshing}
-                    variant="outline"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md shadow-indigo-100 hover:shadow-lg transition-all duration-300 flex items-center gap-2 self-start sm:self-auto h-11 px-5"
                 >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-                    Refresh
+                    <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    Refresh Stats
                 </Button>
             </div>
 
+            {/* Core Stats Overview Header */}
+            <div className="flex items-center gap-2 border-l-4 border-indigo-500 pl-3">
+                <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest">Platform Activity Metrics</h2>
+            </div>
+
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {/* Total Users */}
                 <StatCard
-                    title="Total Users"
+                    title="Total Registered Users"
                     value={stats?.users?.total || 0}
-                    icon={<Users className="h-6 w-6" />}
+                    icon={<Users className="h-5 w-5" />}
                     color="blue"
-                    subtext={`${stats?.users?.members || 0} members`}
+                    subtext={`${stats?.users?.members || 0} premium members`}
                 />
 
                 {/* Total Courses */}
                 <StatCard
-                    title="Total Courses"
+                    title="Total Courses Generated"
                     value={stats?.courses?.total || 0}
-                    icon={<BookOpen className="h-6 w-6" />}
+                    icon={<BookOpen className="h-5 w-5" />}
                     color="green"
-                    subtext={`${stats?.courses?.ready || 0} ready`}
+                    subtext={`${stats?.courses?.ready || 0} active & ready`}
                 />
 
                 {/* Generating Courses */}
                 <StatCard
-                    title="Generating"
+                    title="Active AI Generations"
                     value={stats?.courses?.generating || 0}
-                    icon={<Clock className="h-6 w-6" />}
+                    icon={<Clock className="h-5 w-5" />}
                     color="yellow"
-                    subtext={stats?.courses?.generating > 0 ? 'Active generation' : 'No active jobs'}
+                    subtext={stats?.courses?.generating > 0 ? 'Generations running' : 'System idle (no active jobs)'}
                 />
 
                 {/* Failed Courses */}
                 <StatCard
-                    title="Failed/Error"
+                    title="Generation Failures"
                     value={(stats?.courses?.failed || 0) + (stats?.courses?.error || 0)}
-                    icon={<XCircle className="h-6 w-6" />}
+                    icon={<XCircle className="h-5 w-5" />}
                     color="red"
-                    subtext="Need attention"
+                    subtext="Error states needing review"
                 />
             </div>
 
             {/* Second Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {/* Total Credits */}
                 <StatCard
-                    title="Total Credits Available"
+                    title="Allocated User Credits"
                     value={stats?.credits?.totalAvailable || 0}
-                    icon={<CreditCard className="h-6 w-6" />}
+                    icon={<CreditCard className="h-5 w-5" />}
                     color="purple"
-                    subtext={`${stats?.credits?.totalUsed || 0} used lifetime`}
+                    subtext={`${stats?.credits?.totalUsed || 0} spent credits lifetime`}
                 />
 
                 {/* Study Content */}
                 <StatCard
-                    title="Study Content"
+                    title="Total Chapter Sub-Notes"
                     value={stats?.studyContent?.ready || 0}
-                    icon={<FileText className="h-6 w-6" />}
+                    icon={<FileText className="h-5 w-5" />}
                     color="indigo"
-                    subtext={`${stats?.studyContent?.generating || 0} generating`}
+                    subtext={`${stats?.studyContent?.generating || 0} sub-contents active`}
                 />
 
                 {/* Support Tickets */}
                 <StatCard
-                    title="Open Tickets"
+                    title="Open Support Tickets"
                     value={stats?.support?.open || 0}
-                    icon={<MessageSquare className="h-6 w-6" />}
+                    icon={<MessageSquare className="h-5 w-5" />}
                     color="orange"
-                    subtext={`${stats?.support?.total || 0} total`}
+                    subtext={`${stats?.support?.total || 0} tickets logged overall`}
                 />
 
                 {/* Success Rate */}
                 <StatCard
-                    title="Success Rate"
+                    title="AI Outline Success Rate"
                     value={`${stats?.successRate || 0}%`}
-                    icon={<TrendingUp className="h-6 w-6" />}
+                    icon={<TrendingUp className="h-5 w-5" />}
                     color="emerald"
-                    subtext="Course completion"
+                    subtext="Outline parse completion"
                 />
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {/* Quick Actions Header */}
+            <div className="flex items-center gap-2 border-l-4 border-indigo-500 pl-3">
+                <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest">Administrative Control Panels</h2>
+            </div>
+
+            {/* Quick Actions Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <QuickActionCard
                     title="Announcements"
-                    description="Create platform announcements"
+                    description="Broadcast banner updates"
                     href="/dashboard/admin/announcements"
                     icon={<Megaphone className="h-5 w-5" />}
                 />
                 <QuickActionCard
                     title="Analytics"
-                    description="View platform statistics"
+                    description="View database logs"
                     href="/dashboard/admin/analytics"
                     icon={<BarChart3 className="h-5 w-5" />}
                 />
                 <QuickActionCard
                     title="Email Students"
-                    description="Send bulk emails to users"
+                    description="Dispatch bulk student emails"
                     href="/dashboard/admin/email-students"
                     icon={<Mail className="h-5 w-5" />}
                 />
                 <QuickActionCard
                     title="Manage Courses"
-                    description="View and manage all courses"
+                    description="Moderate course listings"
                     href="/dashboard/admin/courses"
                     icon={<BookOpen className="h-5 w-5" />}
                 />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <QuickActionCard
                     title="Review Requests"
-                    description="Review assignment grade appeals"
+                    description="Grade dispute queue"
                     href="/dashboard/admin/review-requests"
                     icon={<AlertTriangle className="h-5 w-5" />}
                     count={stats?.reviewRequests || 0}
                 />
                 <QuickActionCard
                     title="All Submissions"
-                    description="View and grade all submissions"
+                    description="Grade assignment drafts"
                     href="/dashboard/admin/all-submissions"
                     icon={<FileText className="h-5 w-5" />}
                 />
                 <QuickActionCard
-                    title="Credits Management"
-                    description="Manage user credits & memberships"
+                    title="Credits Manager"
+                    description="Refund or adjust credits"
                     href="/dashboard/admin/credits"
                     icon={<CreditCard className="h-5 w-5" />}
                 />
                 <QuickActionCard
-                    title="Support Tickets"
-                    description="Manage user support requests"
+                    title="Support Inbox"
+                    description="Resolve customer tickets"
                     href="/dashboard/support"
                     icon={<MessageSquare className="h-5 w-5" />}
                     count={stats?.support?.open || 0}
                 />
                 <QuickActionCard
                     title="Activity Log"
-                    description="Track admin actions & changes"
+                    description="Audit administrative logs"
                     href="/dashboard/admin/activity-log"
                     icon={<Activity className="h-5 w-5" />}
                 />
             </div>
 
-            {/* Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Activity & System Health */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
                 {/* Recent Courses */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-primary" />
-                        Recent Courses
-                    </h3>
-                    <div className="space-y-3">
-                        {recentCourses.length === 0 ? (
-                            <p className="text-gray-500 text-center py-4">No recent courses</p>
-                        ) : (
-                            recentCourses.slice(0, 5).map((course, index) => (
-                                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{course.topic}</p>
-                                        <p className="text-sm text-gray-500 truncate">{course.createdBy}</p>
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-indigo-600" />
+                            Recent Generations
+                        </h3>
+                        <div className="space-y-3.5">
+                            {recentCourses.length === 0 ? (
+                                <p className="text-slate-400 text-center py-6 text-sm">No recent courses recorded.</p>
+                            ) : (
+                                recentCourses.slice(0, 5).map((course, index) => (
+                                    <div key={index} className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:shadow-sm transition-all duration-200">
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <p className="font-semibold text-slate-800 text-sm truncate">{course.topic}</p>
+                                            <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{course.createdBy}</p>
+                                        </div>
+                                        <StatusBadge status={course.status} />
                                     </div>
-                                    <StatusBadge status={course.status} />
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* System Health */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-primary" />
-                        System Health
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
+                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-indigo-600" />
+                        Platform Operations Health
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-5 py-2">
                         <HealthIndicator 
-                            label="Course Generation" 
+                            label="Outline Generation Queue" 
                             status={stats?.courses?.generating > 10 ? 'warning' : 'healthy'}
-                            detail={`${stats?.courses?.generating || 0} in progress`}
+                            detail={`${stats?.courses?.generating || 0} active outlines`}
                         />
                         <HealthIndicator 
-                            label="Error Rate" 
+                            label="Course Outline Errors" 
                             status={((stats?.courses?.error || 0) + (stats?.courses?.failed || 0)) > 5 ? 'warning' : 'healthy'}
-                            detail={`${(stats?.courses?.error || 0) + (stats?.courses?.failed || 0)} failed courses`}
+                            detail={`${(stats?.courses?.error || 0) + (stats?.courses?.failed || 0)} error courses`}
                         />
                         <HealthIndicator 
-                            label="Study Content" 
+                            label="Sub-Notes Worker Thread" 
                             status={stats?.studyContent?.error > 5 ? 'warning' : 'healthy'}
-                            detail={`${stats?.studyContent?.error || 0} errors`}
+                            detail={`${stats?.studyContent?.error || 0} worker issues`}
                         />
                         <HealthIndicator 
-                            label="Support Queue" 
+                            label="Support Tickets Backlog" 
                             status={stats?.support?.open > 10 ? 'warning' : 'healthy'}
                             detail={`${stats?.support?.open || 0} open tickets`}
                         />
@@ -298,27 +310,25 @@ function AdminDashboardPage() {
 // Stat Card Component
 function StatCard({ title, value, icon, color, subtext }) {
     const colors = {
-        blue: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
-        green: 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400',
-        yellow: 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400',
-        red: 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',
-        purple: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400',
-        indigo: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400',
-        orange: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400',
-        emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
+        blue: 'bg-blue-50/70 text-blue-600 border border-blue-100/50 dark:text-blue-400',
+        green: 'bg-emerald-50/70 text-emerald-600 border border-emerald-100/50 dark:text-emerald-400',
+        yellow: 'bg-amber-50/70 text-amber-600 border border-amber-100/50 dark:text-amber-400',
+        red: 'bg-rose-50/70 text-rose-600 border border-rose-100/50 dark:text-rose-400',
+        purple: 'bg-purple-50/70 text-purple-600 border border-purple-100/50 dark:text-purple-400',
+        indigo: 'bg-indigo-50/70 text-indigo-600 border border-indigo-100/50 dark:text-indigo-400',
+        orange: 'bg-orange-50/70 text-orange-600 border border-orange-100/50 dark:text-orange-400',
+        emerald: 'bg-emerald-50/70 text-emerald-600 border border-emerald-100/50 dark:text-emerald-400',
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
-                    <p className="text-2xl font-bold mt-1">{value}</p>
-                    {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
-                </div>
-                <div className={`p-3 rounded-lg ${colors[color]}`}>
-                    {icon}
-                </div>
+        <div className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md hover:scale-[1.02] hover:border-slate-300 transition-all duration-300 flex items-center justify-between group">
+            <div className="flex-1 min-w-0 pr-4">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{title}</p>
+                <p className="text-3xl font-black mt-1 text-slate-800 tracking-tight">{value}</p>
+                {subtext && <p className="text-[11px] text-slate-500 font-medium truncate mt-1">{subtext}</p>}
+            </div>
+            <div className={`h-11 w-11 rounded-xl flex items-center justify-center shadow-sm shrink-0 transition-transform duration-300 group-hover:scale-110 ${colors[color]}`}>
+                {icon}
             </div>
         </div>
     )
@@ -327,26 +337,24 @@ function StatCard({ title, value, icon, color, subtext }) {
 // Quick Action Card
 function QuickActionCard({ title, description, href, icon, count }) {
     return (
-        <Link href={href}>
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                            {icon}
-                        </div>
-                        <div>
-                            <p className="font-medium">{title}</p>
-                            <p className="text-sm text-gray-500">{description}</p>
-                        </div>
+        <Link href={href} className="block w-full">
+            <div className="bg-white/80 border border-slate-200/50 hover:border-indigo-300 hover:bg-indigo-50/5 hover:-translate-y-0.5 hover:shadow-md rounded-2xl p-5 transition-all duration-300 cursor-pointer group flex items-center justify-between">
+                <div className="flex items-center gap-3.5 min-w-0 pr-4">
+                    <div className="h-10 w-10 bg-indigo-50 text-indigo-600 border border-indigo-100/30 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-250">
+                        {icon}
                     </div>
-                    <div className="flex items-center gap-2">
-                        {count > 0 && (
-                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                                {count}
-                            </span>
-                        )}
-                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <div className="min-w-0">
+                        <p className="font-bold text-slate-800 text-sm truncate leading-snug">{title}</p>
+                        <p className="text-xs text-slate-500 truncate leading-snug mt-0.5">{description}</p>
                     </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    {count > 0 && (
+                        <span className="bg-rose-500 text-white font-bold text-[10px] px-2 py-0.5 rounded-full ring-2 ring-rose-100 animate-pulse">
+                            {count}
+                        </span>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform duration-200" />
                 </div>
             </div>
         </Link>
@@ -356,18 +364,18 @@ function QuickActionCard({ title, description, href, icon, count }) {
 // Status Badge
 function StatusBadge({ status }) {
     const statusConfig = {
-        'Ready': { color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle },
-        'Generating': { color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', icon: Clock },
-        'Failed': { color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: XCircle },
-        'Error': { color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: XCircle },
+        'Ready': { color: 'bg-emerald-50 text-emerald-700 border border-emerald-100', icon: CheckCircle },
+        'Generating': { color: 'bg-amber-50 text-amber-700 border border-amber-100 animate-pulse', icon: Clock },
+        'Failed': { color: 'bg-rose-50 text-rose-700 border border-rose-100', icon: XCircle },
+        'Error': { color: 'bg-rose-50 text-rose-700 border border-rose-100', icon: XCircle },
     }
 
     const config = statusConfig[status] || statusConfig['Ready']
     const Icon = config.icon
 
     return (
-        <span className={`px-2 py-1 text-xs rounded-full flex items-center gap-1 ${config.color}`}>
-            <Icon className="h-3 w-3" />
+        <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full flex items-center gap-1.5 shrink-0 ${config.color}`}>
+            <Icon className="h-3.5 w-3.5" />
             {status}
         </span>
     )
@@ -376,18 +384,21 @@ function StatusBadge({ status }) {
 // Health Indicator
 function HealthIndicator({ label, status, detail }) {
     const statusColors = {
-        healthy: 'bg-green-500',
-        warning: 'bg-yellow-500',
-        critical: 'bg-red-500'
+        healthy: 'bg-emerald-500 shadow-emerald-500/50',
+        warning: 'bg-amber-500 shadow-amber-500/50',
+        critical: 'bg-rose-500 shadow-rose-500/50'
     }
 
     return (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
             <div className="flex items-center gap-3">
-                <div className={`h-3 w-3 rounded-full ${statusColors[status]}`} />
-                <span className="font-medium">{label}</span>
+                <div className="relative flex h-3.5 w-3.5">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${status === 'healthy' ? 'bg-emerald-400' : status === 'warning' ? 'bg-amber-400' : 'bg-rose-400'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-3.5 w-3.5 shadow-sm ${statusColors[status]}`}></span>
+                </div>
+                <span className="font-bold text-slate-700 text-sm">{label}</span>
             </div>
-            <span className="text-sm text-gray-500">{detail}</span>
+            <span className="text-xs text-slate-500 font-medium">{detail}</span>
         </div>
     )
 }

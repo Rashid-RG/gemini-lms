@@ -17,6 +17,7 @@ function CertificatePage() {
     const [course, setCourse] = useState(null)
     const [loading, setLoading] = useState(true)
     const [downloading, setDownloading] = useState(false)
+    const [sigError, setSigError] = useState(false)
     const certificateRef = useRef(null)
 
     useEffect(() => {
@@ -101,125 +102,348 @@ function CertificatePage() {
         canvas.width = 1200
         canvas.height = 900
         
-        // Background gradient
+        // Background gradient border
         const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-        gradient.addColorStop(0, '#4F46E5')
-        gradient.addColorStop(1, '#7C3AED')
+        gradient.addColorStop(0, '#1e1b4b') // Deep Midnight Navy
+        gradient.addColorStop(0.5, '#312e81') 
+        gradient.addColorStop(1, '#4f46e5') 
         ctx.fillStyle = gradient
         ctx.fillRect(0, 0, canvas.width, canvas.height)
         
-        // White certificate area
-        ctx.fillStyle = '#FFFFFF'
+        // Cream Ivory certificate inner area
+        ctx.fillStyle = '#faf8f3'
         ctx.fillRect(50, 50, canvas.width - 100, canvas.height - 100)
         
-        // Border
-        ctx.strokeStyle = '#D97706'
-        ctx.lineWidth = 8
-        ctx.strokeRect(70, 70, canvas.width - 140, canvas.height - 140)
+        // Outer gold border (thick)
+        ctx.strokeStyle = '#d97706' // Gold/Amber
+        ctx.lineWidth = 6
+        ctx.strokeRect(68, 68, canvas.width - 136, canvas.height - 136)
         
-        // Inner border
-        ctx.strokeStyle = '#4F46E5'
-        ctx.lineWidth = 2
-        ctx.strokeRect(80, 80, canvas.width - 160, canvas.height - 160)
+        // Inner navy border (thin)
+        ctx.strokeStyle = '#1e1b4b'
+        ctx.lineWidth = 1.5
+        ctx.strokeRect(78, 78, canvas.width - 156, canvas.height - 156)
         
-        // Logo area (top left) - GEMINI LMS with text
-        ctx.font = 'bold 28px Arial'
-        ctx.fillStyle = '#4F46E5'
-        ctx.textAlign = 'left'
-        ctx.fillText('GEMINI LMS', 120, 130)
-        ctx.font = '14px Arial'
-        ctx.fillStyle = '#6B7280'
-        ctx.fillText('Official Learning Platform', 120, 150)
+        // Inner gold line (double line effect)
+        ctx.strokeStyle = '#d97706'
+        ctx.lineWidth = 1
+        ctx.strokeRect(84, 84, canvas.width - 168, canvas.height - 168)
         
-        // Logo background circle
-        ctx.fillStyle = '#E0E7FF'
-        ctx.beginPath()
-        ctx.arc(100, 115, 18, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.font = 'bold 20px Arial'
-        ctx.fillStyle = '#4F46E5'
-        ctx.textAlign = 'center'
-        ctx.fillText('G', 100, 122)
+        // Corner decorative scrolls (Academic/Classical Flourishes)
+        const drawCornerOrnament = (x, y, rotation) => {
+            ctx.save()
+            ctx.translate(x, y)
+            ctx.rotate(rotation)
+            ctx.strokeStyle = '#d97706'
+            ctx.lineWidth = 1.8
+            
+            ctx.beginPath()
+            // Main curved vine
+            ctx.moveTo(0, 40)
+            ctx.quadraticCurveTo(40, 40, 40, 0)
+            ctx.stroke()
+            
+            // Outer scroll ring
+            ctx.beginPath()
+            ctx.arc(14, 14, 8, Math.PI, Math.PI * 1.5)
+            ctx.stroke()
+            
+            // Inner scroll ring
+            ctx.beginPath()
+            ctx.arc(28, 28, 14, Math.PI, Math.PI * 1.5)
+            ctx.stroke()
+            
+            ctx.restore()
+        }
+        drawCornerOrnament(88, 88, 0)
+        drawCornerOrnament(1112, 88, Math.PI / 2)
+        drawCornerOrnament(1112, 812, Math.PI)
+        drawCornerOrnament(88, 812, Math.PI * 1.5)
         
-        // Title
-        ctx.fillStyle = '#1F2937'
-        ctx.font = 'bold 60px Arial'
-        ctx.textAlign = 'center'
-        ctx.fillText('CERTIFICATE OF COMPLETION', canvas.width / 2, 220)
-        
-        // Subtitle
-        ctx.font = '28px Arial'
-        ctx.fillStyle = '#6B7280'
-        ctx.fillText('This is to certify that', canvas.width / 2, 300)
-        
-        // Student name
-        ctx.font = 'bold 48px Arial'
-        ctx.fillStyle = '#4F46E5'
-        ctx.fillText(certificate.studentName, canvas.width / 2, 380)
-        
-        // Line under name
-        ctx.strokeStyle = '#D97706'
+        // Faint central watermark crest
+        ctx.save()
+        ctx.globalAlpha = 0.03
+        ctx.strokeStyle = '#d97706'
+        ctx.fillStyle = '#d97706'
         ctx.lineWidth = 3
+        ctx.translate(600, 430)
+        
+        // Shield
         ctx.beginPath()
-        ctx.moveTo(300, 400)
-        ctx.lineTo(900, 400)
+        ctx.moveTo(0, -90)
+        ctx.quadraticCurveTo(70, -90, 90, -20)
+        ctx.quadraticCurveTo(90, 50, 0, 110)
+        ctx.quadraticCurveTo(-90, 50, -90, -20)
+        ctx.quadraticCurveTo(-70, -90, 0, -90)
         ctx.stroke()
         
+        // Inner details
+        ctx.beginPath()
+        ctx.arc(0, 0, 36, 0, Math.PI * 2)
+        ctx.stroke()
+        
+        // Laurel Leaves
+        for (let side = -1; side <= 1; side += 2) {
+            for (let i = 0; i < 7; i++) {
+                const angle = -Math.PI / 2 + side * (0.2 + i * 0.25)
+                const lx = Math.cos(angle) * 110
+                const ly = Math.sin(angle) * 110
+                
+                ctx.save()
+                ctx.translate(lx, ly)
+                ctx.rotate(angle + (side * Math.PI / 4))
+                ctx.beginPath()
+                ctx.ellipse(0, 0, 18, 7, 0, 0, Math.PI * 2)
+                ctx.fill()
+                ctx.restore()
+            }
+        }
+        ctx.restore()
+        
+        // Logo area (top left)
+        ctx.font = 'bold 24px "Cinzel", "Georgia", serif'
+        ctx.fillStyle = '#1e1b4b'
+        ctx.textAlign = 'left'
+        ctx.fillText('GEMINI LMS', 142, 130)
+        ctx.font = 'bold 10px "Montserrat", sans-serif'
+        ctx.fillStyle = '#d97706'
+        ctx.fillText('VERIFIED LEARNING HUB', 142, 148)
+        
+        // Logo background circle
+        ctx.fillStyle = '#1e1b4b'
+        ctx.beginPath()
+        ctx.arc(110, 132, 18, 0, Math.PI * 2)
+        ctx.fill()
+        
+        ctx.font = '900 20px "Cinzel", "Georgia", serif'
+        ctx.fillStyle = '#faf9f5'
+        ctx.textAlign = 'center'
+        ctx.fillText('G', 110, 139)
+        
+        // Title
+        ctx.fillStyle = '#1e1b4b'
+        ctx.font = 'bold 42px "Cinzel", "Georgia", serif'
+        ctx.textAlign = 'center'
+        ctx.fillText('CERTIFICATE OF COMPLETION', canvas.width / 2, 230)
+        
+        // Subtitle
+        ctx.font = 'italic 22px "Great Vibes", "Georgia", serif'
+        ctx.fillStyle = '#475569'
+        ctx.fillText('This certificate is proudly presented to', canvas.width / 2, 305)
+        
+        // Student name (formal calligraphy styling)
+        ctx.font = 'bold 46px "Cinzel", "Georgia", serif'
+        ctx.fillStyle = '#1e1b4b'
+        ctx.fillText(certificate.studentName, canvas.width / 2, 380)
+        
+        // Calligraphy Line under name
+        ctx.strokeStyle = '#d97706'
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.moveTo(350, 405)
+        ctx.lineTo(850, 405)
+        ctx.stroke()
+        
+        // Elegant dots on name divider
+        ctx.fillStyle = '#d97706'
+        ctx.beginPath()
+        ctx.arc(600, 405, 4, 0, Math.PI * 2)
+        ctx.arc(580, 405, 2.5, 0, Math.PI * 2)
+        ctx.arc(620, 405, 2.5, 0, Math.PI * 2)
+        ctx.fill()
+        
         // Description
-        ctx.font = '26px Arial'
-        ctx.fillStyle = '#6B7280'
-        ctx.fillText('has successfully completed the course', canvas.width / 2, 470)
+        ctx.font = 'italic 22px "Great Vibes", "Georgia", serif'
+        ctx.fillStyle = '#475569'
+        ctx.fillText('in recognition of their outstanding dedication and successful completion of the course', canvas.width / 2, 455)
         
         // Course name
-        ctx.font = 'bold 36px Arial'
-        ctx.fillStyle = '#1F2937'
-        const courseName = certificate.courseName.length > 40 
-            ? certificate.courseName.substring(0, 40) + '...' 
+        ctx.font = 'bold 32px "Cinzel", "Georgia", serif'
+        ctx.fillStyle = '#1e1b4b'
+        const courseName = certificate.courseName.length > 50 
+            ? certificate.courseName.substring(0, 50) + '...' 
             : certificate.courseName
-        ctx.fillText(courseName, canvas.width / 2, 540)
+        ctx.fillText(courseName, canvas.width / 2, 515)
         
         // Score
-        ctx.font = '28px Arial'
-        ctx.fillStyle = '#059669'
-        ctx.fillText(`Final Score: ${certificate.finalScore}%`, canvas.width / 2, 590)
+        ctx.font = '600 18px "Montserrat", sans-serif'
+        ctx.fillStyle = '#16a34a'
+        ctx.fillText(`Final Evaluation Index: ${certificate.finalScore}% (Academic Merit)`, canvas.width / 2, 570)
         
         // Date
-        ctx.font = '24px Arial'
-        ctx.fillStyle = '#6B7280'
+        ctx.font = '500 16px "Montserrat", sans-serif'
+        ctx.fillStyle = '#64748b'
         const date = new Date(certificate.completedAt).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         })
-        ctx.fillText(`Completed on ${date}`, canvas.width / 2, 650)
+        ctx.fillText(`Awarded on ${date}`, canvas.width / 2, 625)
         
-        // Certificate ID with verification badge
-        ctx.font = 'bold 18px Arial'
-        ctx.fillStyle = '#059669'
-        ctx.fillText('✓ VERIFIED', canvas.width / 2, 700)
-        ctx.font = '16px Arial'
-        ctx.fillStyle = '#6B7280'
-        ctx.fillText(`Certificate ID: ${certificate.certificateId}`, canvas.width / 2, 725)
-        
-        // Signature section
-        ctx.strokeStyle = '#1F2937'
-        ctx.lineWidth = 2
+        // Verified label pill
+        ctx.save()
         ctx.beginPath()
-        ctx.moveTo(850, 810)
-        ctx.lineTo(1080, 810)
+        ctx.moveTo(520, 660)
+        ctx.lineTo(680, 660)
+        ctx.arc(680, 672, 12, Math.PI * 1.5, Math.PI * 0.5)
+        ctx.lineTo(520, 684)
+        ctx.arc(520, 672, 12, Math.PI * 0.5, Math.PI * 1.5)
+        ctx.closePath()
+        ctx.fillStyle = '#dcfce7'
+        ctx.fill()
+        ctx.lineWidth = 1.5
+        ctx.strokeStyle = '#22c55e'
         ctx.stroke()
         
-        // Signature name
-        ctx.font = 'italic bold 22px Arial'
-        ctx.fillStyle = '#4F46E5'
+        ctx.fillStyle = '#15803d'
+        ctx.font = 'bold 11px "Montserrat", sans-serif'
         ctx.textAlign = 'center'
-        ctx.fillText('Sajeefa MSF', 965, 800)
+        ctx.fillText('✓ VERIFIED GRADUATE', 600, 676)
+        ctx.restore()
         
-        ctx.font = '16px Arial'
-        ctx.fillStyle = '#6B7280'
-        ctx.fillText('Founder, GEMINI LMS', 965, 835)
+        ctx.font = '500 12px "Montserrat", sans-serif'
+        ctx.fillStyle = '#64748b'
+        ctx.fillText(`Certificate ID: ${certificate.certificateId}`, canvas.width / 2, 712)
         
-        // Generate QR code
+        // Preload founder signature image (no pixel manipulation needed)
+        const sigImg = await new Promise((resolve) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => resolve(img)
+            img.onerror = () => {
+                console.error('Failed to load founder signature image')
+                resolve(null)
+            }
+            img.src = '/founder-signature.png'
+        })
+
+        // Draw Signature using multiply blending (same as CSS mix-blend-multiply)
+        // White becomes invisible, dark ink is fully preserved
+        if (sigImg) {
+            // Draw a cream background patch behind the signature area so multiply works
+            ctx.fillStyle = '#faf8f3'
+            ctx.fillRect(855, 650, 230, 100)
+            // Apply multiply blend
+            ctx.save()
+            ctx.globalCompositeOperation = 'multiply'
+            ctx.drawImage(sigImg, 855, 648, 230, 100)
+            ctx.restore()
+        } else {
+            ctx.font = 'italic bold 28px "Georgia", serif'
+            ctx.fillStyle = '#1e1b4b'
+            ctx.textAlign = 'center'
+            ctx.fillText('M.S.F. Sajeefa', 975, 720)
+        }
+
+        // Signature underline
+        ctx.strokeStyle = '#1e1b4b'
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.moveTo(860, 755)
+        ctx.lineTo(1090, 755)
+        ctx.stroke()
+        
+        // Founder Name — bold, clear, dark navy
+        ctx.font = 'bold 18px "Cinzel", "Georgia", serif'
+        ctx.fillStyle = '#1e1b4b'
+        ctx.textAlign = 'center'
+        ctx.fillText('M.S.F. Sajeefa', 975, 778)
+        
+        // Founder title — gold, clearly visible
+        ctx.font = 'bold 13px "Montserrat", sans-serif'
+        ctx.fillStyle = '#d97706'
+        ctx.textAlign = 'center'
+        ctx.fillText('FOUNDER OF GEMINI LMS', 975, 800)
+        
+        // Intricate Gold Medal / Achievement Badge Centerpiece (Center Bottom)
+        ctx.save()
+        ctx.translate(600, 750)
+        
+        // Ribbon 1 (Left Crimson)
+        ctx.fillStyle = '#b91c1c'
+        ctx.beginPath()
+        ctx.moveTo(-18, 10)
+        ctx.lineTo(-30, 65)
+        ctx.lineTo(-12, 55)
+        ctx.lineTo(0, 65)
+        ctx.lineTo(-6, 10)
+        ctx.closePath()
+        ctx.fill()
+        
+        ctx.strokeStyle = '#d97706'
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+        
+        // Ribbon 2 (Right Crimson)
+        ctx.fillStyle = '#991b1b'
+        ctx.beginPath()
+        ctx.moveTo(6, 10)
+        ctx.lineTo(0, 65)
+        ctx.lineTo(12, 55)
+        ctx.lineTo(30, 65)
+        ctx.lineTo(18, 10)
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+        
+        // Serrated gold spikes outer medal
+        ctx.fillStyle = '#d97706'
+        for (let i = 0; i < 36; i++) {
+            ctx.save()
+            ctx.rotate((Math.PI / 18) * i)
+            ctx.beginPath()
+            ctx.moveTo(0, -36)
+            ctx.lineTo(6, -28)
+            ctx.lineTo(-6, -28)
+            ctx.closePath()
+            ctx.fill()
+            ctx.restore()
+        }
+        
+        // Outer circle ring
+        ctx.beginPath()
+        ctx.arc(0, 0, 31, 0, Math.PI * 2)
+        ctx.fillStyle = '#b45309'
+        ctx.fill()
+        
+        // Shiny gold circle
+        ctx.beginPath()
+        ctx.arc(0, 0, 27, 0, Math.PI * 2)
+        ctx.fillStyle = '#f59e0b'
+        ctx.fill()
+        
+        // Inner midnight navy core
+        ctx.beginPath()
+        ctx.arc(0, 0, 22, 0, Math.PI * 2)
+        ctx.fillStyle = '#1e1b4b'
+        ctx.fill()
+        
+        // Laurel inner wreath
+        ctx.strokeStyle = '#fbbf24'
+        ctx.lineWidth = 1.2
+        ctx.beginPath()
+        ctx.arc(0, 0, 16, Math.PI * 0.75, Math.PI * 0.25, true)
+        ctx.stroke()
+        
+        // Star in centerpiece
+        ctx.fillStyle = '#fbbf24'
+        ctx.beginPath()
+        ctx.moveTo(0, -10)
+        ctx.lineTo(3, -3)
+        ctx.lineTo(10, -3)
+        ctx.lineTo(4, 1)
+        ctx.lineTo(6, 8)
+        ctx.lineTo(0, 3)
+        ctx.lineTo(-6, 8)
+        ctx.lineTo(-4, 1)
+        ctx.lineTo(-10, -3)
+        ctx.lineTo(-3, -3)
+        ctx.closePath()
+        ctx.fill()
+        
+        ctx.restore()
+        
+        // Generate QR code — moved up and slightly larger
         try {
             const sanitizedCertId = encodeURIComponent(certificate.certificateId)
             const verifyUrl = `${window.location.origin}/verify-certificate/${sanitizedCertId}`
@@ -231,16 +455,15 @@ function CertificatePage() {
                 width: 200
             })
             
-            // Draw QR code on canvas - wait for image to load
             return await new Promise((resolve) => {
                 const qrImage = new Image()
                 qrImage.onload = () => {
-                    ctx.drawImage(qrImage, 85, 740, 90, 90)
+                    ctx.drawImage(qrImage, 88, 680, 88, 88)
                     
-                    ctx.font = '12px Arial'
-                    ctx.fillStyle = '#9CA3AF'
+                    ctx.font = 'bold 10px "Montserrat", sans-serif'
+                    ctx.fillStyle = '#64748b'
                     ctx.textAlign = 'center'
-                    ctx.fillText('Scan to verify', 130, 835)
+                    ctx.fillText('Scan to verify', 132, 785)
                     
                     resolve(canvas)
                 }
@@ -248,25 +471,23 @@ function CertificatePage() {
             })
         } catch (err) {
             console.error('QR code generation error:', err)
-            // Fallback: draw QR placeholder
-            ctx.strokeStyle = '#D1D5DB'
-            ctx.lineWidth = 2
-            ctx.strokeRect(85, 740, 90, 90)
+            ctx.strokeStyle = '#cbd5e1'
+            ctx.lineWidth = 1.5
+            ctx.strokeRect(88, 680, 88, 88)
             
-            ctx.font = '12px Arial'
-            ctx.fillStyle = '#9CA3AF'
+            ctx.font = 'bold 10px "Montserrat", sans-serif'
+            ctx.fillStyle = '#64748b'
             ctx.textAlign = 'center'
-            ctx.fillText('Scan to verify', 130, 835)
+            ctx.fillText('Scan to verify', 132, 785)
             
             return canvas
         }
-        
-        return canvas
     }
 
     const handleDownloadPNG = async () => {
         try {
             setDownloading(true)
+            await document.fonts.ready
             const canvas = await generateCanvasImage()
             
             canvas.toBlob((blob) => {
@@ -296,6 +517,7 @@ function CertificatePage() {
     const handleDownloadPDF = async () => {
         try {
             setDownloading(true)
+            await document.fonts.ready
             const canvas = await generateCanvasImage()
             const imgData = canvas.toDataURL('image/png')
             
@@ -417,80 +639,121 @@ function CertificatePage() {
 
     return (
         <>
-            <div className="max-w-4xl mx-auto mt-8">
+            {/* Google Fonts for Premium Academic Styling */}
+            <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Great+Vibes&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+            <style dangerouslySetInnerHTML={{ __html: `
+                .font-cinzel { font-family: 'Cinzel', serif; }
+                .font-great-vibes { font-family: 'Great Vibes', cursive; }
+                .font-montserrat { font-family: 'Montserrat', sans-serif; }
+            `}} />
+
+            <div className="max-w-4xl mx-auto mt-8 p-4">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-24">
-                        <Loader className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-650 mx-auto mb-4"></div>
                         <div className="text-lg text-gray-500">Loading certificate...</div>
                     </div>
                 ) : certificate ? (
                     <>
+                    {/* Outer gradient container simulating premium background frame */}
                     <div 
                         ref={certificateRef}
-                        className='bg-white rounded-2xl shadow-2xl p-8 md:p-12 mb-6 border-4 border-gradient-to-r from-blue-500 to-purple-600'
-                        style={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            padding: '4px'
-                        }}
+                        className="p-1 bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-900 rounded-3xl shadow-2xl mb-6 relative overflow-hidden"
                     >
-                        <div className='bg-white rounded-xl p-8 md:p-12'>
+                        <div className="bg-[#faf8f3] rounded-[22px] p-6 md:p-12 border-[6px] border-amber-500 border-double relative overflow-hidden">
+                            {/* Inner border lines */}
+                            <div className="absolute inset-2 border border-indigo-950/20 rounded-[14px] pointer-events-none" />
+                            <div className="absolute inset-3.5 border border-amber-500/30 rounded-[12px] pointer-events-none" />
+                            
+                            {/* Corner Ornaments */}
+                            <div className="absolute top-4 left-4 w-12 h-12 text-amber-500/80 pointer-events-none z-10">
+                                <svg className="w-full h-full fill-none stroke-current" strokeWidth="1.5" viewBox="0 0 40 40">
+                                    <path d="M 4,4 L 36,4 M 4,4 L 4,36 M 12,12 A 8,8 0 0 1 20,4 M 12,12 A 8,8 0 0 0 4,20" />
+                                </svg>
+                            </div>
+                            <div className="absolute top-4 right-4 w-12 h-12 text-amber-500/80 pointer-events-none z-10 rotate-90">
+                                <svg className="w-full h-full fill-none stroke-current" strokeWidth="1.5" viewBox="0 0 40 40">
+                                    <path d="M 4,4 L 36,4 M 4,4 L 4,36 M 12,12 A 8,8 0 0 1 20,4 M 12,12 A 8,8 0 0 0 4,20" />
+                                </svg>
+                            </div>
+                            <div className="absolute bottom-4 left-4 w-12 h-12 text-amber-500/80 pointer-events-none z-10 -rotate-90">
+                                <svg className="w-full h-full fill-none stroke-current" strokeWidth="1.5" viewBox="0 0 40 40">
+                                    <path d="M 4,4 L 36,4 M 4,4 L 4,36 M 12,12 A 8,8 0 0 1 20,4 M 12,12 A 8,8 0 0 0 4,20" />
+                                </svg>
+                            </div>
+                            <div className="absolute bottom-4 right-4 w-12 h-12 text-amber-500/80 pointer-events-none z-10 rotate-180">
+                                <svg className="w-full h-full fill-none stroke-current" strokeWidth="1.5" viewBox="0 0 40 40">
+                                    <path d="M 4,4 L 36,4 M 4,4 L 4,36 M 12,12 A 8,8 0 0 1 20,4 M 12,12 A 8,8 0 0 0 4,20" />
+                                </svg>
+                            </div>
+
+                            {/* Academic Crest Background Watermark */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none z-0">
+                                <svg className="w-96 h-96 text-amber-600 fill-none stroke-current" viewBox="0 0 100 100" strokeWidth="2">
+                                    <path d="M50 10 Q70 10 85 35 Q85 65 50 90 Q15 65 15 35 Q30 10 50 10 Z" />
+                                    <circle cx="50" cy="45" r="15" />
+                                    <path d="M30 40 Q25 45 28 50 M32 46 Q27 51 30 56 M35 52 Q30 57 33 62" strokeLinecap="round" />
+                                    <path d="M70 40 Q75 45 72 50 M68 46 Q73 51 70 56 M65 52 Q70 57 67 62" strokeLinecap="round" />
+                                </svg>
+                            </div>
+                            
                             {/* GEMINI LMS Header */}
-                            <div className='flex items-center justify-between mb-6 pb-4 border-b-2 border-blue-100'>
-                                <div className='flex items-center gap-3'>
-                                    <div className='w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center'>
-                                        <svg fill="none" height="48" viewBox="0 0 48 48" width="48" xmlns="http://www.w3.org/2000/svg" className='w-10 h-10'><rect fill="#444ce7" height="48" rx="12" width="48"/><path d="m10.5 10.5c7.6075 7.0803 19.3925 7.0803 27 0-7.0803 7.6075-7.0803 19.3925 0 27-7.6075-7.0803-19.3925-7.0803-27 0 7.0803-7.6075 7.0803-19.3925 0-27z" fill="#fff" opacity="0.5"/></svg>
+                            <div className="flex items-center justify-between mb-8 pb-4 border-b border-indigo-950/10 relative z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 bg-[#1e1b4b] rounded-lg flex items-center justify-center text-[#faf9f5] font-cinzel font-black text-xl shadow-md border border-amber-500/20">
+                                        G
                                     </div>
                                     <div>
-                                        <h4 className='text-2xl font-bold text-blue-600'>GEMINI LMS</h4>
-                                        <p className='text-xs text-slate-500'>Official Learning Platform</p>
+                                        <h4 className="text-lg font-black tracking-tight text-indigo-950 font-cinzel">GEMINI LMS</h4>
+                                        <p className="text-[10px] font-bold text-amber-600 tracking-widest uppercase font-montserrat">Verified Learning Hub</p>
                                     </div>
                                 </div>
-                                <div className='flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full'>
-                                    <CheckCircle className='w-5 h-5 text-green-600' />
-                                    <span className='text-xs font-semibold text-green-700'>Verified</span>
+                                <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full text-emerald-600 shadow-sm">
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span className="text-[10px] font-black tracking-wider uppercase font-montserrat">Verified</span>
                                 </div>
                             </div>
 
                             {/* Certificate Content */}
-                            <div className='text-center space-y-6'>
-                                <div className='border-b-4 border-yellow-500 pb-4 mb-6'>
-                                    <h2 className='text-4xl md:text-5xl font-bold text-slate-800 mb-2'>
+                            <div className="text-center space-y-6 relative z-10">
+                                <div className="space-y-1">
+                                    <h2 className="text-3xl md:text-4.5xl font-extrabold text-indigo-950 font-cinzel tracking-wide">
                                         CERTIFICATE
                                     </h2>
-                                    <h3 className='text-2xl font-semibold text-blue-600'>
+                                    <h3 className="text-lg md:text-xl font-bold text-amber-600 tracking-widest uppercase font-montserrat">
                                         OF COMPLETION
                                     </h3>
                                 </div>
 
-                                <p className='text-lg text-slate-600'>
-                                    This is to certify that
+                                <p className="text-xl md:text-2xl italic text-slate-500 font-great-vibes">
+                                    This certificate is proudly presented to
                                 </p>
 
-                                <h3 className='text-3xl md:text-4xl font-bold text-blue-600 border-b-2 border-yellow-500 pb-2 inline-block'>
+                                <h3 className="text-3xl md:text-4.5xl font-bold text-indigo-950 font-cinzel border-b border-amber-500 pb-2 inline-block px-4">
                                     {certificate.studentName}
                                 </h3>
 
-                                <p className='text-lg text-slate-600'>
-                                    has successfully completed the course
+                                <p className="text-lg md:text-xl italic text-slate-500 font-great-vibes max-w-xl mx-auto leading-relaxed">
+                                    in recognition of their outstanding dedication and successful completion of the course
                                 </p>
 
-                                <h4 className='text-2xl md:text-3xl font-bold text-slate-800 px-4'>
+                                <h4 className="text-2xl md:text-3xl font-extrabold text-indigo-950 font-cinzel max-w-2xl mx-auto leading-snug">
                                     {certificate.courseName}
                                 </h4>
 
-                                <div className='flex items-center justify-center gap-8 pt-4'>
-                                    <div className='text-center'>
-                                        <Trophy className='w-8 h-8 text-yellow-600 mx-auto mb-2' />
-                                        <p className='text-sm text-slate-600'>Final Score</p>
-                                        <p className='text-2xl font-bold text-green-600'>
+                                <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 pt-4">
+                                    <div className="text-center">
+                                        <Trophy className="w-7 h-7 text-amber-500 mx-auto mb-1.5" />
+                                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider font-montserrat">Final score</p>
+                                        <p className="text-xl font-extrabold text-emerald-600 font-montserrat">
                                             {certificate.finalScore}%
                                         </p>
                                     </div>
 
-                                    <div className='text-center'>
-                                        <Calendar className='w-8 h-8 text-blue-600 mx-auto mb-2' />
-                                        <p className='text-sm text-slate-600'>Completed On</p>
-                                        <p className='text-lg font-semibold text-slate-800'>
+                                    <div className="text-center">
+                                        <Calendar className="w-7 h-7 text-indigo-600 mx-auto mb-1.5" />
+                                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider font-montserrat">Issued Date</p>
+                                        <p className="text-sm font-bold text-slate-700 font-montserrat">
                                             {new Date(certificate.completedAt).toLocaleDateString('en-US', {
                                                 year: 'numeric',
                                                 month: 'long',
@@ -500,94 +763,106 @@ function CertificatePage() {
                                     </div>
                                 </div>
 
-                                <div className='pt-6 border-t-2 border-slate-200 mt-8'>
-                                    <p className='text-sm text-slate-500'>
-                                        Certificate ID: <span className='font-mono font-semibold'>{certificate.certificateId}</span>
-                                    </p>
-                                </div>
-
-                                {/* Signature Section */}
-                                <div className='pt-8 mt-8 border-t-2 border-slate-200'>
-                                    <div className='flex items-center justify-center gap-8'>
-                                        <div className='text-center'>
-                                            <div className='border-t-2 border-slate-800 w-48 mx-auto mb-2'></div>
-                                            <p className='font-bold text-lg text-blue-600 italic'>Sajeefa MSF</p>
-                                            <p className='text-sm text-slate-600'>Founder, GEMINI LMS</p>
+                                {/* Intricate Gold Medal / Academic Achievement Badge Centerpiece */}
+                                <div className="relative w-28 h-28 mx-auto flex items-center justify-center my-6 z-10">
+                                    {/* Left Hanging Ribbon */}
+                                    <div className="absolute w-6 h-18 bg-red-700 border border-amber-500 rotate-[15deg] translate-x-3.5 translate-y-9 rounded-b shadow-sm z-0" />
+                                    {/* Right Hanging Ribbon */}
+                                    <div className="absolute w-6 h-18 bg-red-800 border border-amber-500 rotate-[-15deg] -translate-x-3.5 translate-y-9 rounded-b shadow-sm z-0" />
+                                    
+                                    {/* Outer Medallion spikes */}
+                                    <div className="absolute w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center shadow-lg border border-amber-600 animate-[spin_60s_linear_infinite] z-10">
+                                        <div className="w-18 h-18 border-2 border-dashed border-amber-200 rounded-full" />
+                                    </div>
+                                    
+                                    {/* Shiny gold circle */}
+                                    <div className="absolute w-16 h-16 bg-gradient-to-br from-amber-400 via-yellow-300 to-amber-600 rounded-full flex items-center justify-center shadow z-20">
+                                        {/* Midnight Navy Core */}
+                                        <div className="w-13 h-13 bg-[#1e1b4b] rounded-full flex items-center justify-center border border-amber-400 shadow-inner">
+                                            <Trophy className="w-6 h-6 text-yellow-400" />
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Verification URL */}
-                                <div className='pt-4 border-t border-slate-200 mt-4'>
-                                    <p className='text-xs text-slate-500 mb-1'>Verify this certificate at:</p>
-                                    <a 
-                                        href={`${window.location.origin}/verify-certificate/${encodeURIComponent(certificate.certificateId)}`}
-                                        target='_blank'
-                                        rel='noopener noreferrer'
-                                        className='text-xs text-blue-600 hover:text-blue-700 font-mono break-all'
-                                    >
-                                        {window.location.origin}/verify-certificate/{encodeURIComponent(certificate.certificateId)}
-                                    </a>
+                                <div className="pt-4 border-t border-indigo-950/10">
+                                    <p className="text-xs text-slate-450 font-medium font-montserrat">
+                                        Certificate ID: <span className="font-mono font-bold text-slate-600">{certificate.certificateId}</span>
+                                    </p>
+                                </div>
+
+                                {/* Signature & Verification Footer */}
+                                <div className="flex flex-col items-center gap-3 pt-6 border-t border-indigo-950/10 mt-6">
+                                    {/* Signature Image */}
+                                    <div className="h-16 flex items-end justify-center relative w-48">
+                                        {!sigError ? (
+                                            <img 
+                                                src="/founder-signature.png" 
+                                                className="h-16 object-contain mix-blend-multiply transition-opacity duration-300"
+                                                alt="Founder Signature"
+                                                onError={() => setSigError(true)}
+                                            />
+                                        ) : (
+                                            <p className="font-great-vibes font-bold text-3xl text-indigo-950">M.S.F. Sajeefa</p>
+                                        )}
+                                    </div>
+                                    <div className="w-48 border-t-2 border-indigo-950/20"></div>
+                                    <p className="text-sm font-bold text-indigo-950 tracking-wide font-cinzel">M.S.F. Sajeefa</p>
+                                    <p className="text-[10px] font-semibold text-amber-600 tracking-widest uppercase font-montserrat">Founder of GEMINI LMS</p>
+
+                                    {/* Verify link */}
+                                    <div className="mt-3 text-center">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1 font-montserrat">Verify Authenticity</p>
+                                        <a 
+                                            href={`${window.location.origin}/verify-certificate/${encodeURIComponent(certificate.certificateId)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] text-indigo-600 hover:text-indigo-700 hover:underline font-mono break-all"
+                                        >
+                                            {window.location.host}/verify-certificate/{certificate.certificateId.substring(0, 8)}...
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Download and Share Buttons */}
-                    <div className='flex flex-col md:flex-row gap-4 justify-center mt-8'>
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 pb-12">
                         <Button 
                             onClick={handleDownloadPNG}
                             disabled={downloading}
-                            className='bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg'
+                            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl h-12 px-8 shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                         >
-                            {downloading ? (
-                                <>
-                                    <Loader className='w-5 h-5 mr-2 animate-spin' />
-                                    Downloading...
-                                </>
-                            ) : (
-                                <>
-                                    <FileDown className='w-5 h-5 mr-2' />
-                                    Download PNG
-                                </>
-                            )}
+                            {downloading ? <Loader className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                            Download PNG
                         </Button>
 
                         <Button 
                             onClick={handleDownloadPDF}
                             disabled={downloading}
-                            className='bg-purple-600 hover:bg-purple-700 text-white px-8 py-6 text-lg'
+                            className="bg-gradient-to-r from-purple-600 to-pink-650 hover:from-purple-500 hover:to-pink-600 text-white font-bold rounded-xl h-12 px-8 shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                         >
-                            {downloading ? (
-                                <>
-                                    <Loader className='w-5 h-5 mr-2 animate-spin' />
-                                    Downloading...
-                                </>
-                            ) : (
-                                <>
-                                    <FileDown className='w-5 h-5 mr-2' />
-                                    Download PDF
-                                </>
-                            )}
+                            {downloading ? <Loader className="w-5 h-5 animate-spin" /> : <FileDown className="w-5 h-5" />}
+                            Download PDF
                         </Button>
 
                         <Button 
                             onClick={handleShare}
-                            className='border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg'
+                            className="border-2 border-indigo-200 bg-indigo-50/20 hover:bg-indigo-50/50 text-indigo-700 font-bold rounded-xl h-12 px-8 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                         >
-                            <Share2 className='w-5 h-5 mr-2' />
+                            <Share2 className="w-5 h-5" />
                             Share Achievement
                         </Button>
                     </div>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-24">
-                        <Trophy className="w-12 h-12 text-blue-500 mb-4" />
-                        <div className="text-2xl font-bold text-gray-700 mb-2">Certificate Locked</div>
-                        <div className="text-lg text-gray-500 max-w-xl text-center mb-4">
+                    <div className="flex flex-col items-center justify-center py-24 bg-white/70 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-xl rounded-3xl">
+                        <Trophy className="w-12 h-12 text-indigo-500 mb-4 animate-pulse" />
+                        <div className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Certificate Locked</div>
+                        <div className="text-lg text-slate-500 dark:text-slate-400 max-w-xl text-center mb-6 px-4">
                             Complete <b>all chapters</b>, achieve <b>45%+ quiz average</b>, and <b>45+ points on each assignment</b> to earn your certificate.
                         </div>
-                        <Button className="mt-2" variant="outline" onClick={() => router.push(`/course/${courseId}`)}>
+                        <Button className="bg-indigo-650 hover:bg-indigo-700 font-bold rounded-xl h-10 px-5 transition-all hover:scale-105 active:scale-95" variant="outline" onClick={() => router.push(`/course/${courseId}`)}>
                             Go to Course
                         </Button>
                     </div>

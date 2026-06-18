@@ -25,18 +25,18 @@ import {
 import { toast } from 'sonner'
 
 const TYPE_CONFIG = {
-    info: { icon: Info, color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Info' },
-    warning: { icon: AlertTriangle, color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'Warning' },
-    success: { icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-200', label: 'Success' },
-    update: { icon: Sparkles, color: 'bg-purple-100 text-purple-700 border-purple-200', label: 'Update' },
-    maintenance: { icon: Wrench, color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Maintenance' }
+    info: { icon: Info, color: 'bg-indigo-50/80 text-indigo-700 border border-indigo-200/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/50', label: 'Info' },
+    warning: { icon: AlertTriangle, color: 'bg-amber-50/80 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50', label: 'Warning' },
+    success: { icon: CheckCircle, color: 'bg-emerald-50/80 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50', label: 'Success' },
+    update: { icon: Sparkles, color: 'bg-violet-50/80 text-violet-700 border border-violet-200/60 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800/50', label: 'Update' },
+    maintenance: { icon: Wrench, color: 'bg-slate-100/80 text-slate-700 border border-slate-200/60 dark:bg-slate-800/40 dark:text-slate-300 dark:border-slate-700/50', label: 'Maintenance' }
 }
 
 const PRIORITY_CONFIG = {
-    low: { color: 'text-gray-500', label: 'Low' },
-    normal: { color: 'text-blue-500', label: 'Normal' },
-    high: { color: 'text-orange-500', label: 'High' },
-    urgent: { color: 'text-red-500 font-bold', label: 'Urgent' }
+    low: { color: 'text-slate-500 bg-slate-100/60 border border-slate-200/50 px-2.5 py-0.5 rounded-full text-xs font-medium', label: 'Low' },
+    normal: { color: 'text-indigo-500 bg-indigo-50/60 border border-indigo-200/50 px-2.5 py-0.5 rounded-full text-xs font-medium', label: 'Normal' },
+    high: { color: 'text-orange-600 bg-orange-50/60 border border-orange-200/50 px-2.5 py-0.5 rounded-full text-xs font-medium shadow-sm shadow-orange-500/10', label: 'High' },
+    urgent: { color: 'text-rose-600 bg-rose-50/60 border border-rose-200/50 px-2.5 py-0.5 rounded-full text-xs font-bold animate-pulse shadow-sm shadow-rose-500/10', label: 'Urgent' }
 }
 
 function AnnouncementsPage() {
@@ -230,28 +230,44 @@ function AnnouncementsPage() {
         )
     }
 
+    const prioritySidebar = {
+        low: 'border-l-4 border-l-slate-400/80 bg-white/60',
+        normal: 'border-l-4 border-l-indigo-400/80 bg-white/70',
+        high: 'border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-500/5 via-white/70 to-white/70',
+        urgent: 'border-l-4 border-l-rose-500 bg-gradient-to-r from-rose-500/5 via-white/70 to-white/70 shadow-sm shadow-rose-500/5'
+    }
+
     return (
         <div className="p-6 max-w-5xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 rounded-xl">
-                        <Megaphone className="w-8 h-8 text-primary" />
+            <div className="relative overflow-hidden backdrop-blur-md bg-white/70 border border-slate-200/50 shadow-sm rounded-2xl p-6 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="absolute -right-20 -top-20 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -left-20 -bottom-20 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="flex items-center gap-4 relative z-10">
+                    <div className="p-3.5 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl text-white shadow-lg shadow-indigo-500/20">
+                        <Megaphone className="w-6 h-6 animate-pulse" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">Announcements</h1>
-                        <p className="text-gray-500">Manage platform-wide announcements</p>
+                        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Announcements</h1>
+                        <p className="text-slate-500 text-sm mt-0.5">Manage and schedule platform-wide alerts</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button onClick={fetchAnnouncements} disabled={loading} variant="outline">
+                <div className="flex gap-3 relative z-10">
+                    <button 
+                        onClick={fetchAnnouncements} 
+                        disabled={loading} 
+                        className="flex items-center justify-center px-4 py-2.5 bg-white/80 border border-slate-200/60 rounded-xl text-slate-700 font-medium text-sm hover:bg-slate-50 active:scale-[0.98] transition-all duration-200 disabled:opacity-50"
+                    >
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
-                    </Button>
-                    <Button onClick={() => handleOpenModal()}>
+                    </button>
+                    <button 
+                        onClick={() => handleOpenModal()}
+                        className="flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all duration-200"
+                    >
                         <Plus className="w-4 h-4 mr-2" />
                         New Announcement
-                    </Button>
+                    </button>
                 </div>
             </div>
 
@@ -259,15 +275,21 @@ function AnnouncementsPage() {
             <div className="space-y-4">
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
                     </div>
                 ) : announcements.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-xl border">
-                        <Megaphone className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                        <p className="text-gray-500">No announcements yet</p>
-                        <Button className="mt-4" onClick={() => handleOpenModal()}>
+                    <div className="text-center py-20 bg-white/60 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-sm">
+                        <div className="p-4 bg-slate-50 w-fit rounded-full mx-auto mb-4 border border-slate-100">
+                            <Megaphone className="w-10 h-10 mx-auto text-slate-400" />
+                        </div>
+                        <h3 className="font-semibold text-slate-700 text-lg">No announcements yet</h3>
+                        <p className="text-slate-500 mt-1 text-sm max-w-sm mx-auto">Create platform updates, maintenance schedules or custom alerts here.</p>
+                        <button 
+                            className="mt-6 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all duration-200"
+                            onClick={() => handleOpenModal()}
+                        >
                             Create First Announcement
-                        </Button>
+                        </button>
                     </div>
                 ) : (
                     announcements.map((announcement) => {
@@ -277,55 +299,63 @@ function AnnouncementsPage() {
                         return (
                             <div 
                                 key={announcement.id} 
-                                className={`bg-white rounded-xl border p-5 ${
-                                    !announcement.isActive ? 'opacity-60' : ''
-                                }`}
+                                className={`backdrop-blur-md border border-slate-200/50 shadow-sm rounded-xl p-5 hover:shadow-md hover:border-indigo-500/20 transition-all duration-300 hover:translate-y-[-2px] relative overflow-hidden ${
+                                    !announcement.isActive ? 'opacity-60 bg-slate-50/40' : ''
+                                } ${prioritySidebar[announcement.priority] || 'border-l-4 border-l-slate-300'}`}
                             >
-                                <div className="flex items-start justify-between gap-4">
+                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                                     <div className="flex items-start gap-4 flex-1">
-                                        <div className={`p-2 rounded-lg ${typeConfig.color}`}>
+                                        <div className={`p-2.5 rounded-xl border ${typeConfig.color} shadow-sm`}>
                                             <TypeIcon className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-semibold text-gray-800">
+                                            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                                <h3 className="font-bold text-slate-800 text-base">
                                                     {announcement.title}
                                                 </h3>
                                                 {announcement.isPinned && (
-                                                    <Pin className="w-4 h-4 text-primary" />
+                                                    <span className="flex items-center gap-1 text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded-full font-semibold">
+                                                        <Pin className="w-3 h-3 fill-indigo-600" /> Pinned
+                                                    </span>
                                                 )}
                                                 {!announcement.isActive && (
-                                                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                                                        Inactive
+                                                    <span className="text-xs bg-slate-100/80 text-slate-500 border border-slate-200/50 px-2 py-0.5 rounded-md font-medium">
+                                                        Draft / Inactive
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-gray-600 text-sm line-clamp-2">
+                                            <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
                                                 {announcement.content}
                                             </p>
-                                            <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                            <div className="flex flex-wrap items-center gap-4 mt-4 text-xs text-slate-400 font-medium">
                                                 <span className={PRIORITY_CONFIG[announcement.priority]?.color}>
                                                     {PRIORITY_CONFIG[announcement.priority]?.label} Priority
                                                 </span>
-                                                <span>Target: {announcement.targetAudience}</span>
-                                                <span>Created: {formatDate(announcement.createdAt)}</span>
+                                                <span className="bg-slate-50 border border-slate-200/50 px-2.5 py-0.5 rounded-full text-slate-500 capitalize">
+                                                    Target: {announcement.targetAudience}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    Created: {formatDate(announcement.createdAt)}
+                                                </span>
                                                 {announcement.expiresAt && (
-                                                    <span>Expires: {formatDate(announcement.expiresAt)}</span>
+                                                    <span className="text-amber-600 bg-amber-50/50 px-2 py-0.5 rounded-md border border-amber-200/40">
+                                                        Expires: {formatDate(announcement.expiresAt)}
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1.5 self-center bg-slate-50/50 p-1.5 rounded-xl border border-slate-100 md:self-start">
                                         <button
                                             onClick={() => handleTogglePin(announcement.id, announcement.isPinned)}
                                             disabled={actionLoading[announcement.id]}
-                                            className={`p-2 rounded-lg hover:bg-gray-100 ${
-                                                announcement.isPinned ? 'text-primary' : 'text-gray-400'
+                                            className={`p-2 rounded-lg transition-all duration-200 hover:bg-white active:scale-95 ${
+                                                announcement.isPinned ? 'text-indigo-600 bg-white shadow-sm' : 'text-slate-400 hover:text-slate-600'
                                             }`}
                                             title={announcement.isPinned ? 'Unpin' : 'Pin'}
                                         >
                                             {actionLoading[announcement.id] === 'pin' ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
                                             ) : announcement.isPinned ? (
                                                 <PinOff className="w-4 h-4" />
                                             ) : (
@@ -335,13 +365,13 @@ function AnnouncementsPage() {
                                         <button
                                             onClick={() => handleToggleActive(announcement.id, announcement.isActive)}
                                             disabled={actionLoading[announcement.id]}
-                                            className={`p-2 rounded-lg hover:bg-gray-100 ${
-                                                announcement.isActive ? 'text-green-600' : 'text-gray-400'
+                                            className={`p-2 rounded-lg transition-all duration-200 hover:bg-white active:scale-95 ${
+                                                announcement.isActive ? 'text-emerald-600 bg-white shadow-sm' : 'text-slate-400 hover:text-slate-600'
                                             }`}
                                             title={announcement.isActive ? 'Deactivate' : 'Activate'}
                                         >
                                             {actionLoading[announcement.id] === 'active' ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
                                             ) : announcement.isActive ? (
                                                 <Eye className="w-4 h-4" />
                                             ) : (
@@ -350,7 +380,7 @@ function AnnouncementsPage() {
                                         </button>
                                         <button
                                             onClick={() => handleOpenModal(announcement)}
-                                            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                                            className="p-2 rounded-lg transition-all duration-200 hover:bg-white active:scale-95 text-slate-400 hover:text-indigo-600"
                                             title="Edit"
                                         >
                                             <Edit className="w-4 h-4" />
@@ -358,7 +388,7 @@ function AnnouncementsPage() {
                                         <button
                                             onClick={() => handleDelete(announcement.id)}
                                             disabled={actionLoading[announcement.id]}
-                                            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600"
+                                            className="p-2 rounded-lg transition-all duration-200 hover:bg-rose-500 hover:text-white active:scale-95 text-slate-400 hover:shadow-sm"
                                             title="Delete"
                                         >
                                             {actionLoading[announcement.id] === 'delete' ? (
@@ -377,46 +407,49 @@ function AnnouncementsPage() {
 
             {/* Create/Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h2 className="text-lg font-semibold">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                    <div className="bg-white/95 backdrop-blur-md rounded-2xl w-full max-w-lg border border-slate-200/60 shadow-2xl overflow-y-auto max-h-[90vh]">
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                            <h2 className="text-lg font-bold text-slate-800">
                                 {editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}
                             </h2>
-                            <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                            <button 
+                                onClick={() => setShowModal(false)} 
+                                className="p-2 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+                            >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                        <form onSubmit={handleSubmit} className="p-5 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Title *</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Title *</label>
                                 <input
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                    className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-800 placeholder-slate-400 text-sm"
                                     placeholder="Announcement title"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Content *</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Content *</label>
                                 <textarea
                                     value={formData.content}
                                     onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary resize-none"
+                                    className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none resize-none text-slate-800 placeholder-slate-400 text-sm"
                                     rows={4}
-                                    placeholder="Announcement content..."
+                                    placeholder="Write your announcement content here..."
                                     required
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Type</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Type</label>
                                     <select
                                         value={formData.type}
                                         onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                        className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-800 text-sm"
                                     >
                                         {Object.entries(TYPE_CONFIG).map(([key, val]) => (
                                             <option key={key} value={key}>{val.label}</option>
@@ -424,11 +457,11 @@ function AnnouncementsPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Priority</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Priority</label>
                                     <select
                                         value={formData.priority}
                                         onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                        className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-800 text-sm"
                                     >
                                         {Object.entries(PRIORITY_CONFIG).map(([key, val]) => (
                                             <option key={key} value={key}>{val.label}</option>
@@ -438,11 +471,11 @@ function AnnouncementsPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Target Audience</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Target Audience</label>
                                     <select
                                         value={formData.targetAudience}
                                         onChange={(e) => setFormData(prev => ({ ...prev, targetAudience: e.target.value }))}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                        className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-800 text-sm"
                                     >
                                         <option value="all">All Users</option>
                                         <option value="students">Students Only</option>
@@ -450,32 +483,40 @@ function AnnouncementsPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Expires At</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Expires At</label>
                                     <input
                                         type="datetime-local"
                                         value={formData.expiresAt}
                                         onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
-                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                        className="w-full px-4 py-2.5 bg-white/50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-800 text-sm"
                                     />
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2.5 py-2">
                                 <input
                                     type="checkbox"
                                     id="isPinned"
                                     checked={formData.isPinned}
                                     onChange={(e) => setFormData(prev => ({ ...prev, isPinned: e.target.checked }))}
-                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 focus:ring-offset-0 transition-all cursor-pointer"
                                 />
-                                <label htmlFor="isPinned" className="text-sm font-medium">
-                                    Pin this announcement (shows at top)
+                                <label htmlFor="isPinned" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                                    Pin this announcement to the top
                                 </label>
                             </div>
-                            <div className="flex justify-end gap-2 pt-4 border-t">
-                                <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowModal(false)}
+                                    className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 active:scale-[0.98] transition-all font-medium text-sm"
+                                >
                                     Cancel
-                                </Button>
-                                <Button type="submit" disabled={actionLoading.submit}>
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={actionLoading.submit}
+                                    className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all font-medium text-sm flex items-center justify-center min-w-[90px] disabled:opacity-50"
+                                >
                                     {actionLoading.submit ? (
                                         <>
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -484,7 +525,7 @@ function AnnouncementsPage() {
                                     ) : (
                                         editingAnnouncement ? 'Update' : 'Create'
                                     )}
-                                </Button>
+                                </button>
                             </div>
                         </form>
                     </div>

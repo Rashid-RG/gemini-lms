@@ -161,9 +161,9 @@ function VoiceTutorWidget({ courseId }) {
     if (!isLoaded || !user) return null;
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start">
             {isOpen && (
-                <div className="mb-4 w-[340px] md:w-[400px] bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/80 flex flex-col h-[480px] animate-in slide-in-from-bottom-5 duration-300">
+                <div className="mb-4 w-[calc(100vw-3rem)] sm:w-[340px] md:w-[400px] bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/80 flex flex-col h-[70vh] sm:h-[480px] animate-in slide-in-from-bottom-5 duration-300 origin-bottom-left">
                     {/* Header */}
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 rounded-t-2xl text-white">
                         <div className="flex items-center gap-2">
@@ -306,12 +306,12 @@ function VoiceTutorWidget({ courseId }) {
                         synthRef.current.cancel();
                     }
                 }}
+                style={{ animationDuration: '4s' }}
                 className={`
-                    h-14 w-14 rounded-full flex items-center justify-center text-white shadow-xl hover:scale-105 transition-all duration-300
+                    h-12 w-12 sm:h-14 sm:w-14 rounded-full flex items-center justify-center text-white shadow-xl hover:scale-105 transition-all duration-300
                     bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-200/50
                     ${isOpen ? 'rotate-90' : 'animate-bounce'}
                 `}
-                style={{ animationDuration: '4s' }}
             >
                 {isOpen ? <X className="w-6 h-6" /> : <Sparkles className="w-6 h-6 animate-pulse" />}
             </button>

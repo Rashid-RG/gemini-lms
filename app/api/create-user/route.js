@@ -31,7 +31,16 @@ export async function POST(req) {
         }
         const authEmail = await getAuthEmail(sessionClaims);
 
-        const { user, forceRefresh } = await req.json();
+        // Safely parse body — guard against empty/malformed requests
+        let user, forceRefresh;
+        try {
+            const body = await req.json();
+            user = body?.user;
+            forceRefresh = body?.forceRefresh;
+        } catch {
+            return NextResponse.json({ error: "Invalid or empty request body" }, { status: 400 });
+        }
+
         const normalizedEmail = user?.email?.trim()?.toLowerCase();
         
         if (!normalizedEmail) {

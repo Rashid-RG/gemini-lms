@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 
 const panelBase =
-  "fixed bottom-4 right-4 w-[24rem] max-h-[38rem] bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/20 flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-4 duration-300";
+  "fixed bottom-20 right-2 left-2 sm:left-auto sm:right-4 sm:bottom-20 w-auto sm:w-[24rem] max-h-[70vh] sm:max-h-[38rem] bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/20 flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-4 duration-300";
 
 const quickPrompts = [
   "Summarize my last chapter",
@@ -242,7 +242,7 @@ function ChatBotWidget() {
     <>
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="fixed bottom-4 right-4 z-40 h-14 w-14 rounded-full bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white shadow-2xl hover:shadow-3xl hover:scale-110 transition-all transform duration-200 flex items-center justify-center"
+        className="fixed bottom-4 right-4 z-40 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white shadow-2xl hover:shadow-3xl hover:scale-110 transition-all transform duration-200 flex items-center justify-center"
         aria-label="Open study assistant"
       >
         {isOpen ? (

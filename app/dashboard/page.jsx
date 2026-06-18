@@ -153,55 +153,66 @@ function Dashboard() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
         {!profileCompleteness.isComplete && (
-          <div className='mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900'>
-            <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
-              <div>
-                <p className='font-semibold'>Complete your student profile</p>
-                <p className='mt-1 text-sm'>You need to complete your profile before enrolling in courses or appearing with full details in admin reports.</p>
-                <p className='mt-2 text-sm'>Missing: {profileCompleteness.missingLabels.join(', ')}</p>
-              </div>
-              <Link href='/dashboard/profile?focus=student-details' className='inline-flex items-center justify-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 sm:justify-start'>
-                Complete Profile
-              </Link>
+          <div className="relative overflow-hidden backdrop-blur-md bg-amber-50/70 border border-amber-200/50 shadow-sm rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="absolute -right-10 -top-10 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
+            <div className="flex-1">
+              <p className="font-bold text-amber-800 text-sm flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-600" /> Complete your student profile
+              </p>
+              <p className="mt-1 text-slate-600 text-xs leading-relaxed max-w-2xl">
+                You need to complete your profile details before enrolling in new courses or appearing in official grade and admin audit reports.
+              </p>
+              <p className="mt-2 text-xs font-bold text-amber-700 bg-amber-100/40 border border-amber-200/30 px-2.5 py-1 rounded-lg w-fit">
+                Missing details: {profileCompleteness.missingLabels.join(', ')}
+              </p>
             </div>
+            <Link 
+              href="/dashboard/profile?focus=student-details" 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-600/10 active:scale-[0.98] transition-all duration-200 self-start sm:self-center"
+            >
+              Complete Profile
+            </Link>
           </div>
         )}
 
         <WelcomeBanner studentIdentifier={studentProfile?.studentIdentifier} />
 
         {studentProfile?.studentIdentifier && (
-          <div className='mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sky-900'>
-            <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-              <div>
-                <p className='text-xs font-semibold uppercase tracking-wide text-sky-700'>Student ID</p>
-                <p className='mt-1 break-all text-xl font-bold sm:text-2xl'>{studentProfile.studentIdentifier}</p>
-                <p className='mt-1 text-sm text-sky-800'>Use this ID for academic records and admin reports.</p>
-              </div>
-              <Link href='/dashboard/profile' className='inline-flex items-center justify-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 sm:justify-start'>
-                View Profile
-              </Link>
+          <div className="relative overflow-hidden backdrop-blur-md bg-gradient-to-br from-indigo-50/80 to-violet-50/80 border border-indigo-100/50 dark:border-indigo-900/30 shadow-sm rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="absolute -right-10 -top-10 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Official Student ID</p>
+              <p className="mt-1 break-all text-xl font-extrabold text-indigo-950 sm:text-2xl tracking-tight">{studentProfile.studentIdentifier}</p>
+              <p className="mt-1 text-xs text-slate-500">Use this ID for academic records, grade lookup, and admin reports.</p>
             </div>
+            <Link 
+              href="/dashboard/profile" 
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-600/10 active:scale-[0.98] transition-all duration-200 self-start sm:self-center"
+            >
+              View Full Profile
+            </Link>
           </div>
         )}
 
         <CourseList/>
 
-        <div className='mt-10 space-y-4'>
-          <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+        {/* Adaptive Insights section */}
+        <div className="mt-10 space-y-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-slate-50/40 p-4 rounded-2xl border border-slate-200/30">
             <div>
-              <p className='text-lg font-semibold text-slate-800'>Adaptive Insights</p>
-              <p className='text-sm text-slate-500'>Track mastery, weak topics, and recommended difficulty per course.</p>
+              <p className="text-base font-bold text-slate-800">Adaptive Insights</p>
+              <p className="text-xs text-slate-500 mt-0.5">Track topic mastery levels, weak performance areas, and personalized difficulties.</p>
             </div>
-            <div className='w-full lg:w-64'>
+            <div className="w-full lg:w-64">
               <Select value={selectedCourseId} onValueChange={setSelectedCourseId} disabled={loadingCourses || courses.length === 0}>
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl border-slate-200/80 bg-white/80 shadow-sm font-medium text-xs h-10">
                   <SelectValue placeholder={loadingCourses ? 'Loading courses...' : 'Select course'} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   {courses.map(course => (
-                    <SelectItem key={course.id || course.courseId} value={course.courseId || course.id}>
+                    <SelectItem key={course.id || course.courseId} value={course.courseId || course.id} className="text-xs">
                       {course.topic || course.courseName || 'Untitled course'}
                     </SelectItem>
                   ))}
@@ -211,73 +222,100 @@ function Dashboard() {
           </div>
 
           {loadError ? (
-            <div className='flex items-center gap-3 p-4 border border-rose-200 bg-rose-50 rounded-lg text-rose-700'>
-              <AlertCircle className='w-5 h-5' />
+            <div className="flex items-center gap-3 p-4 border border-rose-200/50 bg-rose-50/70 rounded-xl text-rose-700 text-sm">
+              <AlertCircle className="w-5 h-5 text-rose-500" />
               {loadError}
             </div>
           ) : selectedCourseId && studentEmail ? (
             <AdaptiveInsights courseId={selectedCourseId} studentEmail={studentEmail} />
           ) : (
-            <div className='flex items-center gap-3 p-4 border border-slate-200 rounded-lg text-slate-600'>
-              <AlertCircle className='w-5 h-5 text-slate-500' />
-              {courses.length === 0 ? 'No courses yet. Create a course to see insights.' : 'Select a course to view insights.'}
+            <div className="flex items-center gap-3 p-6 border border-slate-200/50 bg-slate-50/50 rounded-xl text-slate-500 text-xs font-semibold justify-center text-center">
+              <AlertCircle className="w-4 h-4 text-slate-400" />
+              {courses.length === 0 ? 'No courses enrolled yet. Enroll in a course to see insights.' : 'Select a course above to view insights.'}
             </div>
           )}
         </div>
 
-        <div className='mt-8 space-y-3 rounded-lg border border-slate-200 bg-white p-4'>
-          <div className='flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between'>
+        {/* Progress Reminders section */}
+        <div className="backdrop-blur-md bg-white/70 border border-slate-200/50 shadow-sm rounded-2xl p-6 mt-8 space-y-4 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute -right-20 -top-20 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between relative z-10">
             <div>
-              <p className='text-base font-semibold text-slate-800'>Progress Reminders</p>
-              <p className='text-sm text-slate-500'>Send weekly summaries with weak topics and next steps.</p>
+              <p className="text-base font-bold text-slate-800">Progress Reminders</p>
+              <p className="text-xs text-slate-500 mt-0.5">Automate weekly course summary emails featuring weak topics and next actions.</p>
             </div>
-            <div className='flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center'>
-              <label className='flex items-center gap-2 text-sm text-slate-700'>
-                <input type='checkbox' checked={reminderEnabled} onChange={toggleReminder} className='h-4 w-4 accent-blue-600' />
-                Enable reminders
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200/60 px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={reminderEnabled} 
+                  onChange={toggleReminder} 
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 cursor-pointer" 
+                />
+                Enable weekly notifications
               </label>
-              <Button size='sm' variant='outline' disabled={!reminderEnabled || reminderLoading || !selectedCourseId} onClick={previewReminder}>
-                {reminderLoading ? 'Loading...' : 'Preview email'}
-              </Button>
-              <Button 
-                size='sm' 
+              <button 
+                disabled={!reminderEnabled || reminderLoading || !selectedCourseId} 
+                onClick={previewReminder}
+                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {reminderLoading ? 'Loading Preview...' : 'Preview email'}
+              </button>
+              <button 
                 disabled={!reminderEnabled || sendingEmail || !selectedCourseId || !reminderPreview} 
                 onClick={sendReminderEmail}
-                className='bg-blue-600 hover:bg-blue-700'
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/10 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
               >
                 {sendingEmail ? 'Sending...' : 'Send email'}
-              </Button>
+              </button>
             </div>
           </div>
 
           {reminderError && (
-            <div className='flex items-center gap-2 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded px-3 py-2'>
-              <AlertCircle className='w-4 h-4' /> {reminderError}
+            <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50/70 border border-rose-200/50 rounded-xl px-4 py-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-500" /> {reminderError}
             </div>
           )}
 
           {sendSuccess && (
-            <div className='flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded px-3 py-2'>
-              ✓ {sendSuccess}
+            <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50/70 border border-emerald-200/50 rounded-xl px-4 py-2.5">
+              <span>✓</span> {sendSuccess}
             </div>
           )}
 
           {reminderPreview && (
-            <div className='border border-slate-200 rounded p-3 bg-slate-50 text-sm text-slate-700 space-y-2'>
-              <div className='font-semibold text-slate-900'>Reminder preview</div>
+            <div className="border border-slate-200/60 rounded-xl p-4 bg-slate-50/40 backdrop-blur-sm text-xs text-slate-600 space-y-3 animate-in fade-in duration-200">
+              <div className="font-bold text-slate-800 text-sm border-b border-slate-200/40 pb-2 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse" /> Reminder Preview Content
+              </div>
               {reminderPreview.totalTopics === 0 ? (
-                <div className='text-slate-500'>No performance data yet. Complete a quiz to generate insights for reminders.</div>
+                <div className="text-slate-400 py-2">No performance data yet. Complete at least one quiz to generate insights for reminders.</div>
               ) : (
-                <>
-                  <div>Overall mastery: {reminderPreview.summary?.overallMastery || 0}%</div>
-                  <div>Topics mastered: {reminderPreview.summary?.topicsMastered || 0}</div>
-                  <div>Topics needing work: {reminderPreview.summary?.topicsNeedingWork || 0}</div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-white/60 p-3 rounded-lg border border-slate-100">
+                    <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Overall mastery</p>
+                    <p className="text-lg font-extrabold text-slate-700 mt-0.5">{reminderPreview.summary?.overallMastery || 0}%</p>
+                  </div>
+                  <div className="bg-white/60 p-3 rounded-lg border border-slate-100">
+                    <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Topics Mastered</p>
+                    <p className="text-lg font-extrabold text-emerald-600 mt-0.5">{reminderPreview.summary?.topicsMastered || 0}</p>
+                  </div>
+                  <div className="bg-white/60 p-3 rounded-lg border border-slate-100">
+                    <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Topics Needing Work</p>
+                    <p className="text-lg font-extrabold text-rose-600 mt-0.5">{reminderPreview.summary?.topicsNeedingWork || 0}</p>
+                  </div>
                   {reminderPreview.nextAction ? (
-                    <div className='text-slate-800'>Next action: Review {reminderPreview.nextAction.topicName} ({reminderPreview.nextAction.averageScore}% - {reminderPreview.nextAction.recommendedDifficulty})</div>
+                    <div className="bg-white/60 p-3 rounded-lg border border-indigo-100 md:col-span-1">
+                      <p className="text-indigo-500 text-[10px] uppercase font-bold tracking-wider">Next Action</p>
+                      <p className="text-slate-700 text-xs font-bold mt-0.5 truncate">Review: {reminderPreview.nextAction.topicName}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{reminderPreview.nextAction.averageScore}% score ({reminderPreview.nextAction.recommendedDifficulty})</p>
+                    </div>
                   ) : (
-                    <div className='text-slate-500'>No next action available yet.</div>
+                    <div className="bg-white/60 p-3 rounded-lg border border-slate-100 flex items-center text-slate-400 text-xs font-medium">
+                      No next action available.
+                    </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}
