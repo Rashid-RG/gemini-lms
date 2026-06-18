@@ -8,7 +8,7 @@ import QuizCardItem from './_components/QuizCardItem'
 import EndScreen from '../_components/EndScreen'
 import { useChapter } from '../_context/ChapterContext'
 import { useAdaptiveDifficulty } from '../_hooks/useAdaptiveDifficulty'
-import { Zap, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react'
+import { Zap, AlertTriangle, RefreshCw, Loader2, Timer, Clock, PlayCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import ReportContentIssue from '@/components/ReportContentIssue'
@@ -35,6 +35,11 @@ function Quiz() {
     const [error, setError] = useState('')
     const [retrying, setRetrying] = useState(false)
     const [errorType, setErrorType] = useState(null) // 'quota', 'generating', 'no-content', 'error'
+    
+    // Timer and Start states
+    const [isStarted, setIsStarted] = useState(false)
+    const [timeLeft, setTimeLeft] = useState(0)
+    const [isTimeUp, setIsTimeUp] = useState(false)
 
     // Get current chapter ID from context or use course ID as fallback
     const currentChapterId = chapters[currentChapterIndex]?.chapterId || `${courseId}-quiz`
@@ -98,6 +103,7 @@ function Quiz() {
             const questions = Array.isArray(content) ? content : (content?.questions || [])
             setQuiz(questions)
             setTopicName(content?.topic || '')
+            setTimeLeft(questions.length * 60) // 1 minute per question
             setError('')
             setErrorType(null)
         } catch (err) {
@@ -231,6 +237,35 @@ function Quiz() {
         setIsCorrectAnswer(null)
     }, [stepCount])
 
+    // Timer logic
+    useEffect(() => {
+        let timer;
+        if (isStarted && !isTimeUp && timeLeft > 0 && stepCount < quiz.length) {
+            timer = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timer)
+                        setIsTimeUp(true)
+                        setStepCount(quiz.length) // Auto submit by forcing end screen
+                        toast.error('⏰ Time is up!', {
+                            description: 'Your quiz has been automatically submitted.',
+                            duration: 5000
+                        })
+                        return 0
+                    }
+                    return prev - 1
+                })
+            }, 1000)
+        }
+        return () => clearInterval(timer)
+    }, [isStarted, isTimeUp, timeLeft, stepCount, quiz.length])
+
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60)
+        const s = seconds % 60
+        return `${m}:${s < 10 ? '0' : ''}${s}`
+    }
+
     // Loading state
     if (loading) {
         return (
@@ -346,6 +381,45 @@ function Quiz() {
         )
     }
 
+    // Start Screen
+    if (!isStarted && quiz.length > 0) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[500px] gap-6 p-4">
+                <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-8 max-w-lg w-full text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+                    
+                    <div className="mx-auto w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
+                        <PlayCircle className="w-10 h-10 text-indigo-600" />
+                    </div>
+
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">{topicName || chapters[currentChapterIndex]?.name || 'Course Quiz'}</h2>
+                    <p className="text-slate-500 mb-8">Ready to test your knowledge? This quiz will adapt to your performance.</p>
+
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col items-center">
+                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Questions</span>
+                            <span className="text-xl font-bold text-slate-800">{quiz.length}</span>
+                        </div>
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col items-center">
+                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Time Limit</span>
+                            <span className="text-xl font-bold text-slate-800 flex items-center gap-1">
+                                <Clock className="w-4 h-4 text-indigo-500" />
+                                {formatTime(quiz.length * 60)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <Button 
+                        onClick={() => setIsStarted(true)}
+                        className="w-full py-6 text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/30 rounded-xl transition-all active:scale-[0.98]"
+                    >
+                        Start Quiz
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div>
             {/* Difficulty Badge */}
@@ -370,26 +444,40 @@ function Quiz() {
 
             {quiz && quiz.length > 0 ? (
                 <>
-                    <StepProgress data={quiz} stepCount={stepCount} setStepCount={(value)=>setStepCount(value)} />
+                    {stepCount < quiz.length && (
+                        <>
+                            {/* Timer UI */}
+                            <div className="flex justify-between items-center mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm">
+                                <span className="font-bold text-slate-700 flex items-center gap-2">
+                                    <Timer className="w-5 h-5 text-indigo-500" /> Time Remaining
+                                </span>
+                                <span className={`font-mono text-xl font-bold ${timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-indigo-600'}`}>
+                                    {formatTime(timeLeft)}
+                                </span>
+                            </div>
 
-                    <div>
-                        <QuizCardItem quiz={quiz[stepCount]}
-                        userSelectedOption={(v)=>checkAnswer(v,quiz[stepCount])}
-                        />
-                    </div>
+                            <StepProgress data={quiz} stepCount={stepCount} setStepCount={(value)=>setStepCount(value)} />
 
-                    {isCorrectAns==false&& (
-                        <div className='border p-3 border-red-700 bg-red-200 rounded-lg'>
-                            <h2 className='font-bold text-lg text-red-600'>Incorrect</h2>
-                            <p className='text-red-600'>Correct Answer is : {correctAns}</p>
-                        </div>
-                    )}
-                   
-                    {isCorrectAns==true&& (
-                        <div className='border p-3 border-green-700 bg-green-200 rounded-lg'>
-                            <h2 className='font-bold text-lg text-green-600'>Correct</h2>
-                            <p className='text-green-600'>Your answer is Correct</p>
-                        </div>
+                            <div>
+                                <QuizCardItem quiz={quiz[stepCount]}
+                                userSelectedOption={(v)=>checkAnswer(v,quiz[stepCount])}
+                                />
+                            </div>
+
+                            {isCorrectAns==false&& (
+                                <div className='border p-3 border-red-700 bg-red-200 rounded-lg'>
+                                    <h2 className='font-bold text-lg text-red-600'>Incorrect</h2>
+                                    <p className='text-red-600'>Correct Answer is : {correctAns}</p>
+                                </div>
+                            )}
+                        
+                            {isCorrectAns==true&& (
+                                <div className='border p-3 border-green-700 bg-green-200 rounded-lg'>
+                                    <h2 className='font-bold text-lg text-green-600'>Correct</h2>
+                                    <p className='text-green-600'>Your answer is Correct</p>
+                                </div>
+                            )}
+                        </>
                     )}
                    
                     <EndScreen 
