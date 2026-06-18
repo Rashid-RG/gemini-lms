@@ -9,6 +9,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
 
 async function runLocally(language, code) {
+    if (process.env.VERCEL === '1') {
+        throw new Error("Local execution is disabled in Vercel environment.");
+    }
+
     const tempDir = os.tmpdir();
     const uniqueId = Date.now();
     let ext = "js";
@@ -67,6 +71,17 @@ async function runLocally(language, code) {
         cmd = `ruby "${tempFilePath}"`;
     }
 
+    const isCommandNotFound = (err) => {
+        if (!err) return false;
+        const msg = (err.message || "").toLowerCase();
+        return err.code === 127 || 
+               msg.includes("not recognized") || 
+               msg.includes("not found") || 
+               msg.includes("enoent") || 
+               msg.includes("command not found") || 
+               msg.includes("executable file not found");
+    };
+
     return new Promise((resolve, reject) => {
         if (!cmd) {
             return reject(new Error(`Language '${language}' is not supported locally.`));
@@ -85,25 +100,29 @@ async function runLocally(language, code) {
                 }
             } catch (_) {}
 
-            if (language === "python" && error && (error.code === 127 || error.message.includes("not recognized"))) {
+            if (language === "python" && error && isCommandNotFound(error)) {
                 // Fallback to python3
                 try {
                     fs.writeFileSync(tempFilePath, code);
                     exec(`python3 "${tempFilePath}"`, (error3, stdout3, stderr3) => {
                         try { fs.unlinkSync(tempFilePath); } catch (_) {}
-                        resolve({
-                            run: {
-                                stdout: stdout3 || "",
-                                stderr: stderr3 || (error3 ? error3.message : ""),
-                                code: error3 ? (error3.code || 1) : 0,
-                                output: stdout3 || stderr3 || (error3 ? error3.message : "")
-                            }
-                        });
+                        if (error3 && isCommandNotFound(error3)) {
+                            reject(new Error(`python3 command not found: ${error3.message}`));
+                        } else {
+                            resolve({
+                                run: {
+                                    stdout: stdout3 || "",
+                                    stderr: stderr3 || (error3 ? error3.message : ""),
+                                    code: error3 ? (error3.code || 1) : 0,
+                                    output: stdout3 || stderr3 || (error3 ? error3.message : "")
+                                }
+                            });
+                        }
                     });
                 } catch (py3Err) {
                     reject(py3Err);
                 }
-            } else if (error && (error.code === 127 || error.message.includes("not recognized") || error.message.includes("not found"))) {
+            } else if (error && isCommandNotFound(error)) {
                 // If compiler/interpreter is not installed, reject so that Gemini fallback is triggered
                 reject(new Error(`Runtime command failed (not installed): ${error.message}`));
             } else {
