@@ -76,11 +76,13 @@ function Create() {
         <p className='text-gray-500 text-sm md:text-lg text-center'>Fill All details in order to generate study material for your next project</p>
 
           <>
-            <div className='mt-10'>
+            <div className='mt-10 w-full max-w-xl'>
               {step==0?  <SelectOption selectedStudyType={(value)=>handleUserInput('courseType',value)}/>
               : <TopicInput 
               setTopic={(value)=>handleUserInput('topic',value)} 
               setDifficultyLevel={(value)=>handleUserInput('difficultyLevel',value)}
+              topicValue={formData.topic}
+              difficultyValue={formData.difficultyLevel}
               /> }
             </div>
 
