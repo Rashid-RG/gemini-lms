@@ -211,17 +211,17 @@ function SideBar({ onNavigate, onCollapseToggle }) {
     }, [path, user?.primaryEmailAddress?.emailAddress, mounted, fetchUserData]);
 
     return (
-        <div className='h-screen border-r border-slate-100 bg-white p-5 flex flex-col justify-between relative shadow-sm'>
+        <div className='h-screen border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex flex-col justify-between relative shadow-sm'>
             <div className='flex flex-col flex-1 overflow-hidden'>
                 <div className='flex gap-2 items-center px-2 py-1 justify-between w-full'>
                     <div className='flex gap-2 items-center'>
                         <Image src={'/logo.svg'} alt='logo' width={32} height={32}/>
-                        <h2 className="font-black text-xl tracking-tight text-slate-800">GEMINI LMS</h2>
+                        <h2 className="font-black text-xl tracking-tight text-slate-800 dark:text-white">GEMINI LMS</h2>
                     </div>
                     {onCollapseToggle && (
                         <button
                             onClick={onCollapseToggle}
-                            className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-700"
+                            className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200"
                             aria-label="Collapse Sidebar"
                         >
                             <ChevronLeft className="h-4 w-4" />
@@ -253,8 +253,8 @@ function SideBar({ onNavigate, onCollapseToggle }) {
                                         flex gap-4 items-center px-4 py-3 rounded-xl cursor-pointer
                                         transition-all duration-200 group relative
                                         ${isActive 
-                                            ? 'bg-indigo-50/75 text-indigo-600 font-bold' 
-                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                            ? 'bg-indigo-50/75 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold' 
+                                            : 'text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-white'
                                         }
                                     `}>
                                         {isActive && (
@@ -270,23 +270,23 @@ function SideBar({ onNavigate, onCollapseToggle }) {
                 </div>
             </div>
 
-            <div className='border border-slate-100 p-4 bg-gradient-to-br from-indigo-50/40 via-purple-50/20 to-slate-50/40 rounded-2xl w-full shadow-sm flex flex-col gap-2 mt-auto mb-2'>
+            <div className='border border-slate-100 dark:border-slate-800 p-4 bg-gradient-to-br from-indigo-50/40 via-purple-50/20 to-slate-50/40 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-slate-900/30 rounded-2xl w-full shadow-sm flex flex-col gap-2 mt-auto mb-2'>
                 {isMember ? (
                     <>
-                        <h2 className='text-xs font-black text-indigo-950 flex items-center gap-1.5'>
+                        <h2 className='text-xs font-black text-indigo-950 dark:text-indigo-300 flex items-center gap-1.5'>
                             ✨ Premium Member
                         </h2>
                         <Progress value={100} className="h-1.5 bg-indigo-100 [&>div]:bg-indigo-600" />
-                        <h2 className='text-[10px] text-slate-500 font-medium'>Unlimited course creation enabled</h2>
+                        <h2 className='text-[10px] text-slate-500 dark:text-slate-400 font-medium'>Unlimited course creation enabled</h2>
                     </>
                 ) : (
                     <>
                         <div className="flex justify-between items-center text-xs">
-                            <span className="font-bold text-slate-700">Available Credits</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-300">Available Credits</span>
                             <span className="font-black text-indigo-600">{userCredits} / 5</span>
                         </div>
                         <Progress value={userCredits > 0 ? (userCredits / 5) * 100 : 0} className="h-1.5 bg-indigo-50 [&>div]:bg-indigo-600" />
-                        <h2 className='text-[10px] text-slate-500 font-medium'>{totalCourse} Courses Created</h2>
+                        <h2 className='text-[10px] text-slate-500 dark:text-slate-400 font-medium'>{totalCourse} Courses Created</h2>
                     </>
                 )}
                 

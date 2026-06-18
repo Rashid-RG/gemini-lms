@@ -26,7 +26,7 @@ function DashboardLayout({children}) {
         userCredits, setUserCredits,
         isMember, setIsMember
     }}>
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 transition-colors duration-300">
         {/* Mobile Sidebar Overlay with backdrop-blur */}
         {mobileMenuOpen && (
             <div 
@@ -37,7 +37,7 @@ function DashboardLayout({children}) {
 
         {/* Sidebar - Desktop fixed, Mobile slide-in */}
         <div className={`
-            fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-slate-100 w-64
+            fixed top-0 bottom-0 left-0 z-50 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 w-64
             transition-transform duration-300 ease-in-out
             ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
             ${isSidebarCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}

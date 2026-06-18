@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Flame, Award, TrendingUp, Bell, Menu } from 'lucide-react'
+import { Flame, Award, TrendingUp, Bell, Menu, Moon, Sun } from 'lucide-react'
 
 // Format date safely to avoid hydration mismatch
 const formatNotificationDate = (dateStr) => {
@@ -31,13 +31,32 @@ function DashboardHeader({ onMenuClick, isSidebarCollapsed }) {
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifError, setNotifError] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const dropdownRef = useRef(null);
   const userEmail = user?.primaryEmailAddress?.emailAddress;
 
   // Prevent hydration mismatch by waiting for client mount
   useEffect(() => {
     setMounted(true);
+    // Init dark mode from localStorage
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
   }, []);
+
+  const toggleDarkMode = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   // Simple cache for streak data
   const streakCacheRef = useRef({ data: null, timestamp: 0 });
@@ -212,6 +231,16 @@ function DashboardHeader({ onMenuClick, isSidebarCollapsed }) {
             </div>
           )}
         </div>
+
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={toggleDarkMode}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:scale-105 active:scale-95"
+          title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label="Toggle dark mode"
+        >
+          {darkMode ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5" />}
+        </button>
 
         {/* Streak Display - Hidden on small mobile */}
         <div className='hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-orange-200/50 rounded-xl shadow-sm hover:bg-orange-500/15 hover:shadow transition-all duration-300 hover:scale-[1.02] cursor-pointer group'>

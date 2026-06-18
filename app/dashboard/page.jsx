@@ -35,67 +35,44 @@ function Dashboard() {
 
     // load reminder preference from localStorage
     const saved = window.localStorage.getItem('reminderEnabled')
-    if (saved) {
-      setReminderEnabled(saved === 'true')
-    }
+    if (saved) setReminderEnabled(saved === 'true')
 
-    const loadCourses = async () => {
+    // Single unified API call — replaces 3 separate requests
+    const loadDashboardData = async () => {
       try {
         setLoadingCourses(true)
+        setStreakLoading(true)
         setLoadError('')
-        const res = await axios.post('/api/courses', { createdBy: studentEmail })
-        const list = res?.data?.result || []
+        setStreakError('')
+
+        const res = await axios.get('/api/dashboard-data')
+        const data = res?.data || {}
+
+        // Courses
+        const list = data.courses || []
         setCourses(list)
         if (list.length > 0) {
           setSelectedCourseId(list[0].courseId || list[0].id || '')
         }
+
+        // Profile
+        setStudentProfile(data.profile || null)
+        setProfileCompleteness(data.completeness || { isComplete: true, missingLabels: [] })
+
+        // Streak
+        setStreak(data.streak || { count: 0, longest: 0, badges: [] })
+
       } catch (err) {
-        console.error('Failed to load courses', err)
-        setLoadError('Unable to load courses')
-      } finally {
-        setLoadingCourses(false)
-      }
-    }
-
-    loadCourses()
-
-    const loadProfileCompleteness = async () => {
-      try {
-        const res = await axios.get('/api/user/profile')
-        setStudentProfile(res?.data?.result || null)
-        setProfileCompleteness(res?.data?.completeness || { isComplete: true, missingLabels: [] })
-      } catch (err) {
-        console.error('Failed to load profile completeness', err)
-      }
-    }
-
-    loadProfileCompleteness()
-  }, [studentEmail])
-
-  useEffect(() => {
-    const fetchStreak = async () => {
-      if (!studentEmail) return
-      try {
-        setStreakLoading(true)
-        setStreakError('')
-        // Fetch global user streak across all courses
-        const res = await axios.get(`/api/user-streak?studentEmail=${studentEmail}`)
-        const data = res?.data?.result || {}
-        const badges = Array.isArray(data.badges) ? data.badges : JSON.parse(data.badges || '[]')
-        setStreak({
-          count: data.streakCount || 0,
-          longest: data.longestStreak || 0,
-          badges,
-        })
-      } catch (err) {
-        console.error('Failed to fetch streak', err)
+        console.error('Failed to load dashboard data', err)
+        setLoadError('Unable to load dashboard data')
         setStreakError('Unable to load streak data')
       } finally {
+        setLoadingCourses(false)
         setStreakLoading(false)
       }
     }
 
-    fetchStreak()
+    loadDashboardData()
   }, [studentEmail])
 
   const toggleReminder = () => {

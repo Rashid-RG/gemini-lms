@@ -37,14 +37,28 @@ async function runLocally(language, code) {
         tempFilePath = path.join(javaTempDir, "Main.java");
         fs.writeFileSync(tempFilePath, code);
         cmd = `javac "${tempFilePath}" && java -cp "${javaTempDir}" Main`;
-    } else if (language === "cpp") {
-        ext = "cpp";
-        const cppTempDir = path.join(tempDir, `cpp_${uniqueId}`);
-        fs.mkdirSync(cppTempDir, { recursive: true });
-        tempFilePath = path.join(cppTempDir, "playground.cpp");
-        const exePath = path.join(cppTempDir, "playground.exe");
+    } else if (language === "rust") {
+        const rustTempDir = path.join(tempDir, `rust_${uniqueId}`);
+        fs.mkdirSync(rustTempDir, { recursive: true });
+        tempFilePath = path.join(rustTempDir, "main.rs");
+        const rustExePath = path.join(rustTempDir, "main");
         fs.writeFileSync(tempFilePath, code);
-        cmd = `g++ "${tempFilePath}" -o "${exePath}" && "${exePath}"`;
+        cmd = `rustc "${tempFilePath}" -o "${rustExePath}" && "${rustExePath}"`;
+    } else if (language === "go") {
+        ext = "go";
+        tempFilePath = path.join(tempDir, `playground_${uniqueId}.${ext}`);
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `go run "${tempFilePath}"`;
+    } else if (language === "php") {
+        ext = "php";
+        tempFilePath = path.join(tempDir, `playground_${uniqueId}.${ext}`);
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `php "${tempFilePath}"`;
+    } else if (language === "ruby") {
+        ext = "rb";
+        tempFilePath = path.join(tempDir, `playground_${uniqueId}.${ext}`);
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `ruby "${tempFilePath}"`;
     }
 
     return new Promise((resolve) => {
@@ -94,7 +108,11 @@ const LANGUAGE_VERSIONS = {
     python: "3.10.0",
     typescript: "5.0.3",
     java: "15.0.2",
-    cpp: "10.2.0"
+    cpp: "10.2.0",
+    rust: "1.50.0",
+    go: "1.16.2",
+    php: "8.0.2",
+    ruby: "3.0.1",
 };
 
 /**

@@ -7,12 +7,110 @@ import { Play, ArrowLeft, RefreshCw, Terminal, Code, Sparkles } from 'lucide-rea
 import { toast } from 'sonner';
 
 const CODE_TEMPLATES = {
-    python: `# Python Study Playground\n# Write your code here and click "Run Code"\n\ndef greet(name):\n    return f"Hello, {name}! Welcome to Gemini LMS."\n\nprint(greet("Learner"))\n`,
-    javascript: `// JavaScript Study Playground\n// Write your code here and click "Run Code"\n\nfunction greet(name) {\n    return \`Hello, \${name}! Welcome to Gemini LMS.\`;\n}\n\nconsole.log(greet("Learner"));\n`,
-    java: `// Java Study Playground\n// Write your code here and click "Run Code"\n\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, Learner! Welcome to Gemini LMS.");\n    }\n}\n`,
-    cpp: `// C++ Study Playground\n// Write your code here and click "Run Code"\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, Learner! Welcome to Gemini LMS." << endl;\n    return 0;\n}\n`,
-    typescript: `// TypeScript Study Playground\n// Write your code here and click "Run Code"\n\nconst greet = (name: string): string => {\n    return \`Hello, \${name}! Welcome to Gemini LMS.\`;\n};\n\nconsole.log(greet("Learner"));\n`
+    python: `# Python Study Playground
+# Write your code here and click "Run Code"
+
+def greet(name):
+    return f"Hello, {name}! Welcome to Gemini LMS."
+
+print(greet("Learner"))
+`,
+    javascript: `// JavaScript Study Playground
+// Write your code here and click "Run Code"
+
+function greet(name) {
+    return \`Hello, \${name}! Welcome to Gemini LMS.\`;
+}
+
+console.log(greet("Learner"));
+`,
+    java: `// Java Study Playground
+// Write your code here and click "Run Code"
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, Learner! Welcome to Gemini LMS.");
+    }
+}
+`,
+    cpp: `// C++ Study Playground
+// Write your code here and click "Run Code"
+
+#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello, Learner! Welcome to Gemini LMS." << endl;
+    return 0;
+}
+`,
+    typescript: `// TypeScript Study Playground
+// Write your code here and click "Run Code"
+
+const greet = (name: string): string => {
+    return \`Hello, \${name}! Welcome to Gemini LMS.\`;
 };
+
+console.log(greet("Learner"));
+`,
+    rust: `// Rust Study Playground
+// Write your code here and click "Run Code"
+
+fn greet(name: &str) -> String {
+    format!("Hello, {}! Welcome to Gemini LMS.", name)
+}
+
+fn main() {
+    println!("{}", greet("Learner"));
+}
+`,
+    go: `// Go Study Playground
+// Write your code here and click "Run Code"
+
+package main
+
+import "fmt"
+
+func greet(name string) string {
+    return fmt.Sprintf("Hello, %s! Welcome to Gemini LMS.", name)
+}
+
+func main() {
+    fmt.Println(greet("Learner"))
+}
+`,
+    php: `<?php
+// PHP Study Playground
+// Write your code here and click "Run Code"
+
+function greet($name) {
+    return "Hello, $name! Welcome to Gemini LMS.";
+}
+
+echo greet("Learner") . "\n";
+`,
+    ruby: `# Ruby Study Playground
+# Write your code here and click "Run Code"
+
+def greet(name)
+  "Hello, #{name}! Welcome to Gemini LMS."
+end
+
+puts greet("Learner")
+`,
+};
+
+const LANGUAGES = [
+    { id: 'python',     label: 'Python',     emoji: '🐍' },
+    { id: 'javascript', label: 'JavaScript', emoji: '⚡' },
+    { id: 'typescript', label: 'TypeScript', emoji: '🔷' },
+    { id: 'java',       label: 'Java',       emoji: '☕' },
+    { id: 'cpp',        label: 'C++',        emoji: '⚙️' },
+    { id: 'rust',       label: 'Rust',       emoji: '🦀' },
+    { id: 'go',         label: 'Go',         emoji: '🐹' },
+    { id: 'php',        label: 'PHP',        emoji: '🐘' },
+    { id: 'ruby',       label: 'Ruby',       emoji: '💎' },
+];
 
 export default function CodePlayground() {
     const params = useParams();
@@ -80,38 +178,21 @@ export default function CodePlayground() {
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    {/* Language Selector */}
+                    {/* Language Selector - now data driven */}
                     <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200/50 flex-wrap gap-1">
-                        <button
-                            onClick={() => handleLanguageChange('python')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${language === 'python' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Python
-                        </button>
-                        <button
-                            onClick={() => handleLanguageChange('javascript')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${language === 'javascript' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            JavaScript
-                        </button>
-                        <button
-                            onClick={() => handleLanguageChange('typescript')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${language === 'typescript' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            TypeScript
-                        </button>
-                        <button
-                            onClick={() => handleLanguageChange('java')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${language === 'java' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            Java
-                        </button>
-                        <button
-                            onClick={() => handleLanguageChange('cpp')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${language === 'cpp' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            C++
-                        </button>
+                        {LANGUAGES.map(({ id, label, emoji }) => (
+                            <button
+                                key={id}
+                                onClick={() => handleLanguageChange(id)}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                                    language === id ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                                title={label}
+                            >
+                                <span>{emoji}</span>
+                                <span className="hidden sm:inline">{label}</span>
+                            </button>
+                        ))}
                     </div>
 
                     {/* Theme Selector */}

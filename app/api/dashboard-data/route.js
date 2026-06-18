@@ -1,82 +1,84 @@
-/**
- * Consolidated Dashboard Data Endpoint
- * Combines streak, notifications, courses, and user data into ONE request
- * Reduces from 3-4 API calls to 1, dramatically improving dashboard load time
- */
 import { NextResponse } from "next/server";
-import axios from 'axios';
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/configs/db";
+import { STUDY_TYPE_CONTENT_TABLE, USER_TABLE } from "@/configs/schema";
+import { eq } from "drizzle-orm";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
-export const maxDuration = 15;
+/**
+ * GET /api/dashboard-data
+ * Returns courses, profile, and streak data in a single parallel request.
+ * Replaces 3 separate API calls on the dashboard.
+ */
+export async function GET(req) {
+    try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
-// Simple cache for dashboard data
-const dashboardCache = new Map();
-const CACHE_TTL = 30 * 1000; // 30 seconds
+        const userEmail = await getAuthEmail(sessionClaims);
+        if (!userEmail) {
+            return NextResponse.json({ error: "Email not found" }, { status: 400 });
+        }
 
-export async function POST(req) {
-  try {
-    const { userEmail, forceRefresh } = await req.json();
-    
-    if (!userEmail) {
-      return NextResponse.json({ error: "userEmail required" }, { status: 400 });
+        const baseUrl = process.env.NEXT_PUBLIC_HOST_NAME || 
+                        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+        const headers = {
+            'Cookie': req.headers.get('cookie') || '',
+            'Content-Type': 'application/json',
+        };
+
+        // Run all 3 fetches in parallel
+        const [coursesRes, profileRes, streakRes] = await Promise.allSettled([
+            // Courses
+            fetch(`${baseUrl}/api/courses`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ createdBy: userEmail }),
+            }).then(r => r.json()).catch(() => ({ result: [] })),
+
+            // Profile
+            fetch(`${baseUrl}/api/user/profile`, {
+                headers,
+            }).then(r => r.json()).catch(() => ({ result: null, completeness: { isComplete: true, missingLabels: [] } })),
+
+            // Streak
+            fetch(`${baseUrl}/api/user-streak?studentEmail=${encodeURIComponent(userEmail)}`, {
+                headers,
+            }).then(r => r.json()).catch(() => ({ result: {} })),
+        ]);
+
+        const courses = coursesRes.status === 'fulfilled' ? (coursesRes.value?.result || []) : [];
+        const profileData = profileRes.status === 'fulfilled' ? profileRes.value : {};
+        const streakData = streakRes.status === 'fulfilled' ? (streakRes.value?.result || {}) : {};
+
+        return NextResponse.json({
+            courses,
+            profile: profileData?.result || null,
+            completeness: profileData?.completeness || { isComplete: true, missingLabels: [] },
+            streak: {
+                count: streakData?.streakCount || 0,
+                longest: streakData?.longestStreak || 0,
+                badges: (() => {
+                    try {
+                        return Array.isArray(streakData?.badges) 
+                            ? streakData.badges 
+                            : JSON.parse(streakData?.badges || '[]');
+                    } catch { return []; }
+                })()
+            }
+        });
+
+    } catch (err) {
+        console.error('[dashboard-data] Error:', err?.message);
+        return NextResponse.json({
+            courses: [],
+            profile: null,
+            completeness: { isComplete: true, missingLabels: [] },
+            streak: { count: 0, longest: 0, badges: [] },
+            error: 'Partial data may be unavailable'
+        });
     }
-
-    // Check cache first
-    const cacheKey = `dashboard:${userEmail}`;
-    const cached = dashboardCache.get(cacheKey);
-    
-    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return NextResponse.json({ result: cached.data }, {
-        headers: { 'X-Cache': 'HIT' }
-      });
-    }
-
-    // ⚡ Make all requests in parallel instead of sequential
-    const [streakRes, notificationsRes, userDataRes] = await Promise.allSettled([
-      // Fetch streak data
-      axios.get(`/api/user-streak?studentEmail=${userEmail}`, { timeout: 3000 }),
-      
-      // Fetch notifications
-      axios.get(`/api/notifications?userEmail=${encodeURIComponent(userEmail)}&limit=5`, { timeout: 3000 }),
-      
-      // Fetch user data (credits, membership)
-      axios.post('/api/create-user', {
-        user: { email: userEmail },
-        forceRefresh: false
-      }, { timeout: 3000 })
-    ]);
-
-    // Compile results, handling failures gracefully
-    const dashboardData = {
-      streak: {
-        current: streakRes.status === 'fulfilled' ? (streakRes.value?.data?.result?.streakCount || 0) : 0,
-        longest: streakRes.status === 'fulfilled' ? (streakRes.value?.data?.result?.longestStreak || 0) : 0
-      },
-      notifications: notificationsRes.status === 'fulfilled' ? (notificationsRes.value?.data?.result || []) : [],
-      user: userDataRes.status === 'fulfilled' ? (userDataRes.value?.data?.result || {}) : { credits: 5, isMember: false },
-      errors: {
-        streak: streakRes.status === 'rejected' ? streakRes.reason?.message : null,
-        notifications: notificationsRes.status === 'rejected' ? notificationsRes.reason?.message : null,
-        user: userDataRes.status === 'rejected' ? userDataRes.reason?.message : null
-      }
-    };
-
-    // Cache the result
-    dashboardCache.set(cacheKey, {
-      data: dashboardData,
-      timestamp: Date.now()
-    });
-
-    return NextResponse.json({ result: dashboardData }, {
-      headers: {
-        'X-Cache': 'MISS',
-        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
-      }
-    });
-  } catch (error) {
-    console.error('Dashboard data error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch dashboard data' },
-      { status: 500 }
-    );
-  }
 }
