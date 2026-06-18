@@ -6,9 +6,19 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { auth } from "@clerk/nextjs/server";
 import { getAuthEmail } from "@/lib/clerkUtils";
+import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+function getChatModel() {
+  let key = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+  try {
+    const rotationManager = getApiKeyRotationManager();
+    key = rotationManager.getCurrentKey();
+  } catch (err) {
+    console.warn("Failed to get key from rotation manager:", err);
+  }
+  const genAI = new GoogleGenerativeAI(key);
+  return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+}
 
 const generationConfig = {
   temperature: 0.8,
@@ -43,6 +53,7 @@ function systemPrompt(userEmail, notesContext = "") {
 
 async function generateReply(userEmail, conversationId, message, notesContext = "") {
   const history = await buildContext(conversationId);
+  const model = getChatModel();
   const chat = model.startChat({
     generationConfig,
     history: [
@@ -51,12 +62,29 @@ async function generateReply(userEmail, conversationId, message, notesContext = 
     ],
   });
 
-  const result = await chat.sendMessage(message);
-  return result.response.text();
+  try {
+    const result = await chat.sendMessage(message);
+    try {
+      getApiKeyRotationManager().recordSuccess();
+    } catch (_) {}
+    return result.response.text();
+  } catch (error) {
+    console.error("Gemini AI generation error in generateReply:", error);
+    try {
+      const rotationManager = getApiKeyRotationManager();
+      if (rotationManager.constructor.isQuotaError(error)) {
+        rotationManager.handleQuotaExhausted();
+      } else if (rotationManager.constructor.isRateLimitError(error)) {
+        rotationManager.handleRateLimit();
+      }
+    } catch (_) {}
+    throw error;
+  }
 }
 
 async function* streamReply(userEmail, conversationId, message, notesContext = "") {
   const history = await buildContext(conversationId);
+  const model = getChatModel();
   const chat = model.startChat({
     generationConfig,
     history: [
@@ -65,10 +93,26 @@ async function* streamReply(userEmail, conversationId, message, notesContext = "
     ],
   });
 
-  const result = await chat.sendMessageStream(message);
-  for await (const chunk of result.stream) {
-    const text = chunk.text();
-    if (text) yield text;
+  try {
+    const result = await chat.sendMessageStream(message);
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) yield text;
+    }
+    try {
+      getApiKeyRotationManager().recordSuccess();
+    } catch (_) {}
+  } catch (error) {
+    console.error("Gemini AI stream error in streamReply:", error);
+    try {
+      const rotationManager = getApiKeyRotationManager();
+      if (rotationManager.constructor.isQuotaError(error)) {
+        rotationManager.handleQuotaExhausted();
+      } else if (rotationManager.constructor.isRateLimitError(error)) {
+        rotationManager.handleRateLimit();
+      }
+    } catch (_) {}
+    throw error;
   }
 }
 
@@ -223,7 +267,7 @@ export async function PUT(req) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const authEmail = (sessionClaims?.email || sessionClaims?.primaryEmailAddress?.emailAddress)?.toLowerCase();
+    const authEmail = await getAuthEmail(sessionClaims);
 
     const { message, userEmail, conversationId, courseId, chapterId } = await req.json();
 
@@ -299,7 +343,7 @@ export async function GET(req) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const authEmail = (sessionClaims?.email || sessionClaims?.primaryEmailAddress?.emailAddress)?.toLowerCase();
+    const authEmail = await getAuthEmail(sessionClaims);
 
     const { searchParams } = new URL(req.url);
     const conversationId = searchParams.get("conversationId");
