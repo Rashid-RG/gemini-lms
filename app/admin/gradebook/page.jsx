@@ -971,7 +971,7 @@ export default function AdminGradeBookPage() {
                           const score = student.finalGrade || 0
                           const risk = score >= 75 ? 'low' : score >= 60 ? 'medium' : score >= 35 ? 'high' : 'critical'
                           const riskCfg = RISK_CONFIG[risk]
-                          const isExpanded = expandedStudent === idx
+                          const isExpanded = activeStudentEmail === student.studentEmail
 
                           return (
                             <React.Fragment key={idx}>

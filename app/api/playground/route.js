@@ -4,13 +4,12 @@ import axios from "axios";
 import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
+import os from "os";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
 
 async function runLocally(language, code) {
-    const tempDir = path.join(process.cwd(), "tmp");
-    if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-    }
-
+    const tempDir = os.tmpdir();
     const uniqueId = Date.now();
     let ext = "js";
     let tempFilePath = "";
@@ -37,6 +36,13 @@ async function runLocally(language, code) {
         tempFilePath = path.join(javaTempDir, "Main.java");
         fs.writeFileSync(tempFilePath, code);
         cmd = `javac "${tempFilePath}" && java -cp "${javaTempDir}" Main`;
+    } else if (language === "cpp") {
+        const cppTempDir = path.join(tempDir, `cpp_${uniqueId}`);
+        fs.mkdirSync(cppTempDir, { recursive: true });
+        tempFilePath = path.join(cppTempDir, "main.cpp");
+        const cppExePath = path.join(cppTempDir, "main");
+        fs.writeFileSync(tempFilePath, code);
+        cmd = `g++ "${tempFilePath}" -o "${cppExePath}" && "${cppExePath}"`;
     } else if (language === "rust") {
         const rustTempDir = path.join(tempDir, `rust_${uniqueId}`);
         fs.mkdirSync(rustTempDir, { recursive: true });
@@ -61,32 +67,45 @@ async function runLocally(language, code) {
         cmd = `ruby "${tempFilePath}"`;
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        if (!cmd) {
+            return reject(new Error(`Language '${language}' is not supported locally.`));
+        }
+
         exec(cmd, (error, stdout, stderr) => {
             // Clean up temp files
             try {
-                if (language === "java" || language === "cpp") {
+                if (language === "java" || language === "cpp" || language === "rust") {
                     const dirToDelete = path.dirname(tempFilePath);
                     fs.rmSync(dirToDelete, { recursive: true, force: true });
                 } else {
-                    fs.unlinkSync(tempFilePath);
+                    if (tempFilePath) {
+                        fs.unlinkSync(tempFilePath);
+                    }
                 }
             } catch (_) {}
 
             if (language === "python" && error && (error.code === 127 || error.message.includes("not recognized"))) {
                 // Fallback to python3
-                fs.writeFileSync(tempFilePath, code);
-                exec(`python3 "${tempFilePath}"`, (error3, stdout3, stderr3) => {
-                    try { fs.unlinkSync(tempFilePath); } catch (_) {}
-                    resolve({
-                        run: {
-                            stdout: stdout3 || "",
-                            stderr: stderr3 || (error3 ? error3.message : ""),
-                            code: error3 ? (error3.code || 1) : 0,
-                            output: stdout3 || stderr3 || (error3 ? error3.message : "")
-                        }
+                try {
+                    fs.writeFileSync(tempFilePath, code);
+                    exec(`python3 "${tempFilePath}"`, (error3, stdout3, stderr3) => {
+                        try { fs.unlinkSync(tempFilePath); } catch (_) {}
+                        resolve({
+                            run: {
+                                stdout: stdout3 || "",
+                                stderr: stderr3 || (error3 ? error3.message : ""),
+                                code: error3 ? (error3.code || 1) : 0,
+                                output: stdout3 || stderr3 || (error3 ? error3.message : "")
+                            }
+                        });
                     });
-                });
+                } catch (py3Err) {
+                    reject(py3Err);
+                }
+            } else if (error && (error.code === 127 || error.message.includes("not recognized") || error.message.includes("not found"))) {
+                // If compiler/interpreter is not installed, reject so that Gemini fallback is triggered
+                reject(new Error(`Runtime command failed (not installed): ${error.message}`));
             } else {
                 resolve({
                     run: {
@@ -99,6 +118,53 @@ async function runLocally(language, code) {
             }
         });
     });
+}
+
+async function runWithGemini(language, code) {
+    try {
+        const rotationManager = getApiKeyRotationManager();
+        const currentKey = rotationManager.getCurrentKey();
+        const genAI = new GoogleGenerativeAI(currentKey);
+        
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json"
+            }
+        });
+
+        const prompt = `You are a high-fidelity virtual compiler and interpreter for ${language}. Execute the following code. Analyze it step-by-step and determine its exact execution output (stdout and stderr).
+
+Return a JSON object containing:
+- "stdout": string (everything printed to standard output)
+- "stderr": string (errors, compile errors, runtime exceptions, or stderr output)
+- "code": number (exit code, 0 for success, non-zero for error)
+
+Here is the code to execute:
+\`\`\`${language}
+${code}
+\`\`\`
+`;
+
+        const response = await model.generateContent(prompt);
+        const resultText = response.response.text();
+        const result = JSON.parse(resultText);
+
+        try { rotationManager.recordSuccess(); } catch (_) {}
+
+        return {
+            run: {
+                stdout: result.stdout || "",
+                stderr: result.stderr || "",
+                code: result.code ?? 0,
+                signal: null,
+                output: result.stdout || result.stderr || ""
+            }
+        };
+    } catch (geminiError) {
+        console.error("Gemini fallback runner failed:", geminiError);
+        throw geminiError;
+    }
 }
 
 export const maxDuration = 15;
@@ -170,10 +236,17 @@ export async function POST(req) {
                 const localResult = await runLocally(normalizedLang, code);
                 return NextResponse.json(localResult);
             } catch (fallbackError) {
-                console.error("Local execution fallback failed:", fallbackError);
-                return NextResponse.json({ 
-                    error: "Code execution engine is offline, and local execution failed." 
-                }, { status: 503 });
+                console.warn("Local execution fallback failed, falling back to Gemini API runner:", fallbackError.message);
+                
+                try {
+                    const geminiResult = await runWithGemini(normalizedLang, code);
+                    return NextResponse.json(geminiResult);
+                } catch (geminiError) {
+                    console.error("All execution runners failed:", geminiError);
+                    return NextResponse.json({ 
+                        error: "Code execution engine is offline, and local/AI execution failed." 
+                    }, { status: 503 });
+                }
             }
         }
 
