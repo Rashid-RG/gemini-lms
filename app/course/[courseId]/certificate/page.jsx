@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
-import { Award, Download, Share2, CheckCircle, Calendar, Trophy, Loader, FileDown } from 'lucide-react'
+import { Award, Download, Share2, CheckCircle, Calendar, Trophy, Loader, FileDown, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import QRCode from 'qrcode'
 
@@ -303,7 +303,7 @@ function CertificatePage() {
         
         ctx.font = '500 12px "Montserrat", sans-serif'
         ctx.fillStyle = '#64748b'
-        ctx.fillText(`Certificate ID: ${certificate.certificateId}`, canvas.width / 2, 712)
+        ctx.fillText(`Certificate ID: ${certificate.certificateId}`, canvas.width / 2, 705)
         
         // Preload founder signature image (no pixel manipulation needed)
         const sigImg = await new Promise((resolve) => {
@@ -355,89 +355,106 @@ function CertificatePage() {
         ctx.textAlign = 'center'
         ctx.fillText('FOUNDER OF GEMINI LMS', 975, 800)
         
-        // Intricate Gold Medal / Achievement Badge Centerpiece (Center Bottom)
+        // Academic Foil Seal (Center Bottom)
         ctx.save()
-        ctx.translate(600, 750)
+        ctx.translate(600, 765)
         
-        // Ribbon 1 (Left Crimson)
-        ctx.fillStyle = '#b91c1c'
-        ctx.beginPath()
-        ctx.moveTo(-18, 10)
-        ctx.lineTo(-30, 65)
-        ctx.lineTo(-12, 55)
-        ctx.lineTo(0, 65)
-        ctx.lineTo(-6, 10)
-        ctx.closePath()
-        ctx.fill()
+        // Outer Embossed Gold Edge
+        const goldEdge = ctx.createLinearGradient(-40, -40, 40, 40)
+        goldEdge.addColorStop(0, '#fde68a') // amber-200
+        goldEdge.addColorStop(0.5, '#eab308') // yellow-500
+        goldEdge.addColorStop(1, '#b45309') // amber-700
         
-        ctx.strokeStyle = '#d97706'
-        ctx.lineWidth = 1.5
-        ctx.stroke()
-        
-        // Ribbon 2 (Right Crimson)
-        ctx.fillStyle = '#991b1b'
-        ctx.beginPath()
-        ctx.moveTo(6, 10)
-        ctx.lineTo(0, 65)
-        ctx.lineTo(12, 55)
-        ctx.lineTo(30, 65)
-        ctx.lineTo(18, 10)
-        ctx.closePath()
-        ctx.fill()
-        ctx.stroke()
-        
-        // Serrated gold spikes outer medal
-        ctx.fillStyle = '#d97706'
-        for (let i = 0; i < 36; i++) {
+        // Draw Serrated Edges
+        ctx.fillStyle = goldEdge
+        for (let i = 0; i < 40; i++) {
             ctx.save()
-            ctx.rotate((Math.PI / 18) * i)
+            ctx.rotate((Math.PI / 20) * i)
             ctx.beginPath()
-            ctx.moveTo(0, -36)
-            ctx.lineTo(6, -28)
-            ctx.lineTo(-6, -28)
+            ctx.moveTo(0, -48)
+            ctx.lineTo(4, -42)
+            ctx.lineTo(-4, -42)
             ctx.closePath()
             ctx.fill()
             ctx.restore()
         }
         
-        // Outer circle ring
+        // Inner Gold Base
         ctx.beginPath()
-        ctx.arc(0, 0, 31, 0, Math.PI * 2)
-        ctx.fillStyle = '#b45309'
+        ctx.arc(0, 0, 43, 0, Math.PI * 2)
+        ctx.fillStyle = goldEdge
         ctx.fill()
         
-        // Shiny gold circle
+        // Inner Silver/Platinum Circle
+        const silverBase = ctx.createLinearGradient(-35, -35, 35, 35)
+        silverBase.addColorStop(0, '#f1f5f9') // slate-100
+        silverBase.addColorStop(0.5, '#cbd5e1') // slate-300
+        silverBase.addColorStop(1, '#94a3b8') // slate-400
+        
         ctx.beginPath()
-        ctx.arc(0, 0, 27, 0, Math.PI * 2)
-        ctx.fillStyle = '#f59e0b'
+        ctx.arc(0, 0, 38, 0, Math.PI * 2)
+        ctx.fillStyle = silverBase
         ctx.fill()
         
-        // Inner midnight navy core
+        // Subtle Holographic Sheen (very faint)
+        const faintIridescent = ctx.createLinearGradient(-35, 35, 35, -35)
+        faintIridescent.addColorStop(0, 'rgba(236, 72, 153, 0.15)') // pink
+        faintIridescent.addColorStop(0.5, 'rgba(56, 189, 248, 0.15)') // sky
+        faintIridescent.addColorStop(1, 'rgba(250, 204, 21, 0.1)') // yellow
         ctx.beginPath()
-        ctx.arc(0, 0, 22, 0, Math.PI * 2)
-        ctx.fillStyle = '#1e1b4b'
+        ctx.arc(0, 0, 38, 0, Math.PI * 2)
+        ctx.fillStyle = faintIridescent
         ctx.fill()
         
-        // Laurel inner wreath
-        ctx.strokeStyle = '#fbbf24'
-        ctx.lineWidth = 1.2
+        // Fine Embossed Rings
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.8)' // slate-400
+        ctx.lineWidth = 1
         ctx.beginPath()
-        ctx.arc(0, 0, 16, Math.PI * 0.75, Math.PI * 0.25, true)
+        ctx.arc(0, 0, 34, 0, Math.PI * 2)
         ctx.stroke()
         
-        // Star in centerpiece
-        ctx.fillStyle = '#fbbf24'
+        ctx.strokeStyle = 'rgba(100, 116, 139, 0.5)' // slate-500
+        ctx.setLineDash([3, 3])
         ctx.beginPath()
-        ctx.moveTo(0, -10)
-        ctx.lineTo(3, -3)
-        ctx.lineTo(10, -3)
-        ctx.lineTo(4, 1)
-        ctx.lineTo(6, 8)
-        ctx.lineTo(0, 3)
-        ctx.lineTo(-6, 8)
-        ctx.lineTo(-4, 1)
-        ctx.lineTo(-10, -3)
-        ctx.lineTo(-3, -3)
+        ctx.arc(0, 0, 32, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.setLineDash([])
+        
+        // Inner Content Text
+        ctx.font = '900 10px "Cinzel", "Georgia", serif'
+        ctx.fillStyle = '#1e293b' // slate-800
+        ctx.textAlign = 'center'
+        ctx.fillText('ACADEMIC', 0, 10)
+        
+        ctx.font = 'bold 6.5px "Montserrat", sans-serif'
+        ctx.fillStyle = '#475569' // slate-600
+        ctx.fillText('EXCELLENCE', 0, 20)
+        
+        // Small Shield Crest
+        ctx.fillStyle = '#334155' // slate-700
+        ctx.beginPath()
+        ctx.moveTo(0, -26)
+        ctx.lineTo(7, -22)
+        ctx.lineTo(7, -12)
+        ctx.quadraticCurveTo(7, -8, 0, -2)
+        ctx.quadraticCurveTo(-7, -8, -7, -12)
+        ctx.lineTo(-7, -22)
+        ctx.closePath()
+        ctx.fill()
+        
+        // Star inside shield
+        ctx.fillStyle = '#f8fafc' // slate-50
+        ctx.beginPath()
+        ctx.moveTo(0, -20)
+        ctx.lineTo(1.2, -17)
+        ctx.lineTo(4, -17)
+        ctx.lineTo(2, -14.5)
+        ctx.lineTo(3, -11)
+        ctx.lineTo(0, -13)
+        ctx.lineTo(-3, -11)
+        ctx.lineTo(-2, -14.5)
+        ctx.lineTo(-4, -17)
+        ctx.lineTo(-1.2, -17)
         ctx.closePath()
         ctx.fill()
         
@@ -763,23 +780,29 @@ function CertificatePage() {
                                     </div>
                                 </div>
 
-                                {/* Intricate Gold Medal / Academic Achievement Badge Centerpiece */}
-                                <div className="relative w-28 h-28 mx-auto flex items-center justify-center my-6 z-10">
-                                    {/* Left Hanging Ribbon */}
-                                    <div className="absolute w-6 h-18 bg-red-700 border border-amber-500 rotate-[15deg] translate-x-3.5 translate-y-9 rounded-b shadow-sm z-0" />
-                                    {/* Right Hanging Ribbon */}
-                                    <div className="absolute w-6 h-18 bg-red-800 border border-amber-500 rotate-[-15deg] -translate-x-3.5 translate-y-9 rounded-b shadow-sm z-0" />
-                                    
-                                    {/* Outer Medallion spikes */}
-                                    <div className="absolute w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center shadow-lg border border-amber-600 animate-[spin_60s_linear_infinite] z-10">
-                                        <div className="w-18 h-18 border-2 border-dashed border-amber-200 rounded-full" />
-                                    </div>
-                                    
-                                    {/* Shiny gold circle */}
-                                    <div className="absolute w-16 h-16 bg-gradient-to-br from-amber-400 via-yellow-300 to-amber-600 rounded-full flex items-center justify-center shadow z-20">
-                                        {/* Midnight Navy Core */}
-                                        <div className="w-13 h-13 bg-[#1e1b4b] rounded-full flex items-center justify-center border border-amber-400 shadow-inner">
-                                            <Trophy className="w-6 h-6 text-yellow-400" />
+                                {/* Academic Gold/Silver Foil Seal */}
+                                <div className="relative w-28 h-28 mx-auto flex items-center justify-center my-6 z-10 group cursor-default">
+                                    {/* Outer embossed metallic edge */}
+                                    <div className="absolute w-28 h-28 rounded-full bg-gradient-to-br from-amber-200 via-yellow-500 to-amber-700 shadow-[0_4px_15px_rgba(0,0,0,0.2)] flex items-center justify-center overflow-hidden z-10">
+                                        
+                                        {/* Serrated texture simulation */}
+                                        <div className="absolute inset-0 bg-[repeating-conic-gradient(transparent_0deg,rgba(0,0,0,0.1)_5deg,transparent_10deg)] mix-blend-overlay" />
+                                        
+                                        {/* Inner silver metallic circle */}
+                                        <div className="relative w-[92px] h-[92px] rounded-full bg-gradient-to-br from-slate-100 via-slate-300 to-slate-400 border border-slate-400/50 flex flex-col items-center justify-center shadow-inner z-20 overflow-hidden">
+                                            
+                                            {/* Subtle holographic sheen over silver */}
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-cyan-100/40 to-pink-100/40 opacity-70 mix-blend-color-burn" />
+                                            
+                                            {/* Fine embossed inner ring */}
+                                            <div className="absolute inset-1.5 rounded-full border border-slate-400/60" />
+                                            <div className="absolute inset-2.5 rounded-full border border-dashed border-slate-500/40" />
+                                            
+                                            <div className="relative z-30 flex flex-col items-center">
+                                                <ShieldCheck className="w-6 h-6 text-slate-700 mb-0.5 drop-shadow-sm" />
+                                                <span className="text-[9px] font-black tracking-widest text-slate-800 font-cinzel uppercase mt-0.5">Academic</span>
+                                                <span className="text-[6px] font-bold text-slate-600 font-montserrat uppercase mt-0.5">Excellence</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
