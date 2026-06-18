@@ -116,19 +116,21 @@ export const CreateNewUser = inngest.createFunction(
         })
 
         // Send Welcome Email
-        try {
-            const email = user?.primaryEmailAddress?.emailAddress 
-                || user?.emailAddresses?.[0]?.emailAddress 
-                || user?.email;
-            
-            const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'User';
-            
+        const email = user?.primaryEmailAddress?.emailAddress 
+            || user?.emailAddresses?.[0]?.emailAddress 
+            || user?.email;
+        
+        const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'User';
+        
+        if (email) {
             await step.run('send-welcome-email', async () => {
-                return await emailService.sendWelcomeEmail(email, firstName);
+                try {
+                    return await emailService.sendWelcomeEmail(email, firstName);
+                } catch (emailError) {
+                    console.warn('Welcome email failed (non-fatal inside step):', emailError?.message);
+                    return { success: false, error: emailError?.message };
+                }
             });
-        } catch (emailError) {
-            console.error('Welcome email failed (non-fatal):', emailError?.message);
-            // Don't fail the entire function if email fails
         }
 
         return 'Success';
