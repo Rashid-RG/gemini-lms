@@ -1,0 +1,247 @@
+"use client"
+import React, { useState } from 'react'
+import { 
+    BookOpen, Code, Trophy, Award, MessageSquare, 
+    Sparkles, Shield, CreditCard, Play, Volume2, HelpCircle,
+    ChevronRight, ArrowRight, Lightbulb
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+export default function FeaturesGuidePage() {
+    const [activeFaq, setActiveFaq] = useState(null)
+    const [searchQuery, setSearchQuery] = useState('')
+
+    const guideCategories = [
+        {
+            title: "Core Features Guide",
+            items: [
+                {
+                    title: "AI Course Generation",
+                    description: "Learn how to generate custom courses on any topic in seconds using AI credits.",
+                    icon: Sparkles,
+                    color: "indigo",
+                    steps: [
+                        "Click the '+ Create New' button in the sidebar.",
+                        "Enter your course topic, layout choice, and custom description.",
+                        "Select options (e.g. include mock assignments, quiz formats, difficulty level).",
+                        "Click Generate to watch the AI organize chapters, notes, and study material."
+                    ]
+                },
+                {
+                    title: "AI Code Playground",
+                    description: "Write, test, and run code directly inside the browser using our compiler environment.",
+                    icon: Code,
+                    color: "blue",
+                    steps: [
+                        "Navigate to the 'Code Playground' tab from the sidebar.",
+                        "Choose your programming language (Python, JavaScript, C++, Java, etc.).",
+                        "Write your code or ask the AI helper to write/correct a snippet.",
+                        "Click 'Run Code' to execute and inspect console outputs immediately."
+                    ]
+                },
+                {
+                    title: "Voice Tutor & Chatbot",
+                    description: "Engage in hands-free voice discussions with your AI companion for interactive learning.",
+                    icon: Volume2,
+                    color: "purple",
+                    steps: [
+                        "Open any chapter study notes page.",
+                        "Tap the Voice Tutor widget at the bottom right corner of your screen.",
+                        "Speak clearly to ask questions or have the AI summarize notes out loud.",
+                        "Switch language settings to study in different voice accents."
+                    ]
+                },
+                {
+                    title: "Mock Exams & Grading",
+                    description: "Test your skills with custom generated exams checked and graded dynamically by AI.",
+                    icon: Award,
+                    color: "emerald",
+                    steps: [
+                        "Click the 'Take Mock Exam' button inside your active course menu.",
+                        "Answer the randomized multiple-choice or short-answer questions.",
+                        "Submit the exam to get instant percentage scoring, correct answers, and feedback.",
+                        "Earn badges on the leaderboard for passing mock exams."
+                    ]
+                }
+            ]
+        },
+        {
+            title: "Gamification & Subscriptions",
+            items: [
+                {
+                    title: "Daily Streaks & Leaderboards",
+                    description: "Maintain consistency to earn badges, points, and climb the platform rankings.",
+                    icon: Trophy,
+                    color: "amber",
+                    steps: [
+                        "Complete at least one chapter or submit an assignment daily to build your learning streak.",
+                        "Earn streak points to rank up on the global leaderboard against peers.",
+                        "Unlock achievements ('AI Master', 'Night Owl') visible on your public Profile."
+                    ]
+                },
+                {
+                    title: "Credits & Premium Upgrades",
+                    description: "Understand the system credits model and manage your premium subscription.",
+                    icon: Shield,
+                    color: "rose",
+                    steps: [
+                        "Free users receive 5 starter credits to generate courses.",
+                        "Each course generation request consumes 1 credit from your balance.",
+                        "Upgrade to 'Premium Member' to unlock unlimited course creation, advanced AI templates, and direct tutor priority reviews."
+                    ]
+                }
+            ]
+        }
+    ]
+
+    const faqs = [
+        {
+            q: "How do credits work and how do I get more?",
+            a: "Every course generated by the AI consumes 1 credit. Free tiers start with 5 complimentary credits. You can purchase credit packs or upgrade to Premium under the 'Upgrade' tab in the sidebar to get unlimited generations."
+        },
+        {
+            q: "Who reviews and grades my assignments?",
+            a: "By default, our system uses Gemini's advanced grading models to check submissions and provide feedback. If you disagree with an AI grade, you can request a 'Manual Review' which flags the submission for a human tutor to override the score."
+        },
+        {
+            q: "Can I share my certificates of completion?",
+            a: "Yes! When you complete all course chapters and mock exams with a passing grade, a certificate is automatically generated. You can view, download, or share it directly to LinkedIn or Twitter from the 'Certificate' section."
+        },
+        {
+            q: "How does the AI Voice Tutor get its context?",
+            a: "The voice assistant accesses the notes, study materials, and code structures of the active course you are currently viewing. It answers questions using contextually relevant source documentation from that specific course."
+        }
+    ]
+
+    const colorMaps = {
+        indigo: "bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-900/30",
+        blue: "bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30",
+        purple: "bg-purple-50/50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30",
+        emerald: "bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30",
+        amber: "bg-amber-50/50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30",
+        rose: "bg-rose-50/50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30"
+    }
+
+    // Filter FAQs based on query
+    const filteredFaqs = faqs.filter(faq => 
+        faq.q.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        faq.a.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
+    return (
+        <div className="max-w-6xl mx-auto space-y-10">
+            {/* Header Area */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-500/10 dark:shadow-none">
+                <div className="absolute right-0 top-0 -mt-8 -mr-8 w-44 h-44 bg-white/10 rounded-full filter blur-xl" />
+                <div className="absolute left-1/4 bottom-0 -mb-16 w-72 h-72 bg-purple-500/20 rounded-full filter blur-2xl animate-pulse" />
+                
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-xs font-semibold w-fit backdrop-blur-md">
+                            <Lightbulb className="h-3.5 w-3.5 text-amber-300" />
+                            <span>System & Navigation Guide</span>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight">How to Use Gemini LMS</h1>
+                        <p className="text-indigo-100 text-sm max-w-xl font-medium leading-relaxed">
+                            Welcome to the student handbook. Explore our automated AI tools, interactive compilers, and learn how to get the most out of your online study sessions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Core Features Walkthrough */}
+            {guideCategories.map((category, idx) => (
+                <div key={idx} className="space-y-6">
+                    <h2 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2 border-b border-gray-150 dark:border-gray-800/80 pb-3">
+                        <BookOpen className="h-5 w-5 text-primary" />
+                        {category.title}
+                    </h2>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {category.items.map((item, itemIdx) => {
+                            const Icon = item.icon
+                            const colorStyle = colorMaps[item.color] || colorMaps.indigo
+                            
+                            return (
+                                <div 
+                                    key={itemIdx} 
+                                    className="bg-white/95 dark:bg-gray-800/90 border border-gray-150 dark:border-gray-700/50 rounded-2xl p-6 shadow-sm flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:hover:border-gray-750"
+                                >
+                                    <div>
+                                        <div className="flex items-center gap-3.5 mb-4">
+                                            <div className={`p-3 rounded-2xl border ${colorStyle}`}>
+                                                <Icon className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-base">{item.title}</h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">{item.description}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/20 rounded-xl p-4">
+                                            <p className="text-xs font-bold text-gray-450 dark:text-gray-500 uppercase tracking-wider">Quick Steps:</p>
+                                            <ol className="space-y-2.5">
+                                                {item.steps.map((step, stepIdx) => (
+                                                    <li key={stepIdx} className="flex gap-2.5 items-start text-xs text-gray-750 dark:text-gray-300">
+                                                        <span className="flex-shrink-0 flex items-center justify-center h-4 w-4 bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-400 rounded-full font-bold text-[10px]">
+                                                            {stepIdx + 1}
+                                                        </span>
+                                                        <span className="leading-relaxed font-medium">{step}</span>
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            ))}
+
+            {/* Interactive FAQs Section */}
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-150 dark:border-gray-800/80 pb-3">
+                    <h2 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                        <HelpCircle className="h-5 w-5 text-indigo-500" />
+                        Frequently Asked Questions
+                    </h2>
+                    
+                    <div className="relative w-full sm:w-64">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search FAQs..."
+                            className="w-full px-3 py-1.5 border border-gray-250 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary focus:border-transparent"
+                        />
+                    </div>
+                </div>
+
+                <div className="bg-white/95 dark:bg-gray-800/90 border border-gray-150 dark:border-gray-700/50 rounded-2xl p-6 shadow-sm divide-y divide-gray-100 dark:divide-gray-700/60">
+                    {filteredFaqs.length === 0 ? (
+                        <p className="text-center text-sm text-gray-500 py-6">No matching questions found</p>
+                    ) : (
+                        filteredFaqs.map((faq, index) => (
+                            <div key={index} className={`py-4 first:pt-0 last:pb-0`}>
+                                <button
+                                    onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                                    className="w-full text-left flex justify-between items-center gap-4 text-gray-900 dark:text-white hover:text-primary dark:hover:text-blue-400 transition-colors duration-150"
+                                >
+                                    <span className="font-bold text-sm">{faq.q}</span>
+                                    <ChevronRight className={`h-4 w-4 transform transition-transform duration-200 ${activeFaq === index ? 'rotate-90' : ''}`} />
+                                </button>
+                                
+                                {activeFaq === index && (
+                                    <div className="mt-3 text-xs text-gray-650 dark:text-gray-300 leading-relaxed bg-gray-50/50 dark:bg-gray-800/50 p-3.5 border border-gray-100 dark:border-gray-700/30 rounded-xl animate-in slide-in-from-top-1 duration-200">
+                                        {faq.a}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
