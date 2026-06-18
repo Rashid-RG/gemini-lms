@@ -4,7 +4,7 @@ import { useAdminAuth } from '@/app/_context/AdminAuthContext'
 import axios from 'axios'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { AdminPageShell, AdminPageHeader } from '@/components/admin/AdminPageShell'
+import { AdminPageShell, AdminPageHeader, AdminSurface } from '@/components/admin/AdminPageShell'
 import { 
     Users, 
     BookOpen, 
