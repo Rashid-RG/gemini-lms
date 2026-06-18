@@ -27,6 +27,13 @@ function AdminUsersPage() {
     const [creditModal, setCreditModal] = useState({ open: false, user: null })
     const [creditAmount, setCreditAmount] = useState(5)
     const [creditReason, setCreditReason] = useState('')
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value)
+        setCurrentPage(1)
+    }
 
     useEffect(() => {
         if (!authLoading && admin) {
@@ -100,6 +107,10 @@ function AdminUsersPage() {
         u.studentIdentifier?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage)
+
     if (authLoading || loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -130,7 +141,7 @@ function AdminUsersPage() {
                         type="text"
                         placeholder="Search by name, email, or student ID..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={handleSearchChange}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                 </div>
@@ -151,7 +162,7 @@ function AdminUsersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                            {filteredUsers.map((u) => (
+                            {paginatedUsers.map((u) => (
                                 <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                     <td className="px-4 py-3">
                                         <div>
@@ -226,6 +237,29 @@ function AdminUsersPage() {
                         </tbody>
                     </table>
                 </div>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                )}
             </AdminSurface>
 
             {/* Add Credits Modal */}
