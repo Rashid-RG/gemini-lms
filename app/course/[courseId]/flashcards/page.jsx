@@ -19,13 +19,12 @@ import FlashcardItem from './_components/FlashcardItem';
 import ReportContentIssue from '@/components/ReportContentIssue';
   
 function Flashcards() {
-
     const {courseId}=useParams();
     const router = useRouter();
     const { user } = useUser();
     const { currentChapterIndex } = useChapter();
     const [flashCards,setFlashCards]=useState([]);
-    const [isFlipped,setIsFlipped]=useState();
+    const [isFlipped,setIsFlipped]=useState(false);
     const [api,setApi]=useState();
     const [marking, setMarking] = useState(false);
     const [downloading, setDownloading] = useState(false);
@@ -34,13 +33,25 @@ function Flashcards() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [retrying, setRetrying] = useState(false);
+    const [schedules, setSchedules] = useState({});
     const pdfRef = useRef(null);
 
+    // Fetch flashcards on load
     useEffect(()=>{
         if (courseId && user?.primaryEmailAddress?.emailAddress) {
             GetFlashCards();
         }
     },[courseId, user?.primaryEmailAddress?.emailAddress])
+
+    // Load spaced repetition schedules from localStorage
+    useEffect(() => {
+        if (user?.primaryEmailAddress?.emailAddress && courseId) {
+            const saved = localStorage.getItem(`spaced-repetition-${user.primaryEmailAddress.emailAddress}-${courseId}`);
+            if (saved) {
+                setSchedules(JSON.parse(saved));
+            }
+        }
+    }, [user, courseId]);
 
     useEffect(()=>{
         if(!api)
@@ -171,6 +182,61 @@ function Flashcards() {
 
     const handleClick=(index)=>{
         setIsFlipped(!isFlipped)
+    }
+
+    const handleRateCard = async (score) => {
+        if (!user?.primaryEmailAddress?.emailAddress || !courseId) return;
+
+        const key = `spaced-repetition-${user.primaryEmailAddress.emailAddress}-${courseId}`;
+        const currentSchedules = { ...schedules };
+        const cardId = `${currentIndex}`;
+        const lastSchedule = currentSchedules[cardId] || { repetitions: 0, interval: 1, easeFactor: 2.5 };
+
+        let repetitions = lastSchedule.repetitions;
+        let interval = lastSchedule.interval;
+        let easeFactor = lastSchedule.easeFactor;
+
+        if (score === 1) { // Again
+            repetitions = 0;
+            interval = 1; // 1 day
+        } else {
+            if (repetitions === 0) {
+                interval = 1;
+            } else if (repetitions === 1) {
+                interval = 3; // 3 days
+            } else {
+                interval = Math.round(interval * easeFactor);
+            }
+            repetitions += 1;
+            // SM-2 Ease Factor adjustments
+            easeFactor = Math.max(1.3, easeFactor + (0.1 - (5 - score) * (0.08 + (5 - score) * 0.02)));
+        }
+
+        const nextReviewDate = new Date();
+        nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+
+        currentSchedules[cardId] = {
+            repetitions,
+            interval,
+            easeFactor,
+            nextReviewDate: nextReviewDate.toISOString(),
+            lastRatedScore: score
+        };
+
+        setSchedules(currentSchedules);
+        localStorage.setItem(key, JSON.stringify(currentSchedules));
+
+        // Track progress in studentProgress table
+        await trackFlashcardView(currentIndex);
+
+        toast.success(score === 1 ? 'Recall recorded. Card set for review again.' : `Scheduled! Next review in ${interval} day(s).`);
+
+        // Automatically slide to next card after a brief visual confirmation delay
+        setTimeout(() => {
+            if (api) {
+                api.scrollNext();
+            }
+        }, 300);
     }
 
     const markChapterComplete = async () => {
@@ -369,30 +435,70 @@ function Flashcards() {
     }
     
   return (
-    <div>
-        <h2 className='font-bold text-2xl'>Flashcards</h2>
-        <p>Flashcards: The Ultimate Tool to Lock in Concepts!</p>
+    <div className="w-full max-w-4xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex flex-col gap-1 mb-8">
+            <h2 className='font-black text-3xl text-slate-800 tracking-tight'>Flashcard Deck</h2>
+            <p className="text-sm text-slate-500">Rate your recall on the answer side to schedule cards automatically via Spaced Repetition.</p>
+        </div>
 
-        <div className='mt-10'>
-            <Carousel setApi={setApi}>
+        <div className='mt-8 relative flex flex-col items-center justify-center min-h-[420px] bg-slate-50/50 border border-slate-100 rounded-3xl p-6 md:p-12 shadow-sm'>
+            <Carousel setApi={setApi} className="w-full max-w-[320px] md:max-w-[360px]">
                 <CarouselContent>
                     {flashCards?.content && flashCards.content?.map((flashcard, index) => (
-                        <CarouselItem key={index} className="flex items-center justify-center">
+                        <CarouselItem key={index} className="flex items-center justify-center py-4">
                             <FlashcardItem 
                                 handleClick={handleClick} 
                                 isFlipped={isFlipped}
                                 flashcard={flashcard}
+                                schedule={schedules[index]}
                             />
                         </CarouselItem>
                     ))}
                 </CarouselContent>
-                <CarouselPrevious />
-                <CarouselNext />
+                <CarouselPrevious className="-left-12 border-slate-200 hover:bg-white text-slate-700 shadow-sm" />
+                <CarouselNext className="-right-12 border-slate-200 hover:bg-white text-slate-700 shadow-sm" />
             </Carousel>
         </div>
 
+        {/* Spaced Repetition Rating Panel */}
+        {isFlipped && (
+            <div className="mt-8 flex flex-col items-center gap-3 bg-slate-50 border border-slate-100 p-5 rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-md mx-auto shadow-sm">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Rate your memory recall difficulty:</p>
+                <div className="flex gap-2.5 w-full justify-center">
+                    <Button 
+                        onClick={() => handleRateCard(1)} 
+                        className="flex-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-3.5 rounded-xl text-xs flex flex-col items-center gap-0.5 shadow-sm hover:shadow transition"
+                    >
+                        <span>Again</span>
+                        <span className="text-[9px] text-rose-500 font-normal">Review in 1d</span>
+                    </Button>
+                    <Button 
+                        onClick={() => handleRateCard(2)} 
+                        className="flex-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-bold py-3.5 rounded-xl text-xs flex flex-col items-center gap-0.5 shadow-sm hover:shadow transition"
+                    >
+                        <span>Hard</span>
+                        <span className="text-[9px] text-amber-500 font-normal">Review in 1d</span>
+                    </Button>
+                    <Button 
+                        onClick={() => handleRateCard(3)} 
+                        className="flex-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-bold py-3.5 rounded-xl text-xs flex flex-col items-center gap-0.5 shadow-sm hover:shadow transition"
+                    >
+                        <span>Good</span>
+                        <span className="text-[9px] text-blue-500 font-normal">Review in 3d</span>
+                    </Button>
+                    <Button 
+                        onClick={() => handleRateCard(4)} 
+                        className="flex-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold py-3.5 rounded-xl text-xs flex flex-col items-center gap-0.5 shadow-sm hover:shadow transition"
+                    >
+                        <span>Easy</span>
+                        <span className="text-[9px] text-emerald-500 font-normal">Review in 7d</span>
+                    </Button>
+                </div>
+            </div>
+        )}
+
         {flashCards?.content && (
-            <div className='mt-8 flex gap-4 justify-center flex-wrap'>
+            <div className='mt-10 flex gap-4 justify-center flex-wrap border-t border-slate-100 pt-8'>
                 <ReportContentIssue 
                     courseId={courseId} 
                     contentType="flashcards"
@@ -400,26 +506,28 @@ function Flashcards() {
                 <Button 
                     onClick={markChapterComplete}
                     disabled={marking || !user}
-                    className='bg-green-600 hover:bg-green-700 text-white'
+                    className='bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl'
                 >
                     {marking ? 'Marking...' : 'Mark Flashcards Complete'}
                 </Button>
                 <Button
                     onClick={downloadFlashcardsPdf}
                     disabled={downloading}
-                    className='bg-slate-800 hover:bg-slate-900 text-white'
+                    className='bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl'
                 >
                     {downloading ? 'Exporting...' : 'Download PDF'}
                 </Button>
                 <Button 
                     onClick={() => router.back()}
                     variant="outline"
+                    className="font-bold rounded-xl"
                 >
                     Go to Course Page
                 </Button>
             </div>
         )}
 
+        {/* Hidden print layout */}
         {flashCards?.content && (
             <div ref={pdfRef} className='hidden print:block'>
                 <h2>Flashcards - {courseId}</h2>

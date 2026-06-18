@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import axios from 'axios'
 import { ChapterProvider } from './_context/ChapterContext'
+import VoiceTutorWidget from '@/components/VoiceTutorWidget'
 
 export default function CourseLayout({ children }) {
     const { courseId } = useParams()
@@ -34,6 +35,7 @@ export default function CourseLayout({ children }) {
     return (
         <ChapterProvider chapters={chapters}>
             {children}
+            <VoiceTutorWidget courseId={courseId} />
         </ChapterProvider>
     )
 }
