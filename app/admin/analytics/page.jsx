@@ -32,6 +32,7 @@ import {
     AreaChart,
     Area
 } from 'recharts'
+import { AdminPageShell, AdminPageHeader, AdminSurface } from '@/components/admin/AdminPageShell'
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00C49F']
 
@@ -74,35 +75,30 @@ function AnalyticsPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 rounded-xl">
-                        <BarChart3 className="w-8 h-8 text-primary" />
+        <AdminPageShell>
+            <AdminPageHeader
+                title="Analytics Dashboard"
+                description="Platform performance and insights"
+                icon={BarChart3}
+                actions={
+                    <div className="flex gap-2 items-center">
+                        <select
+                            value={days}
+                            onChange={(e) => setDays(parseInt(e.target.value))}
+                            className="px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg focus:ring-2 focus:ring-primary text-gray-900 dark:text-white text-sm"
+                        >
+                            <option value={7}>Last 7 days</option>
+                            <option value={30}>Last 30 days</option>
+                            <option value={90}>Last 90 days</option>
+                            <option value={365}>Last year</option>
+                        </select>
+                        <Button onClick={fetchAnalytics} disabled={loading} variant="outline" className="border-gray-200 dark:border-gray-750">
+                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Analytics Dashboard</h1>
-                        <p className="text-gray-500">Platform performance and insights</p>
-                    </div>
-                </div>
-                <div className="flex gap-2 items-center">
-                    <select
-                        value={days}
-                        onChange={(e) => setDays(parseInt(e.target.value))}
-                        className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                    >
-                        <option value={7}>Last 7 days</option>
-                        <option value={30}>Last 30 days</option>
-                        <option value={90}>Last 90 days</option>
-                        <option value={365}>Last year</option>
-                    </select>
-                    <Button onClick={fetchAnalytics} disabled={loading} variant="outline">
-                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </Button>
-                </div>
-            </div>
+                }
+            />
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
@@ -141,7 +137,7 @@ function AnalyticsPage() {
                     {/* Trend Charts */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         {/* User Signups Trend */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                        <AdminSurface className="p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <Users className="w-5 h-5 text-blue-500" />
                                 User Signups
@@ -162,10 +158,10 @@ function AnalyticsPage() {
                                     <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} fill="url(#colorUsers)" name="New Users" />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        </div>
+                        </AdminSurface>
 
                         {/* Course Creations Trend */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                        <AdminSurface className="p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <BookOpen className="w-5 h-5 text-emerald-500" />
                                 Course Creations
@@ -186,13 +182,13 @@ function AnalyticsPage() {
                                     <Area type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2.5} fill="url(#colorCourses)" name="Courses" />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        </div>
+                        </AdminSurface>
                     </div>
 
                     {/* Distribution Charts */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         {/* Score Distribution */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                        <AdminSurface className="p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Score Distribution</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <PieChart>
@@ -213,10 +209,10 @@ function AnalyticsPage() {
                                     <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
                                 </PieChart>
                             </ResponsiveContainer>
-                        </div>
+                        </AdminSurface>
 
                         {/* Completion Status */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                        <AdminSurface className="p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Course Completion</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <PieChart>
@@ -237,10 +233,10 @@ function AnalyticsPage() {
                                     <Legend wrapperStyle={{ fontSize: '11px', color: '#9ca3af' }} />
                                 </PieChart>
                             </ResponsiveContainer>
-                        </div>
+                        </AdminSurface>
 
                         {/* Course Types */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                        <AdminSurface className="p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Course Types</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={data.distributions.courseTypes} layout="vertical">
@@ -252,13 +248,13 @@ function AnalyticsPage() {
                                     <Bar dataKey="count" fill="#8884d8" radius={[0, 6, 6, 0]} name="Courses" />
                                 </BarChart>
                             </ResponsiveContainer>
-                        </div>
+                        </AdminSurface>
                     </div>
 
                     {/* Submission Trends & Grading Stats */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         {/* Submissions Over Time */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                        <AdminSurface className="p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <FileText className="w-5 h-5 text-purple-500" />
                                 Assignment Submissions
@@ -273,10 +269,10 @@ function AnalyticsPage() {
                                     <Line type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={2.5} dot={{ r: 3.5, stroke: '#a855f7', strokeWidth: 1.5, fill: '#fff' }} activeDot={{ r: 5 }} name="Submissions" />
                                 </LineChart>
                             </ResponsiveContainer>
-                        </div>
+                        </AdminSurface>
 
                         {/* Grading Method Comparison */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                        <AdminSurface className="p-6">
                             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">AI vs Manual Grading</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={data.distributions.gradingStats}>
@@ -290,7 +286,7 @@ function AnalyticsPage() {
                                     <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Count" />
                                 </BarChart>
                             </ResponsiveContainer>
-                        </div>
+                        </AdminSurface>
                     </div>
 
                     {/* Top Courses */}
@@ -328,7 +324,7 @@ function AnalyticsPage() {
                     <p className="text-gray-500">No analytics data available</p>
                 </div>
             )}
-        </div>
+        </AdminPageShell>
     )
 }
 
