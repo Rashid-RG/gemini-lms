@@ -141,35 +141,49 @@ function AnalyticsPage() {
                     {/* Trend Charts */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         {/* User Signups Trend */}
-                        <div className="bg-white rounded-xl border p-6">
-                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <Users className="w-5 h-5 text-blue-500" />
                                 User Signups
                             </h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <AreaChart data={data.trends.userSignups.map(d => ({...d, date: formatDate(d.date)}))}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" fontSize={12} />
-                                    <YAxis fontSize={12} />
-                                    <Tooltip />
-                                    <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#93c5fd" name="New Users" />
+                                    <defs>
+                                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" className="dark:hidden" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" className="hidden dark:block" />
+                                    <XAxis dataKey="date" fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <YAxis fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                                    <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} fill="url(#colorUsers)" name="New Users" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
 
                         {/* Course Creations Trend */}
-                        <div className="bg-white rounded-xl border p-6">
-                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                <BookOpen className="w-5 h-5 text-green-500" />
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <BookOpen className="w-5 h-5 text-emerald-500" />
                                 Course Creations
                             </h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <AreaChart data={data.trends.courseCreations.map(d => ({...d, date: formatDate(d.date)}))}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" fontSize={12} />
-                                    <YAxis fontSize={12} />
-                                    <Tooltip />
-                                    <Area type="monotone" dataKey="count" stroke="#22c55e" fill="#86efac" name="Courses" />
+                                    <defs>
+                                        <linearGradient id="colorCourses" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" className="dark:hidden" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" className="hidden dark:block" />
+                                    <XAxis dataKey="date" fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <YAxis fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                                    <Area type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2.5} fill="url(#colorCourses)" name="Courses" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
@@ -178,8 +192,8 @@ function AnalyticsPage() {
                     {/* Distribution Charts */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                         {/* Score Distribution */}
-                        <div className="bg-white rounded-xl border p-6">
-                            <h3 className="text-lg font-semibold mb-4">Score Distribution</h3>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Score Distribution</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <PieChart>
                                     <Pie
@@ -188,7 +202,7 @@ function AnalyticsPage() {
                                         nameKey="range"
                                         cx="50%"
                                         cy="50%"
-                                        outerRadius={80}
+                                        outerRadius={75}
                                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                                         labelLine={false}
                                     >
@@ -196,14 +210,14 @@ function AnalyticsPage() {
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
 
                         {/* Completion Status */}
-                        <div className="bg-white rounded-xl border p-6">
-                            <h3 className="text-lg font-semibold mb-4">Course Completion</h3>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Course Completion</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <PieChart>
                                     <Pie
@@ -212,29 +226,30 @@ function AnalyticsPage() {
                                         nameKey="status"
                                         cx="50%"
                                         cy="50%"
-                                        outerRadius={80}
+                                        outerRadius={75}
                                         label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
                                     >
                                         {data.distributions.completionStats.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
-                                    <Legend />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                                    <Legend wrapperStyle={{ fontSize: '11px', color: '#9ca3af' }} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
 
                         {/* Course Types */}
-                        <div className="bg-white rounded-xl border p-6">
-                            <h3 className="text-lg font-semibold mb-4">Course Types</h3>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Course Types</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={data.distributions.courseTypes} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" fontSize={12} />
-                                    <YAxis dataKey="type" type="category" fontSize={11} width={80} />
-                                    <Tooltip />
-                                    <Bar dataKey="count" fill="#8884d8" name="Courses" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" className="dark:hidden" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" className="hidden dark:block" />
+                                    <XAxis type="number" fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <YAxis dataKey="type" type="category" fontSize={10} stroke="#9ca3af" tickLine={false} width={80} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                                    <Bar dataKey="count" fill="#8884d8" radius={[0, 6, 6, 0]} name="Courses" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -243,59 +258,61 @@ function AnalyticsPage() {
                     {/* Submission Trends & Grading Stats */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         {/* Submissions Over Time */}
-                        <div className="bg-white rounded-xl border p-6">
-                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <FileText className="w-5 h-5 text-purple-500" />
                                 Assignment Submissions
                             </h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <LineChart data={data.trends.submissionTrends.map(d => ({...d, date: formatDate(d.date)}))}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" fontSize={12} />
-                                    <YAxis fontSize={12} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={2} name="Submissions" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" className="dark:hidden" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" className="hidden dark:block" />
+                                    <XAxis dataKey="date" fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <YAxis fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                                    <Line type="monotone" dataKey="count" stroke="#a855f7" strokeWidth={2.5} dot={{ r: 3.5, stroke: '#a855f7', strokeWidth: 1.5, fill: '#fff' }} activeDot={{ r: 5 }} name="Submissions" />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
 
                         {/* Grading Method Comparison */}
-                        <div className="bg-white rounded-xl border p-6">
-                            <h3 className="text-lg font-semibold mb-4">AI vs Manual Grading</h3>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/50 p-6 shadow-sm">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">AI vs Manual Grading</h3>
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={data.distributions.gradingStats}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="gradedBy" fontSize={12} />
-                                    <YAxis fontSize={12} />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="avgScore" fill="#22c55e" name="Avg Score" />
-                                    <Bar dataKey="count" fill="#3b82f6" name="Count" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" className="dark:hidden" />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" className="hidden dark:block" />
+                                    <XAxis dataKey="gradedBy" fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <YAxis fontSize={11} stroke="#9ca3af" tickLine={false} />
+                                    <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                    <Bar dataKey="avgScore" fill="#10b981" radius={[4, 4, 0, 0]} name="Avg Score" />
+                                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Count" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* Top Courses */}
-                    <div className="bg-white rounded-xl border p-6">
-                        <h3 className="text-lg font-semibold mb-4">Top Courses by Enrollment</h3>
+                    <AdminSurface className="p-6 overflow-hidden">
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Top Courses by Enrollment</h3>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Students</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rank</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Course</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Students</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rating</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                                     {data.topCourses.map((course, index) => (
-                                        <tr key={index} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm font-medium">#{index + 1}</td>
-                                            <td className="px-4 py-3 text-sm">{course.topic}</td>
-                                            <td className="px-4 py-3 text-sm">{course.students || 0}</td>
-                                            <td className="px-4 py-3 text-sm">
+                                        <tr key={index} className="hover:bg-gray-50/70 dark:hover:bg-gray-700/30 transition-colors duration-150">
+                                            <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">#{index + 1}</td>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{course.topic}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{course.students || 0}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                                                 {course.rating ? `${course.rating} ⭐` : 'N/A'}
                                             </td>
                                         </tr>
@@ -303,7 +320,7 @@ function AnalyticsPage() {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </AdminSurface>
                 </>
             ) : (
                 <div className="text-center py-20">
@@ -315,23 +332,47 @@ function AnalyticsPage() {
     )
 }
 
-function StatCard({ title, value, icon, color }) {
+function StatCard({ title, value, icon, color = 'blue' }) {
     const colors = {
-        blue: 'bg-blue-50 text-blue-600',
-        green: 'bg-green-50 text-green-600',
-        purple: 'bg-purple-50 text-purple-600',
-        orange: 'bg-orange-50 text-orange-600'
+        blue: {
+            bg: 'bg-blue-50/70 dark:bg-blue-950/20 border-blue-100/60 dark:border-blue-900/30',
+            iconBg: 'bg-blue-100 dark:bg-blue-900/40',
+            iconText: 'text-blue-600 dark:text-blue-400',
+            glow: 'shadow-blue-500/5 dark:shadow-blue-500/10'
+        },
+        green: {
+            bg: 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-100/60 dark:border-emerald-900/30',
+            iconBg: 'bg-emerald-100 dark:bg-emerald-900/40',
+            iconText: 'text-emerald-600 dark:text-emerald-400',
+            glow: 'shadow-emerald-500/5 dark:shadow-emerald-500/10'
+        },
+        purple: {
+            bg: 'bg-purple-50/70 dark:bg-purple-950/20 border-purple-100/60 dark:border-purple-900/30',
+            iconBg: 'bg-purple-100 dark:bg-purple-900/40',
+            iconText: 'text-purple-600 dark:text-purple-400',
+            glow: 'shadow-purple-500/5 dark:shadow-purple-500/10'
+        },
+        orange: {
+            bg: 'bg-orange-50/70 dark:bg-orange-950/20 border-orange-100/60 dark:border-orange-900/30',
+            iconBg: 'bg-orange-100 dark:bg-orange-900/40',
+            iconText: 'text-orange-600 dark:text-orange-400',
+            glow: 'shadow-orange-500/5 dark:shadow-orange-500/10'
+        }
     }
 
+    const style = colors[color] || colors.blue
+
     return (
-        <div className="bg-white rounded-xl border p-5">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm text-gray-500">{title}</p>
-                    <p className="text-2xl font-bold mt-1">{value}</p>
+        <div className={`relative overflow-hidden bg-white/95 dark:bg-gray-800/90 border border-gray-150 dark:border-gray-700/50 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${style.glow}`}>
+            {/* Corner light blur spot */}
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full filter blur-xl opacity-10 bg-current" style={{ color: style.iconText.includes('text-blue') ? '#3b82f6' : style.iconText.includes('text-emerald') ? '#10b981' : style.iconText.includes('text-purple') ? '#8b5cf6' : '#f97316' }} />
+            <div className="flex items-center justify-between relative z-10">
+                <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{title}</p>
+                    <p className="text-2xl font-extrabold text-gray-900 dark:text-white mt-1 tracking-tight">{value}</p>
                 </div>
-                <div className={`p-3 rounded-lg ${colors[color]}`}>
-                    {icon}
+                <div className={`p-3.5 rounded-2xl ${style.iconBg} border border-black/5 dark:border-white/5`}>
+                    <div className={style.iconText}>{icon}</div>
                 </div>
             </div>
         </div>

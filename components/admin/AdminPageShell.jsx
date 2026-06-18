@@ -13,26 +13,26 @@ export function AdminPageShell({ children, className = '', size = '7xl' }) {
 
 export function AdminPageHeader({ title, description, icon: Icon, actions, className = '' }) {
   return (
-    <div className={cn('mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between', className)}>
-      <div className="flex items-start gap-3">
+    <div className={cn('mb-8 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between border-b border-gray-100 dark:border-gray-800/80 pb-6', className)}>
+      <div className="flex items-center gap-4">
         {Icon ? (
-          <div className="rounded-xl bg-primary/10 p-2 dark:bg-primary/20">
+          <div className="rounded-2xl bg-primary/10 p-3 dark:bg-primary/20 shadow-sm border border-primary/10 transition-transform hover:scale-105 duration-300">
             <Icon className="h-6 w-6 text-primary" />
           </div>
         ) : null}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
-          {description ? <p className="text-gray-600 dark:text-gray-400">{description}</p> : null}
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{title}</h1>
+          {description ? <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm font-medium">{description}</p> : null}
         </div>
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap items-center gap-2.5">{actions}</div> : null}
     </div>
   )
 }
 
 export function AdminSurface({ children, className = '' }) {
   return (
-    <div className={cn('rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800', className)}>
+    <div className={cn('rounded-2xl border border-gray-100 bg-white/95 shadow-sm shadow-gray-100/50 dark:border-gray-800/60 dark:bg-gray-800/90 backdrop-blur-md transition-all duration-300 hover:shadow-md dark:hover:border-gray-700/60', className)}>
       {children}
     </div>
   )

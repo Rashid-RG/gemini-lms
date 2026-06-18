@@ -162,21 +162,21 @@ function AdminLayoutContent({ children }) {
                 </div>
 
                 {/* Navigation - scrollable */}
-                <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
+                <nav className="p-4 space-y-1.5 flex-1 overflow-y-auto">
                     {filteredNavItems.map((item) => {
                         const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                                className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 border-l-4 ${
                                     isActive
-                                        ? 'bg-primary text-white'
-                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                        ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-primary dark:text-blue-400 dark:border-blue-500 font-semibold shadow-sm shadow-primary/5'
+                                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/60'
                                 }`}
                             >
-                                <item.icon className="h-5 w-5 flex-shrink-0" />
-                                <span className="truncate">{item.label}</span>
+                                <item.icon className="h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 duration-300" />
+                                <span className="truncate text-sm font-medium tracking-wide">{item.label}</span>
                             </Link>
                         )
                     })}
@@ -238,9 +238,9 @@ function AdminLayoutContent({ children }) {
                 )}
 
                 {/* User Info & Logout - fixed at bottom */}
-                <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                    <div className="mb-3 px-4 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 flex-shrink-0 flex items-center justify-center">
+                <div className="flex-shrink-0 p-4 border-t border-gray-150 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div className="mb-3 p-3 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 rounded-2xl flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center shadow-sm">
                             {getSafeProfilePic(admin?.profilePic) ? (
                                 <img src={getSafeProfilePic(admin.profilePic)} alt={admin.name} className="w-full h-full object-cover" />
                             ) : (
@@ -250,15 +250,15 @@ function AdminLayoutContent({ children }) {
                             )}
                         </div>
                         <div className="min-w-0">
-                            <p className="font-medium text-gray-900 dark:text-white truncate">{admin?.name}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{admin?.email}</p>
+                            <p className="font-semibold text-gray-900 dark:text-white truncate text-sm">{admin?.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{admin?.email}</p>
                         </div>
                     </div>
                     <button
                         onClick={logout}
-                        className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white bg-red-50 hover:bg-red-600 dark:bg-red-950/20 dark:hover:bg-red-600 rounded-xl transition-all duration-300 shadow-sm hover:shadow-red-500/10"
                     >
-                        <LogOut className="h-5 w-5" />
+                        <LogOut className="h-4 w-4" />
                         <span>Logout</span>
                     </button>
                 </div>

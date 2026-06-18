@@ -18,6 +18,8 @@ import {
     X,
     Check
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { AdminPageShell, AdminPageHeader, AdminSurface } from '@/components/admin/AdminPageShell'
 import {
     AreaChart,
     Area,
@@ -49,6 +51,57 @@ const STATUS_STYLES = {
     pending: 'bg-yellow-100 text-yellow-800',
     failed: 'bg-red-100 text-red-800',
     refunded: 'bg-gray-100 text-gray-800'
+}
+
+const COLOR_MAPS = {
+    green: {
+        bg: 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-100/60 dark:border-emerald-900/30',
+        iconBg: 'bg-emerald-100 dark:bg-emerald-900/40',
+        iconText: 'text-emerald-600 dark:text-emerald-400',
+        glow: 'shadow-emerald-500/5 dark:shadow-emerald-500/10'
+    },
+    blue: {
+        bg: 'bg-blue-50/70 dark:bg-blue-950/20 border-blue-100/60 dark:border-blue-900/30',
+        iconBg: 'bg-blue-100 dark:bg-blue-900/40',
+        iconText: 'text-blue-600 dark:text-blue-400',
+        glow: 'shadow-blue-500/5 dark:shadow-blue-500/10'
+    },
+    purple: {
+        bg: 'bg-purple-50/70 dark:bg-purple-950/20 border-purple-100/60 dark:border-purple-900/30',
+        iconBg: 'bg-purple-100 dark:bg-purple-900/40',
+        iconText: 'text-purple-600 dark:text-purple-400',
+        glow: 'shadow-purple-500/5 dark:shadow-purple-500/10'
+    },
+    orange: {
+        bg: 'bg-orange-50/70 dark:bg-orange-950/20 border-orange-100/60 dark:border-orange-900/30',
+        iconBg: 'bg-orange-100 dark:bg-orange-900/40',
+        iconText: 'text-orange-600 dark:text-orange-400',
+        glow: 'shadow-orange-500/5 dark:shadow-orange-500/10'
+    }
+}
+
+function StatCard({ title, value, icon, color = 'blue', trendText, trendIcon: TrendIcon, trendColor = 'text-green-600' }) {
+    const style = COLOR_MAPS[color] || COLOR_MAPS.blue
+    return (
+        <div className={`relative overflow-hidden bg-white/95 dark:bg-gray-800/90 border border-gray-150 dark:border-gray-700/50 rounded-2xl p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${style.glow}`}>
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full filter blur-xl opacity-10 bg-current" style={{ color: style.iconText.includes('text-blue') ? '#3b82f6' : style.iconText.includes('text-emerald') ? '#10b981' : style.iconText.includes('text-purple') ? '#8b5cf6' : '#f97316' }} />
+            <div className="flex items-start justify-between relative z-10">
+                <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{title}</p>
+                    <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{value}</p>
+                    {trendText && (
+                        <div className={`flex items-center text-xs font-semibold ${trendColor} bg-current/10 px-2.5 py-0.5 rounded-full w-fit`}>
+                            {TrendIcon && <TrendIcon className="h-3 w-3 mr-1" />}
+                            <span className="opacity-95">{trendText}</span>
+                        </div>
+                    )}
+                </div>
+                <div className={`p-3.5 rounded-2xl ${style.iconBg} border border-black/5 dark:border-white/5`}>
+                    <div className={style.iconText}>{icon}</div>
+                </div>
+            </div>
+        </div>
+    )
 }
 
 function PaymentsDashboard() {
@@ -178,110 +231,78 @@ function PaymentsDashboard() {
     }
 
     return (
-        <div className="p-8">
+        <AdminPageShell>
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Payment & Revenue</h1>
-                    <p className="text-gray-500 mt-1">Track payments, revenue, and financial analytics</p>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={exportToCSV}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export
-                    </button>
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Record Payment
-                    </button>
-                </div>
-            </div>
+            <AdminPageHeader
+                title="Payment & Revenue"
+                description="Track payments, revenue, and financial analytics"
+                icon={DollarSign}
+                actions={
+                    <div className="flex gap-3">
+                        <Button
+                            onClick={exportToCSV}
+                            variant="outline"
+                            disabled={payments.length === 0}
+                        >
+                            <Download className="w-4 h-4 mr-2" />
+                            Export
+                        </Button>
+                        <Button
+                            onClick={() => setShowAddModal(true)}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Record Payment
+                        </Button>
+                    </div>
+                }
+            />
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Total Revenue</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">
-                                Rs. {analytics?.totalRevenue || '0.00'}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-green-100 rounded-lg">
-                            <DollarSign className="w-6 h-6 text-green-600" />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1 mt-4 text-sm">
-                        <ArrowUpRight className="w-4 h-4 text-green-500" />
-                        <span className="text-green-600 font-medium">All time</span>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <StatCard
+                    title="Total Revenue"
+                    value={`Rs. ${analytics?.totalRevenue || '0.00'}`}
+                    icon={<DollarSign className="w-5 h-5" />}
+                    color="green"
+                    trendText="All time"
+                    trendIcon={ArrowUpRight}
+                    trendColor="text-emerald-600 dark:text-emerald-400"
+                />
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Monthly Revenue</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">
-                                Rs. {analytics?.monthlyRevenue || '0.00'}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                            <TrendingUp className="w-6 h-6 text-blue-600" />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1 mt-4 text-sm">
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-500">This month</span>
-                    </div>
-                </div>
+                <StatCard
+                    title="Monthly Revenue"
+                    value={`Rs. ${analytics?.monthlyRevenue || '0.00'}`}
+                    icon={<TrendingUp className="w-5 h-5" />}
+                    color="blue"
+                    trendText="This month"
+                    trendIcon={Calendar}
+                    trendColor="text-blue-600 dark:text-blue-400"
+                />
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Total Transactions</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">
-                                {analytics?.totalTransactions || 0}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-purple-100 rounded-lg">
-                            <Receipt className="w-6 h-6 text-purple-600" />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1 mt-4 text-sm">
-                        <span className="text-gray-500">Avg: Rs. {analytics?.averageOrderValue || '0.00'}</span>
-                    </div>
-                </div>
+                <StatCard
+                    title="Total Transactions"
+                    value={analytics?.totalTransactions || 0}
+                    icon={<Receipt className="w-5 h-5" />}
+                    color="purple"
+                    trendText={`Avg: Rs. ${analytics?.averageOrderValue || '0.00'}`}
+                />
 
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500">Paying Users</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">
-                                {analytics?.payingUsers || 0}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-orange-100 rounded-lg">
-                            <Users className="w-6 h-6 text-orange-600" />
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1 mt-4 text-sm">
-                        <CreditCard className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-500">Unique customers</span>
-                    </div>
-                </div>
+                <StatCard
+                    title="Paying Users"
+                    value={analytics?.payingUsers || 0}
+                    icon={<Users className="w-5 h-5" />}
+                    color="orange"
+                    trendText="Unique customers"
+                    trendIcon={CreditCard}
+                    trendColor="text-orange-600 dark:text-orange-400"
+                />
             </div>
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Revenue Trend */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
+                <AdminSurface className="p-6">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Revenue Trend</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={analytics?.monthlyTrend || []}>
@@ -291,28 +312,29 @@ function PaymentsDashboard() {
                                         <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `Rs.${v}`} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" className="dark:hidden" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" className="hidden dark:block" />
+                                <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" tickLine={false} />
+                                <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" tickLine={false} tickFormatter={(v) => `Rs.${v}`} />
                                 <Tooltip 
                                     formatter={(value) => [`Rs. ${value.toFixed(2)}`, 'Revenue']}
-                                    contentStyle={{ borderRadius: '8px' }}
+                                    contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
                                 />
                                 <Area 
                                     type="monotone" 
                                     dataKey="revenue" 
                                     stroke="#8b5cf6" 
-                                    strokeWidth={2}
+                                    strokeWidth={2.5}
                                     fill="url(#colorRevenue)" 
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
+                </AdminSurface>
 
                 {/* Revenue by Plan */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Plan</h3>
+                <AdminSurface className="p-6">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4">Revenue by Plan</h3>
                     <div className="h-64">
                         {pieData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -334,26 +356,26 @@ function PaymentsDashboard() {
                                             />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={(value) => `Rs. ${value.toFixed(2)}`} />
+                                    <Tooltip formatter={(value) => `Rs. ${value.toFixed(2)}`} contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-gray-500">
+                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
                                 No payment data yet
                             </div>
                         )}
                     </div>
-                </div>
+                </AdminSurface>
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-gray-500" />
+                    <Filter className="w-4 h-4 text-gray-400" />
                     <select
                         value={period}
                         onChange={(e) => setPeriod(e.target.value)}
-                        className="border rounded-lg px-3 py-2 text-sm"
+                        className="border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                     >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -365,7 +387,7 @@ function PaymentsDashboard() {
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="border rounded-lg px-3 py-2 text-sm"
+                    className="border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
                 >
                     <option value="">All Statuses</option>
                     <option value="completed">Completed</option>
@@ -373,75 +395,83 @@ function PaymentsDashboard() {
                     <option value="failed">Failed</option>
                     <option value="refunded">Refunded</option>
                 </select>
-                <button
+                <Button
                     onClick={fetchPayments}
-                    className="p-2 hover:bg-gray-100 rounded-lg"
-                    title="Refresh"
+                    variant="outline"
+                    size="icon"
                 >
                     <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </button>
+                </Button>
             </div>
 
             {/* Transactions Table */}
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div className="p-4 border-b">
-                    <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
+            <AdminSurface className="overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-150 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/40">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Summary of payments processed on the platform</p>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700">
                             <tr>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Date</th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">User</th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Plan</th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Plan</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                             {payments.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                                    <td colSpan="6" className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                                         No payments found
                                     </td>
                                 </tr>
                             ) : (
                                 payments.map((payment) => (
-                                    <tr key={payment.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                    <tr key={payment.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-medium">
                                             {new Date(payment.createdAt).toLocaleDateString()}
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                                             {payment.userEmail}
                                         </td>
                                         <td className="px-4 py-3">
                                             <span 
-                                                className="inline-flex px-2 py-1 text-xs font-medium rounded-full"
+                                                className="inline-flex px-2.5 py-1 text-[11px] font-bold rounded-full border"
                                                 style={{ 
-                                                    backgroundColor: `${PLAN_COLORS[payment.plan] || PLAN_COLORS.default}20`,
-                                                    color: PLAN_COLORS[payment.plan] || PLAN_COLORS.default
+                                                    backgroundColor: `${PLAN_COLORS[payment.plan] || PLAN_COLORS.default}15`,
+                                                    color: PLAN_COLORS[payment.plan] || PLAN_COLORS.default,
+                                                    borderColor: `${PLAN_COLORS[payment.plan] || PLAN_COLORS.default}30`
                                                 }}
                                             >
                                                 {payment.plan}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                        <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-white">
                                             Rs. {parseFloat(payment.amount).toFixed(2)}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${STATUS_STYLES[payment.status] || STATUS_STYLES.pending}`}>
+                                            <span className={`inline-flex px-2.5 py-1 text-[11px] font-bold rounded-full ${
+                                                payment.status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30' :
+                                                payment.status === 'pending' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30' :
+                                                'bg-rose-100 text-rose-800 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30'
+                                            }`}>
                                                 {payment.status}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 text-right">
                                             {payment.status === 'completed' && (
-                                                <button
+                                                <Button
                                                     onClick={() => handleRefund(payment.id)}
-                                                    className="text-sm text-red-600 hover:text-red-800"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 font-semibold"
                                                 >
                                                     Refund
-                                                </button>
+                                                </Button>
                                             )}
                                         </td>
                                     </tr>
@@ -450,34 +480,35 @@ function PaymentsDashboard() {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </AdminSurface>
 
             {/* Add Payment Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold">Record Manual Payment</h3>
-                            <button onClick={() => setShowAddModal(false)}>
-                                <X className="w-5 h-5" />
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 text-gray-900 dark:text-white">
+                        <div className="flex items-center justify-between mb-6 border-b dark:border-gray-700 pb-3">
+                            <h3 className="text-lg font-bold">Record Manual Payment</h3>
+                            <button onClick={() => setShowAddModal(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                                <X className="w-5 h-5 text-gray-400" />
                             </button>
                         </div>
                         <form onSubmit={handleAddPayment} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
                                     User Email *
                                 </label>
                                 <input
                                     type="email"
                                     value={newPayment.userEmail}
                                     onChange={(e) => setNewPayment({ ...newPayment, userEmail: e.target.value })}
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-905 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white"
+                                    placeholder="student@example.com"
                                     required
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
                                         Amount (Rs.) *
                                     </label>
                                     <input
@@ -486,12 +517,12 @@ function PaymentsDashboard() {
                                         min="0"
                                         value={newPayment.amount}
                                         onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })}
-                                        className="w-full border rounded-lg px-3 py-2"
+                                        className="w-full border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-905 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
                                         Credits to Add
                                     </label>
                                     <input
@@ -499,19 +530,19 @@ function PaymentsDashboard() {
                                         min="0"
                                         value={newPayment.creditsAdded}
                                         onChange={(e) => setNewPayment({ ...newPayment, creditsAdded: e.target.value })}
-                                        className="w-full border rounded-lg px-3 py-2"
+                                        className="w-full border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-905 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white"
                                     />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
                                         Plan *
                                     </label>
                                     <select
                                         value={newPayment.plan}
                                         onChange={(e) => setNewPayment({ ...newPayment, plan: e.target.value })}
-                                        className="w-full border rounded-lg px-3 py-2"
+                                        className="w-full border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-905 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
                                     >
                                         <option value="basic">Basic</option>
                                         <option value="pro">Pro</option>
@@ -522,13 +553,13 @@ function PaymentsDashboard() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
                                         Payment Method
                                     </label>
                                     <select
                                         value={newPayment.paymentMethod}
                                         onChange={(e) => setNewPayment({ ...newPayment, paymentMethod: e.target.value })}
-                                        className="w-full border rounded-lg px-3 py-2"
+                                        className="w-full border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-905 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary text-gray-900 dark:text-white"
                                     >
                                         <option value="card">Card</option>
                                         <option value="paypal">PayPal</option>
@@ -538,28 +569,29 @@ function PaymentsDashboard() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
                                     Notes
                                 </label>
                                 <textarea
                                     value={newPayment.notes}
                                     onChange={(e) => setNewPayment({ ...newPayment, notes: e.target.value })}
-                                    className="w-full border rounded-lg px-3 py-2"
+                                    className="w-full border border-gray-300 dark:border-gray-750 bg-white dark:bg-gray-905 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white"
                                     rows={2}
+                                    placeholder="e.g. Received via bank transfer..."
                                 />
                             </div>
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button
+                            <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-700">
+                                <Button
                                     type="button"
+                                    variant="outline"
                                     onClick={() => setShowAddModal(false)}
-                                    className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                                 >
                                     Cancel
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="submit"
                                     disabled={addingPayment}
-                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+                                    className="flex items-center gap-2"
                                 >
                                     {addingPayment ? (
                                         <>
@@ -572,13 +604,13 @@ function PaymentsDashboard() {
                                             Record Payment
                                         </>
                                     )}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-        </div>
+        </AdminPageShell>
     )
 }
 
