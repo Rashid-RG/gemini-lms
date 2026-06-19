@@ -133,6 +133,11 @@ function SideBar({ onNavigate, onCollapseToggle }) {
                 name:'Activity Log',
                 icon:History,
                 path:'/dashboard/admin/activity-log'
+            },
+            {
+                name:'System Diagnostics',
+                icon:ShieldCheck,
+                path:'/dashboard/admin/health'
             }
         ] : []),
         {
