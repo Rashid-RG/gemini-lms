@@ -65,7 +65,9 @@ export async function GET(req) {
             .from(PAYMENT_RECORD_TABLE)
             .where(eq(PAYMENT_RECORD_TABLE.status, 'completed'));
 
-        const totalRevenue = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        // Perform integer addition on cents to prevent float rounding issues
+        const totalRevenueCents = allPayments.reduce((sum, p) => sum + Math.round(parseFloat(p.amount || 0) * 100), 0);
+        const totalRevenue = totalRevenueCents / 100;
         const totalTransactions = allPayments.length;
 
         // This month's revenue
@@ -80,7 +82,8 @@ export async function GET(req) {
                 gte(PAYMENT_RECORD_TABLE.createdAt, thisMonthStart)
             ));
 
-        const monthlyRevenue = monthlyPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        const monthlyRevenueCents = monthlyPayments.reduce((sum, p) => sum + Math.round(parseFloat(p.amount || 0) * 100), 0);
+        const monthlyRevenue = monthlyRevenueCents / 100;
 
         // Today's revenue
         const todayStart = new Date();
@@ -93,13 +96,16 @@ export async function GET(req) {
                 gte(PAYMENT_RECORD_TABLE.createdAt, todayStart)
             ));
 
-        const todayRevenue = todayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        const todayRevenueCents = todayPayments.reduce((sum, p) => sum + Math.round(parseFloat(p.amount || 0) * 100), 0);
+        const todayRevenue = todayRevenueCents / 100;
 
         // Revenue by plan
         const revenueByPlan = {};
         allPayments.forEach(p => {
             const plan = p.plan || 'unknown';
-            revenueByPlan[plan] = (revenueByPlan[plan] || 0) + parseFloat(p.amount || 0);
+            const currentAmountCents = Math.round(parseFloat(p.amount || 0) * 100);
+            const existingAmountCents = Math.round((revenueByPlan[plan] || 0) * 100);
+            revenueByPlan[plan] = parseFloat(((existingAmountCents + currentAmountCents) / 100).toFixed(2));
         });
 
         // Monthly trend (last 6 months)
@@ -115,9 +121,11 @@ export async function GET(req) {
                 return pDate >= monthStart && pDate <= monthEnd;
             });
 
+            const monthRevenueCents = monthPayments.reduce((sum, p) => sum + Math.round(parseFloat(p.amount || 0) * 100), 0);
+
             monthlyTrend.push({
                 month: monthStart.toLocaleString('default', { month: 'short', year: 'numeric' }),
-                revenue: monthPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0),
+                revenue: parseFloat((monthRevenueCents / 100).toFixed(2)),
                 count: monthPayments.length
             });
         }

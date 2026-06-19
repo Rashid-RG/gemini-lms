@@ -41,7 +41,7 @@ import { db } from "@/configs/db";
 import { STUDY_MATERIAL_TABLE, USER_TABLE } from "@/configs/schema";
 import { inngest } from "@/inngest/client";
 import { NextResponse } from "next/server";
-import { eq, isNotNull } from "drizzle-orm";
+import { eq, isNotNull, and, gte, ne, sql } from "drizzle-orm";
 import { checkRateLimit, safeJsonParse, retryWithBackoff } from "@/lib/rateLimit";
 import { auth } from "@clerk/nextjs/server";
 import { getAuthEmail } from "@/lib/clerkUtils";
@@ -194,7 +194,39 @@ export async function POST(req) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 🛡️ Rate limiting - 5 courses per hour per user
+    // 1️⃣ Check if THIS SPECIFIC COURSE already exists (by courseId) - with retry
+    const existingCourse = await withDbRetry(() => 
+      db.select()
+        .from(STUDY_MATERIAL_TABLE)
+        .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId))
+    );
+
+    if (existingCourse.length > 0) {
+      console.log("Course already exists with this ID:", courseId);
+      return NextResponse.json({ result: existingCourse[0] });
+    }
+
+    // 2️⃣ Prompt Caching - Check if the creator has already generated a course for the exact same topic, courseType, and difficultyLevel
+    const cachedCourse = await withDbRetry(() => 
+      db.select()
+        .from(STUDY_MATERIAL_TABLE)
+        .where(
+          and(
+            eq(STUDY_MATERIAL_TABLE.createdBy, createdBy),
+            sql`lower(${STUDY_MATERIAL_TABLE.topic}) = ${topic.trim().toLowerCase()}`,
+            eq(STUDY_MATERIAL_TABLE.courseType, courseType),
+            eq(STUDY_MATERIAL_TABLE.difficultyLevel, difficultyLevel),
+            ne(STUDY_MATERIAL_TABLE.status, 'Error')
+          )
+        )
+    );
+
+    if (cachedCourse.length > 0) {
+      console.log("Cached course found, returning existing course outline:", cachedCourse[0].courseId);
+      return NextResponse.json({ result: cachedCourse[0] });
+    }
+
+    // 3️⃣ 🛡️ In-memory Rate limiting - 5 courses per hour per user
     const rateCheck = checkRateLimit(createdBy, 'course-generation');
     if (rateCheck.limited) {
       return NextResponse.json(
@@ -208,7 +240,36 @@ export async function POST(req) {
       );
     }
 
-    // � Check if user is a Premium Member (with retry for cold starts)
+    // 4️⃣ 🛡️ Database-backed Rate limiting - 1 course per 60 seconds per user
+    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
+    const recentCourses = await withDbRetry(() => 
+      db.select()
+        .from(STUDY_MATERIAL_TABLE)
+        .where(
+          and(
+            eq(STUDY_MATERIAL_TABLE.createdBy, createdBy),
+            gte(STUDY_MATERIAL_TABLE.createdAt, sixtySecondsAgo)
+          )
+        )
+    );
+
+    if (recentCourses.length > 0) {
+      console.log(`[Rate Limit] User ${createdBy} attempted course generation too quickly.`);
+      return NextResponse.json(
+        { 
+          error: "Too many requests. Please wait 60 seconds between course generations.", 
+          retryAfter: 60 
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': '60'
+          }
+        }
+      );
+    }
+
+    //  Check if user is a Premium Member (with retry for cold starts)
     const userResult = await withDbRetry(() => 
       db.select().from(USER_TABLE).where(eq(USER_TABLE.email, createdBy))
     );
@@ -226,18 +287,6 @@ export async function POST(req) {
           { status: 402 } // Payment Required
         );
       }
-    }
-
-    // 1️⃣ Check if THIS SPECIFIC COURSE already exists (by courseId) - with retry
-    const existingCourse = await withDbRetry(() => 
-      db.select()
-        .from(STUDY_MATERIAL_TABLE)
-        .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId))
-    );
-
-    if (existingCourse.length > 0) {
-      console.log("Course already exists with this ID:", courseId);
-      return NextResponse.json({ result: existingCourse[0] });
     }
 
     // 2️⃣ Build AI prompt - simplified for faster generation and complete responses
