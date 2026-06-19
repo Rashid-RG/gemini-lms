@@ -3,14 +3,12 @@ import Image from "next/image";
 import { UserButton } from "@clerk/nextjs";
 import DashboardHeader from "./dashboard/_components/DashboardHeader";
 import { Sparkles, BookOpen, BrainCircuit, Compass, Target, GraduationCap, ArrowRight, Play } from "lucide-react";
+import TrailerBackground from "./_components/TrailerBackground";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50/50 relative overflow-hidden">
-      {/* Decorative ambient glowing backdrop blurs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-indigo-200/30 rounded-full blur-3xl pointer-events-none animate-float-1" />
-      <div className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] bg-purple-200/20 rounded-full blur-3xl pointer-events-none animate-float-2" />
-      <div className="absolute top-[40%] right-[20%] w-[30vw] h-[30vw] bg-pink-100/20 rounded-full blur-3xl pointer-events-none animate-float-3" />
+      <TrailerBackground />
 
       <DashboardHeader />
 
@@ -47,14 +45,14 @@ export default function Home() {
 
           {/* Call-to-actions */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <a href="/dashboard" className="w-full sm:w-auto">
+            <a href="/dashboard" className="w-full sm:w-auto relative z-20">
               <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-bold rounded-2xl shadow-xl shadow-indigo-100 hover:shadow-indigo-200 transition-all hover:scale-[1.02] py-6 px-8 flex items-center justify-center gap-2">
                 Get Started Free <ArrowRight className="w-5 h-5" />
               </Button>
             </a>
-            <a href="https://youtube.com" target="_blank" rel="noreferrer" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl py-6 px-8 flex items-center justify-center gap-2">
-                <Play className="w-4 h-4 fill-slate-700 text-slate-700" /> Watch Demo Video
+            <a href="/trailer" className="w-full sm:w-auto relative z-20">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl py-6 px-8 flex items-center justify-center gap-2 backdrop-blur-md bg-white/50">
+                <Play className="w-4 h-4 fill-slate-700 text-slate-700" /> Watch Trailer
               </Button>
             </a>
           </div>
