@@ -187,7 +187,7 @@ function AdminDashboardPage() {
                     icon={<BookOpen className="h-5 w-5" />}
                 />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                 <QuickActionCard
                     title="Review Requests"
                     description="Grade dispute queue"
@@ -219,6 +219,12 @@ function AdminDashboardPage() {
                     description="Audit administrative logs"
                     href="/dashboard/admin/activity-log"
                     icon={<Activity className="h-5 w-5" />}
+                />
+                <QuickActionCard
+                    title="System Diagnostics"
+                    description="Live database & AI health"
+                    href="/dashboard/admin/health"
+                    icon={<RefreshCw className="h-5 w-5" />}
                 />
             </div>
 
