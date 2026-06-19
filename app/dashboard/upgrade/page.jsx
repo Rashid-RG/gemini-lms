@@ -1,10 +1,24 @@
 "use client"
 import { Button } from '@/components/ui/button'
-import React, { useState, useRef, useContext } from 'react'
+import React, { useState, useEffect, useRef, useContext } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { Sparkles, Zap, Loader2, CheckCircle, CreditCard } from 'lucide-react'
+import { Sparkles, Zap, Loader2, CheckCircle, CreditCard, Receipt, Clock, RefreshCw, XCircle } from 'lucide-react'
 import axios from 'axios'
 import { CourseCountContext } from '@/app/_context/CourseCountContext'
+
+// Safe date formatting helper to prevent SSR/client hydration mismatch
+const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch {
+        return '';
+    }
+};
 
 function Upgrade() {
     const { user, isLoaded } = useUser()
@@ -14,6 +28,32 @@ function Upgrade() {
     const formRef = useRef(null)
     const [paymentData, setPaymentData] = useState(null)
     const [checkoutUrl, setCheckoutUrl] = useState('')
+
+    // Payment History states
+    const [paymentHistory, setPaymentHistory] = useState([])
+    const [historyLoading, setHistoryLoading] = useState(true)
+
+    const fetchPaymentHistory = async () => {
+        if (!user || !user.primaryEmailAddress?.emailAddress) return
+        try {
+            setHistoryLoading(true)
+            const email = user.primaryEmailAddress.emailAddress
+            const response = await axios.get(`/api/payments/history?email=${encodeURIComponent(email)}`)
+            if (response.data.success) {
+                setPaymentHistory(response.data.result)
+            }
+        } catch (err) {
+            console.error('Failed to load payment history:', err)
+        } finally {
+            setHistoryLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        if (isLoaded && user) {
+            fetchPaymentHistory()
+        }
+    }, [isLoaded, user])
 
     const handlePurchase = async (planId) => {
         if (!user) {
@@ -343,6 +383,87 @@ function Upgrade() {
             24/7 Support
         </span>
     </div>
+</div>
+
+{/* Payment History Section */}
+<div className="mt-16 bg-white border border-gray-150 rounded-2xl p-6 shadow-sm">
+    <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-gray-100">
+        <Receipt className="w-5.5 h-5.5 text-primary animate-pulse" />
+        <div className="text-left">
+            <h3 className="text-xl font-bold text-gray-800">Billing & Payment History</h3>
+            <p className="text-xs text-gray-550 mt-0.5">View your past subscription upgrades and credit purchases</p>
+        </div>
+    </div>
+
+    {historyLoading ? (
+        <div className="flex flex-col items-center justify-center py-10 space-y-3">
+            <Loader2 className="w-7 h-7 animate-spin text-primary" />
+            <p className="text-sm text-gray-400">Loading your transactions...</p>
+        </div>
+    ) : paymentHistory.length === 0 ? (
+        <div className="text-center py-10 px-4 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+            <Receipt className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <h4 className="font-semibold text-gray-700">No payment history found</h4>
+            <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1">Once you upgrade your account or purchase additional credits, your invoice details and transaction logs will be listed here.</p>
+        </div>
+    ) : (
+        <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+                <thead>
+                    <tr className="border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <th className="py-3 px-4">Transaction ID</th>
+                        <th className="py-3 px-4">Date</th>
+                        <th className="py-3 px-4">Plan / Package</th>
+                        <th className="py-3 px-4">Amount</th>
+                        <th className="py-3 px-4">Credits</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 text-sm text-gray-700">
+                    {paymentHistory.map((payment) => (
+                        <tr key={payment.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="py-3.5 px-4 font-mono text-xs text-gray-500">
+                                {payment.gatewayPaymentId || `TX-${payment.id.toString().padStart(6, '0')}`}
+                            </td>
+                            <td className="py-3.5 px-4 font-medium text-gray-600">
+                                {formatDate(payment.createdAt)}
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-gray-800 capitalize">
+                                {payment.plan?.replace('credits_', '')?.replace('premium_', '') || 'Custom Package'}
+                                <span className="text-[10px] ml-1.5 font-bold text-gray-400 uppercase tracking-wider">
+                                    ({payment.planType})
+                                </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-extrabold text-primary">
+                                {payment.currency?.toUpperCase() === 'LKR' ? 'Rs. ' : '$'}
+                                {parseFloat(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3.5 px-4 font-semibold text-gray-600">
+                                {payment.creditsAdded > 0 ? `+${payment.creditsAdded}` : '—'}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                    payment.status === 'completed' || payment.status === 'success'
+                                        ? 'bg-green-50 text-green-700 border border-green-100'
+                                        : payment.status === 'pending'
+                                        ? 'bg-yellow-50 text-yellow-700 border border-yellow-100'
+                                        : payment.status === 'refunded'
+                                        ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                                        : 'bg-red-50 text-red-700 border border-red-100'
+                                }`}>
+                                    {(payment.status === 'completed' || payment.status === 'success') && <CheckCircle className="w-3.5 h-3.5" />}
+                                    {payment.status === 'pending' && <Clock className="w-3.5 h-3.5 animate-pulse" />}
+                                    {payment.status === 'refunded' && <RefreshCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '4s' }} />}
+                                    {payment.status === 'failed' && <XCircle className="w-3.5 h-3.5" />}
+                                    <span className="capitalize">{payment.status || 'completed'}</span>
+                                </span>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    )}
 </div>
 </div>
 
