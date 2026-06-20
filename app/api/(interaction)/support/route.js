@@ -126,7 +126,7 @@ export async function PATCH(req) {
 
         // Trigger SSE notification to user
         try {
-            const { notifyUser } = await import('@/app/api/notifications/stream/route');
+            const { notifyUser } = await import('@/app/api/(interaction)/notifications/stream/route');
             notifyUser(updated.userEmail, updated);
         } catch (err) {
             console.error('Failed to send SSE notification:', err);
@@ -135,7 +135,7 @@ export async function PATCH(req) {
         // If user replied, notify all admins
         if (!isAdmin && userReply) {
             try {
-                const { notifyAdmins } = await import('@/app/api/notifications/stream/route');
+                const { notifyAdmins } = await import('@/app/api/(interaction)/notifications/stream/route');
                 if (notifyAdmins) {
                     notifyAdmins(updated);
                 }

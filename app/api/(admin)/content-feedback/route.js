@@ -174,7 +174,7 @@ export async function POST(req) {
                 updatedAt: new Date(),
             }).returning();
 
-            const { notifyAdmins } = await import('@/app/api/notifications/stream/route');
+            const { notifyAdmins } = await import('@/app/api/(interaction)/notifications/stream/route');
             if (ticket && typeof notifyAdmins === 'function') {
                 notifyAdmins(ticket);
             }
