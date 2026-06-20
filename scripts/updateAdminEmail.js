@@ -27,14 +27,14 @@ const NEW_EMAIL = "e2240212@bit.uom.lk";
 async function updateAdminEmail() {
     try {
         // Get connection string from env or hardcode for this one-time script
-        const connectionString = process.env.NEXT_PUBLIC_DB_CONNECTION_STRING || 
+        const connectionString = process.env.NEXT_PUBLIC_DB_CONNECTION_STRING ||
             "postgresql://neondb_owner:npg_d8Fgih1lWUqH@ep-cool-tree-a4ll1itd-pooler.us-east-1.aws.neon.tech/AI-Study-Material-Gen?sslmode=require";
-        
+
         const sql = neon(connectionString);
         const db = drizzle(sql);
 
         console.log("🔍 Checking for existing admin account...");
-        
+
         // Check if old admin exists
         const existingAdmin = await db
             .select()
@@ -43,13 +43,13 @@ async function updateAdminEmail() {
 
         if (existingAdmin.length === 0) {
             console.log(`❌ No admin found with email: ${OLD_EMAIL}`);
-            
+
             // Check if new email already exists
             const newEmailAdmin = await db
                 .select()
                 .from(ADMIN_TABLE)
                 .where(eq(ADMIN_TABLE.email, NEW_EMAIL));
-            
+
             if (newEmailAdmin.length > 0) {
                 console.log(`✅ Admin with new email ${NEW_EMAIL} already exists!`);
                 console.log("Admin details:", {
@@ -72,7 +72,7 @@ async function updateAdminEmail() {
         // Update email
         const result = await db
             .update(ADMIN_TABLE)
-            .set({ 
+            .set({
                 email: NEW_EMAIL,
                 updatedAt: new Date()
             })

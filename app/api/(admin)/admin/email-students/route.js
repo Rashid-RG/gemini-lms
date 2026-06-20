@@ -87,6 +87,7 @@ export async function POST(req) {
             subject, 
             message,
             template, // 'custom', 'announcement', 'reminder', 'congratulations'
+            signature, // 'founder', 'admin', or 'none'
             adminEmail 
         } = await req.json();
 
@@ -107,7 +108,7 @@ export async function POST(req) {
         }
 
         // Build email HTML based on template
-        const htmlContent = buildEmailTemplate(template || 'custom', subject, message);
+        const htmlContent = buildEmailTemplate(template || 'custom', subject, message, signature || 'none');
 
         // Send emails in batches
         const results = {
@@ -163,7 +164,7 @@ export async function POST(req) {
 /**
  * Build HTML email template based on type
  */
-function buildEmailTemplate(template, subject, message) {
+function buildEmailTemplate(template, subject, message, signature = 'none') {
     const appName = 'Gemini LMS';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const year = new Date().getFullYear();
@@ -176,24 +177,54 @@ function buildEmailTemplate(template, subject, message) {
 
     const templates = {
         custom: {
-            bgColor: '#4F46E5',
-            icon: '📧'
+            bgColor: '#6366f1',
+            icon: '📧',
+            gradient: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)'
         },
         announcement: {
-            bgColor: '#059669',
-            icon: '📢'
+            bgColor: '#10b981',
+            icon: '📢',
+            gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
         },
         reminder: {
-            bgColor: '#D97706',
-            icon: '⏰'
+            bgColor: '#f59e0b',
+            icon: '⏰',
+            gradient: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
         },
         congratulations: {
-            bgColor: '#7C3AED',
-            icon: '🎉'
+            bgColor: '#8b5cf6',
+            icon: '🎉',
+            gradient: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'
         }
     };
 
     const config = templates[template] || templates.custom;
+
+    // Define signature HTML
+    let signatureHtml = '';
+    if (signature === 'founder') {
+        signatureHtml = `
+            <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #f1f5f9; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b; font-style: italic;">With warm regards,</p>
+                <div style="margin-top: 10px;">
+                    <div style="font-family: 'Dancing Script', 'Brush Script MT', cursive; font-size: 26px; color: #4f46e5; margin: 5px 0 12px 0; font-weight: 600; font-style: italic; letter-spacing: 0.5px;">M.S.F. Sajeefa</div>
+                    <p style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">M.S.F. Sajeefa</p>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #4f46e5; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Founder, Gemini LMS</p>
+                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8; line-height: 1.4;">Transforming Education through AI Personalization</p>
+                </div>
+            </div>
+        `;
+    } else if (signature === 'admin') {
+        signatureHtml = `
+            <div style="margin-top: 35px; padding-top: 25px; border-top: 1px solid #f1f5f9; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b; font-style: italic;">Best regards,</p>
+                <div>
+                    <p style="margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;">Gemini LMS Administration</p>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">Academic & Teammate Operations</p>
+                </div>
+            </div>
+        `;
+    }
 
     return `
         <!DOCTYPE html>
@@ -202,21 +233,69 @@ function buildEmailTemplate(template, subject, message) {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: ${config.bgColor}; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                .header h1 { margin: 0; font-size: 24px; }
-                .icon { font-size: 48px; margin-bottom: 15px; }
-                .content { background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
-                .message { color: #374151; font-size: 16px; }
-                .button { display: inline-block; background: ${config.bgColor}; color: white !important; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                .footer { background: #f3f4f6; padding: 20px; text-align: center; color: #6B7280; font-size: 14px; border-radius: 0 0 10px 10px; }
-                .footer a { color: #4F46E5; text-decoration: none; }
+                @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+                body { 
+                    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+                    line-height: 1.6; 
+                    color: #334155; 
+                    background-color: #f8fafc;
+                    padding: 40px 20px;
+                    margin: 0;
+                }
+                .container { 
+                    max-width: 600px; 
+                    margin: 0 auto; 
+                    background-color: #ffffff;
+                    border-radius: 16px;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+                    border: 1px solid #f1f5f9;
+                    overflow: hidden;
+                }
+                .header { 
+                    background: ${config.gradient}; 
+                    color: white; 
+                    padding: 35px 24px; 
+                    text-align: center; 
+                }
+                .header h1 { 
+                    margin: 0; 
+                    font-size: 24px; 
+                    font-weight: 700;
+                    letter-spacing: -0.5px;
+                }
+                .icon { font-size: 40px; margin-bottom: 12px; }
+                .content { padding: 40px 32px; }
+                .message { color: #334155; font-size: 15px; line-height: 1.6; }
+                .button { 
+                    display: inline-block; 
+                    background: ${config.gradient}; 
+                    color: white !important; 
+                    padding: 14px 28px; 
+                    text-decoration: none; 
+                    border-radius: 10px; 
+                    font-weight: 600;
+                    font-size: 14px;
+                    margin: 24px 0;
+                    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+                    text-align: center;
+                }
+                .footer { 
+                    background-color: #f8fafc; 
+                    padding: 30px 24px; 
+                    text-align: center; 
+                    color: #64748b; 
+                    font-size: 13px; 
+                    border-top: 1px solid #f1f5f9;
+                }
+                .footer a { color: #4f46e5; text-decoration: none; }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
+                    <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: #ffffff; margin-bottom: 12px;">
+                        <span style="color: #a78bfa; font-weight: 800;">Gemini</span><span style="color: #ffffff; font-weight: 300;"> LMS</span>✨
+                    </div>
                     <div class="icon">${config.icon}</div>
                     <h1>${subject}</h1>
                 </div>
@@ -224,6 +303,7 @@ function buildEmailTemplate(template, subject, message) {
                     <div class="message">
                         ${formattedMessage}
                     </div>
+                    ${signatureHtml}
                     <center>
                         <a href="${appUrl}/dashboard" class="button">
                             Go to Dashboard
@@ -236,8 +316,8 @@ function buildEmailTemplate(template, subject, message) {
                         <a href="${appUrl}">Visit Website</a> | 
                         <a href="${appUrl}/dashboard/support">Support</a>
                     </p>
-                    <p style="font-size: 12px; color: #9ca3af;">
-                        You received this email because you have an account on ${appName}.
+                    <p style="font-size: 12px; color: #94a3b8; font-style: italic; margin-top: 10px;">
+                        You received this email because you have an active account on ${appName}.
                     </p>
                 </div>
             </div>

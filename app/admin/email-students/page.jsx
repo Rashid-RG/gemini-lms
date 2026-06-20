@@ -45,9 +45,21 @@ function EmailStudentsPage() {
     const [template, setTemplate] = useState('custom')
     const [subject, setSubject] = useState('')
     const [message, setMessage] = useState('')
+    const [signature, setSignature] = useState('founder')
     
     // Results
     const [sendResults, setSendResults] = useState(null)
+
+    // Load cursive font for live signature preview
+    useEffect(() => {
+        const link = document.createElement('link')
+        link.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap'
+        link.rel = 'stylesheet'
+        document.head.appendChild(link)
+        return () => {
+            document.head.removeChild(link)
+        }
+    }, [])
 
     useEffect(() => {
         if (!authLoading && admin) {
@@ -115,6 +127,7 @@ function EmailStudentsPage() {
                 subject,
                 message,
                 template,
+                signature,
                 adminEmail: userEmail
             })
 
@@ -172,44 +185,46 @@ function EmailStudentsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Panel - Student Selection */}
-                <div className="lg:col-span-2 space-y-4">
+                <div className="space-y-4">
                     {/* Filters */}
                     <div className="bg-white rounded-xl border p-4">
-                        <div className="flex flex-wrap gap-4 items-center">
-                            <div className="relative flex-1 min-w-[200px]">
+                        <div className="flex flex-col gap-4">
+                            <div className="relative w-full">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search by name or email..."
+                                    placeholder="Search student..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
                                 />
                             </div>
-                            <select
-                                value={courseFilter}
-                                onChange={(e) => setCourseFilter(e.target.value)}
-                                className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                            >
-                                <option value="">All Courses</option>
-                                {courses.map((course) => (
-                                    <option key={course.courseId} value={course.courseId}>
-                                        {course.topic?.substring(0, 40)}...
-                                    </option>
-                                ))}
-                            </select>
-                            {courseFilter && (
+                            <div className="flex flex-col gap-2">
                                 <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                    value={courseFilter}
+                                    onChange={(e) => setCourseFilter(e.target.value)}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
                                 >
-                                    <option value="all">All Students</option>
-                                    <option value="enrolled">Enrolled</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="in-progress">In Progress</option>
+                                    <option value="">All Courses</option>
+                                    {courses.map((course) => (
+                                        <option key={course.courseId} value={course.courseId}>
+                                            {course.topic?.substring(0, 40)}...
+                                        </option>
+                                    ))}
                                 </select>
-                            )}
+                                {courseFilter && (
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                    >
+                                        <option value="all">All Students</option>
+                                        <option value="enrolled">Enrolled</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="in-progress">In Progress</option>
+                                    </select>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -221,10 +236,10 @@ function EmailStudentsPage() {
                                     type="checkbox"
                                     checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
                                     onChange={handleSelectAll}
-                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                 />
-                                <span className="font-medium text-gray-700">
-                                    {selectedStudents.length} selected of {filteredStudents.length}
+                                <span className="font-medium text-gray-700 text-sm">
+                                    {selectedStudents.length} selected ({filteredStudents.length})
                                 </span>
                             </div>
                             <Users className="w-5 h-5 text-gray-400" />
@@ -254,13 +269,13 @@ function EmailStudentsPage() {
                                             checked={selectedStudents.includes(student.email)}
                                             onChange={() => handleSelectStudent(student.email)}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-gray-800 truncate">
+                                            <p className="font-medium text-gray-800 truncate text-sm">
                                                 {student.name || 'Unknown'}
                                             </p>
-                                            <p className="text-sm text-gray-500 truncate">{student.email}</p>
+                                            <p className="text-xs text-gray-500 truncate">{student.email}</p>
                                         </div>
                                         {selectedStudents.includes(student.email) && (
                                             <UserCheck className="w-5 h-5 text-primary" />
@@ -272,7 +287,7 @@ function EmailStudentsPage() {
                     </div>
                 </div>
 
-                {/* Right Panel - Compose Email */}
+                {/* Middle Panel - Compose Email */}
                 <div className="space-y-4">
                     <div className="bg-white rounded-xl border p-4">
                         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -289,6 +304,7 @@ function EmailStudentsPage() {
                                 {EMAIL_TEMPLATES.map((t) => (
                                     <button
                                         key={t.id}
+                                        type="button"
                                         onClick={() => setTemplate(t.id)}
                                         className={`p-2 rounded-lg border text-sm flex items-center gap-2 transition-all ${
                                             template === t.id
@@ -313,7 +329,7 @@ function EmailStudentsPage() {
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
                                 placeholder="Enter email subject..."
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
                             />
                         </div>
 
@@ -327,11 +343,39 @@ function EmailStudentsPage() {
                                 onChange={(e) => setMessage(e.target.value)}
                                 placeholder="Type your message here...&#10;&#10;Use **bold** and *italic* for formatting."
                                 rows={8}
-                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary resize-none"
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary resize-none outline-none"
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 Supports **bold** and *italic* formatting
                             </p>
+                        </div>
+
+                        {/* Signature Selection */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Email Signature
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'founder', name: 'MSF Sajeefa', icon: '✍️' },
+                                    { id: 'admin', name: 'LMS Admin', icon: '🏢' },
+                                    { id: 'none', name: 'None', icon: '❌' }
+                                ].map((sig) => (
+                                    <button
+                                        key={sig.id}
+                                        type="button"
+                                        onClick={() => setSignature(sig.id)}
+                                        className={`p-2 rounded-lg border text-xs flex flex-col items-center justify-center gap-1 transition-all ${
+                                            signature === sig.id
+                                                ? 'border-primary bg-primary/5 text-primary font-semibold'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <span className="text-sm">{sig.icon}</span>
+                                        <span className="truncate text-[10px]">{sig.name}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Send Button */}
@@ -399,7 +443,98 @@ function EmailStudentsPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Right Panel - Live Preview */}
+                <div className="space-y-4">
+                    <div className="bg-white rounded-xl border p-4 space-y-4">
+                        <h3 className="font-semibold text-gray-800 flex items-center gap-2 border-b pb-3">
+                            <Mail className="w-5 h-5 text-primary" />
+                            Live Email Preview
+                        </h3>
+                        <div className="border rounded-2xl overflow-hidden bg-slate-50/50 p-3 max-h-[550px] overflow-y-auto">
+                            <div className="max-w-[340px] mx-auto bg-white rounded-2xl shadow-md border border-slate-150 overflow-hidden text-left">
+                                {/* Header */}
+                                <div className={`p-4 text-center text-white ${
+                                    template === 'announcement' ? 'bg-gradient-to-r from-emerald-600 to-teal-500' :
+                                    template === 'reminder' ? 'bg-gradient-to-r from-amber-600 to-orange-500' :
+                                    template === 'congratulations' ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500' :
+                                    'bg-gradient-to-r from-indigo-600 to-violet-500'
+                                }`}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-85 mb-1">Gemini LMS</div>
+                                    <div className="text-xl mb-1">
+                                        {template === 'announcement' ? '📢' :
+                                         template === 'reminder' ? '⏰' :
+                                         template === 'congratulations' ? '🎉' :
+                                         '📧'}
+                                    </div>
+                                    <h4 className="font-bold text-sm line-clamp-2">
+                                        {subject || 'No Subject'}
+                                    </h4>
+                                </div>
+
+                                {/* Body */}
+                                <div className="p-4 text-slate-700 text-xs space-y-3">
+                                    <div className="whitespace-pre-line leading-relaxed min-h-[60px]">
+                                        {message ? (
+                                            message
+                                                .split('\n')
+                                                .map((line, idx) => {
+                                                    let rendered = line;
+                                                    rendered = rendered.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                                    rendered = rendered.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                                                    return (
+                                                        <p key={idx} dangerouslySetInnerHTML={{ __html: rendered || '&nbsp;' }} className="mb-1.5" />
+                                                    );
+                                                })
+                                        ) : (
+                                            <span className="text-slate-400 italic">No message written yet...</span>
+                                        )}
+                                    </div>
+
+                                    {/* Signature */}
+                                    {signature === 'founder' && (
+                                        <div className="pt-3 border-t border-slate-100 font-sans">
+                                            <p className="text-[10px] text-slate-400 italic mb-1">With warm regards,</p>
+                                            <div className="text-xl text-primary font-medium mb-1" style={{ fontFamily: "'Dancing Script', cursive", fontWeight: 600 }}>
+                                                M. S. F. Sajeefa
+                                            </div>
+                                            <p className="font-bold text-slate-800 text-[11px] m-0">M.S.F. Sajeefa</p>
+                                            <p className="text-primary text-[9px] font-semibold uppercase tracking-wider m-0">Founder, Gemini LMS</p>
+                                            <p className="text-[8px] text-slate-400 m-0">Transforming Education through AI Personalization</p>
+                                        </div>
+                                    )}
+
+                                    {signature === 'admin' && (
+                                        <div className="pt-3 border-t border-slate-100">
+                                            <p className="text-[10px] text-slate-400 italic mb-1">Best regards,</p>
+                                            <p className="font-bold text-slate-800 text-[11px] m-0">Gemini LMS Administration</p>
+                                            <p className="text-slate-400 text-[9px] m-0">Academic & Teammate Operations</p>
+                                        </div>
+                                    )}
+
+                                    {/* Button */}
+                                    <div className="text-center pt-3">
+                                        <span className={`inline-block text-white text-[9px] font-bold px-4 py-2 rounded-lg shadow-sm ${
+                                            template === 'announcement' ? 'bg-emerald-600' :
+                                            template === 'reminder' ? 'bg-amber-600' :
+                                            template === 'congratulations' ? 'bg-violet-600' :
+                                            'bg-primary'
+                                        }`}>
+                                            Go to Dashboard
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="bg-slate-50/50 p-3 border-t border-slate-100 text-center text-[9px] text-slate-400 space-y-1">
+                                    <p>© {new Date().getFullYear()} Gemini LMS. All rights reserved.</p>
+                                    <p className="text-primary font-medium">Visit Website | Support</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
             </div>
+        </div>
         </div>
     )
 }

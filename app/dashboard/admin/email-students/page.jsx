@@ -41,9 +41,21 @@ function EmailStudentsPage() {
     const [template, setTemplate] = useState('custom')
     const [subject, setSubject] = useState('')
     const [message, setMessage] = useState('')
+    const [signature, setSignature] = useState('founder')
     
     // Results
     const [sendResults, setSendResults] = useState(null)
+
+    // Load cursive font for live signature preview
+    useEffect(() => {
+        const link = document.createElement('link')
+        link.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap'
+        link.rel = 'stylesheet'
+        document.head.appendChild(link)
+        return () => {
+            document.head.removeChild(link)
+        }
+    }, [])
 
     const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase()
     const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
@@ -115,6 +127,7 @@ function EmailStudentsPage() {
                 subject,
                 message,
                 template,
+                signature,
                 adminEmail: userEmail
             })
 
@@ -189,25 +202,25 @@ function EmailStudentsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Panel - Student Selection */}
-                <div className="lg:col-span-2 space-y-4">
+                <div className="space-y-4">
                     {/* Filters */}
                     <div className="backdrop-blur-md bg-white/70 border border-slate-200/50 shadow-sm rounded-2xl p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                            <div className="relative flex-1">
+                        <div className="flex flex-col gap-4">
+                            <div className="relative w-full">
                                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search by name or email..."
+                                    placeholder="Search student..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-800 placeholder-slate-400 text-sm"
                                 />
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex flex-col gap-2">
                                 <select
                                     value={courseFilter}
                                     onChange={(e) => setCourseFilter(e.target.value)}
-                                    className="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-700 text-sm min-w-[150px]"
+                                    className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-700 text-sm"
                                 >
                                     <option value="">All Courses</option>
                                     {courses.map((course) => (
@@ -220,7 +233,7 @@ function EmailStudentsPage() {
                                     <select
                                         value={statusFilter}
                                         onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-700 text-sm"
+                                        className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-500/20 transition-all outline-none text-slate-700 text-sm"
                                     >
                                         <option value="all">All Statuses</option>
                                         <option value="enrolled">Enrolled</option>
@@ -235,18 +248,18 @@ function EmailStudentsPage() {
                     {/* Student List */}
                     <div className="backdrop-blur-md bg-white/70 border border-slate-200/50 shadow-sm rounded-2xl overflow-hidden">
                         <div className="bg-slate-50/70 px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                              <input
-                                  type="checkbox"
-                                  checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
-                                  onChange={handleSelectAll}
-                                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 cursor-pointer"
-                              />
-                              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                                  {selectedStudents.length} selected of {filteredStudents.length}
-                              </span>
-                          </div>
-                          <Users className="w-5 h-5 text-slate-400" />
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+                                    onChange={handleSelectAll}
+                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 cursor-pointer"
+                                />
+                                <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                                    {selectedStudents.length} selected ({filteredStudents.length})
+                                </span>
+                            </div>
+                            <Users className="w-5 h-5 text-slate-400" />
                         </div>
 
                         {loading ? (
@@ -256,10 +269,10 @@ function EmailStudentsPage() {
                         ) : filteredStudents.length === 0 ? (
                             <div className="text-center py-20 text-slate-500 bg-white/50">
                                 <Users className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                                <p className="text-slate-500 font-semibold text-sm">No students found matching current filters</p>
+                                <p className="text-slate-500 font-semibold text-sm">No students found</p>
                             </div>
                         ) : (
-                            <div className="max-h-[500px] overflow-y-auto divide-y divide-slate-100 bg-white/50">
+                            <div className="max-h-[400px] overflow-y-auto divide-y divide-slate-100 bg-white/50">
                                 {filteredStudents.map((student, index) => {
                                     const isSelected = selectedStudents.includes(student.email)
                                     return (
@@ -294,7 +307,7 @@ function EmailStudentsPage() {
                     </div>
                 </div>
 
-                {/* Right Panel - Compose Email */}
+                {/* Middle Panel - Compose Email */}
                 <div className="space-y-4">
                     <div className="backdrop-blur-md bg-white/70 border border-slate-200/50 shadow-sm rounded-2xl p-5 space-y-4">
                         <h3 className="font-bold text-slate-800 text-base flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -311,6 +324,7 @@ function EmailStudentsPage() {
                                 {EMAIL_TEMPLATES.map((t) => (
                                     <button
                                         key={t.id}
+                                        type="button"
                                         onClick={() => setTemplate(t.id)}
                                         className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all duration-200 active:scale-95 ${
                                             template === t.id
@@ -354,6 +368,34 @@ function EmailStudentsPage() {
                             <p className="text-[10px] text-slate-400 font-semibold italic">
                                 Markdown format is supported (**bold**, *italic*)
                             </p>
+                        </div>
+
+                        {/* Signature Selection */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                                Email Signature
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'founder', name: 'MSF Sajeefa (Founder)', icon: '✍️' },
+                                    { id: 'admin', name: 'Gemini LMS Admin', icon: '🏢' },
+                                    { id: 'none', name: 'No Signature', icon: '❌' }
+                                ].map((sig) => (
+                                    <button
+                                        key={sig.id}
+                                        type="button"
+                                        onClick={() => setSignature(sig.id)}
+                                        className={`p-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all duration-200 active:scale-95 ${
+                                            signature === sig.id
+                                                ? 'border-indigo-500 bg-indigo-50/80 text-indigo-600 shadow-sm shadow-indigo-500/5'
+                                                : 'border-slate-200 bg-white/60 hover:border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <span className="text-sm">{sig.icon}</span>
+                                        <span className="truncate text-[10px]">{sig.name}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Send Button */}
@@ -420,7 +462,98 @@ function EmailStudentsPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Right Panel - Live Preview */}
+                <div className="space-y-4">
+                    <div className="backdrop-blur-md bg-white/70 border border-slate-200/50 shadow-sm rounded-2xl p-5 space-y-4">
+                        <h3 className="font-bold text-slate-800 text-base flex items-center gap-2 border-b border-slate-100 pb-3">
+                            <Mail className="w-4.5 h-4.5 text-indigo-500" />
+                            Live Email Preview
+                        </h3>
+                        <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-inner bg-slate-50/50 p-3 max-h-[550px] overflow-y-auto">
+                            <div className="max-w-[340px] mx-auto bg-white rounded-2xl shadow-md border border-slate-150 overflow-hidden text-left">
+                                {/* Header */}
+                                <div className={`p-4 text-center text-white ${
+                                    template === 'announcement' ? 'bg-gradient-to-r from-emerald-600 to-teal-500' :
+                                    template === 'reminder' ? 'bg-gradient-to-r from-amber-600 to-orange-500' :
+                                    template === 'congratulations' ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500' :
+                                    'bg-gradient-to-r from-indigo-600 to-violet-500'
+                                }`}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-85 mb-1">Gemini LMS</div>
+                                    <div className="text-xl mb-1">
+                                        {template === 'announcement' ? '📢' :
+                                         template === 'reminder' ? '⏰' :
+                                         template === 'congratulations' ? '🎉' :
+                                         '📧'}
+                                    </div>
+                                    <h4 className="font-bold text-sm line-clamp-2">
+                                        {subject || 'No Subject'}
+                                    </h4>
+                                </div>
+
+                                {/* Body */}
+                                <div className="p-4 text-slate-700 text-xs space-y-3">
+                                    <div className="whitespace-pre-line leading-relaxed min-h-[60px]">
+                                        {message ? (
+                                            message
+                                                .split('\n')
+                                                .map((line, idx) => {
+                                                    let rendered = line;
+                                                    rendered = rendered.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                                    rendered = rendered.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                                                    return (
+                                                        <p key={idx} dangerouslySetInnerHTML={{ __html: rendered || '&nbsp;' }} className="mb-1.5" />
+                                                    );
+                                                })
+                                        ) : (
+                                            <span className="text-slate-400 italic">No message written yet...</span>
+                                        )}
+                                    </div>
+
+                                    {/* Signature */}
+                                    {signature === 'founder' && (
+                                        <div className="pt-3 border-t border-slate-100 font-sans">
+                                            <p className="text-[10px] text-slate-400 italic mb-1">With warm regards,</p>
+                                            <div className="text-xl text-indigo-600 font-medium mb-1" style={{ fontFamily: "'Dancing Script', cursive", fontWeight: 600 }}>
+                                                M. S. F. Sajeefa
+                                            </div>
+                                            <p className="font-bold text-slate-800 text-[11px] m-0">M.S.F. Sajeefa</p>
+                                            <p className="text-indigo-600 text-[9px] font-semibold uppercase tracking-wider m-0">Founder, Gemini LMS</p>
+                                            <p className="text-[8px] text-slate-400 m-0">Transforming Education through AI Personalization</p>
+                                        </div>
+                                    )}
+
+                                    {signature === 'admin' && (
+                                        <div className="pt-3 border-t border-slate-100">
+                                            <p className="text-[10px] text-slate-400 italic mb-1">Best regards,</p>
+                                            <p className="font-bold text-slate-800 text-[11px] m-0">Gemini LMS Administration</p>
+                                            <p className="text-slate-400 text-[9px] m-0">Academic & Teammate Operations</p>
+                                        </div>
+                                    )}
+
+                                    {/* Button */}
+                                    <div className="text-center pt-3">
+                                        <span className={`inline-block text-white text-[9px] font-bold px-4 py-2 rounded-lg shadow-sm ${
+                                            template === 'announcement' ? 'bg-emerald-600' :
+                                            template === 'reminder' ? 'bg-amber-600' :
+                                            template === 'congratulations' ? 'bg-violet-600' :
+                                            'bg-indigo-600'
+                                        }`}>
+                                            Go to Dashboard
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="bg-slate-50/50 p-3 border-t border-slate-100 text-center text-[9px] text-slate-400 space-y-1">
+                                    <p>© {new Date().getFullYear()} Gemini LMS. All rights reserved.</p>
+                                    <p className="text-indigo-500 font-medium">Visit Website | Support</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
             </div>
+        </div>
         </div>
     )
 }
