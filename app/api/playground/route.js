@@ -7,6 +7,7 @@ import path from "path";
 import os from "os";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
+import { retryWithBackoff, safeJsonParse } from "@/lib/rateLimit";
 
 async function runLocally(language, code) {
     if (process.env.VERCEL === '1') {
@@ -140,19 +141,29 @@ async function runLocally(language, code) {
 }
 
 async function runWithGemini(language, code) {
-    try {
-        const rotationManager = getApiKeyRotationManager();
-        const currentKey = rotationManager.getCurrentKey();
-        const genAI = new GoogleGenerativeAI(currentKey);
-        
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
-            generationConfig: {
-                responseMimeType: "application/json"
-            }
-        });
+    let rotationManager = null;
+    let attemptCount = 0;
 
-        const prompt = `You are a high-fidelity virtual compiler and interpreter for ${language}. Execute the following code. Analyze it step-by-step and determine its exact execution output (stdout and stderr).
+    try {
+        const runData = await retryWithBackoff(async () => {
+            attemptCount++;
+            try {
+                rotationManager = getApiKeyRotationManager();
+            } catch (err) {
+                console.warn('API Key Rotation Manager failed to initialize:', err.message);
+            }
+
+            const currentKey = rotationManager ? rotationManager.getCurrentKey() : process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+            const genAI = new GoogleGenerativeAI(currentKey);
+            
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.5-flash",
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            });
+
+            const prompt = `You are a high-fidelity virtual compiler and interpreter for ${language}. Execute the following code. Analyze it step-by-step and determine its exact execution output (stdout and stderr).
 
 Return a JSON object containing:
 - "stdout": string (everything printed to standard output)
@@ -165,23 +176,44 @@ ${code}
 \`\`\`
 `;
 
-        const response = await model.generateContent(prompt);
-        const resultText = response.response.text();
-        const result = JSON.parse(resultText);
+            const response = await model.generateContent(prompt);
+            const resultText = response.response.text();
+            const { data, error } = safeJsonParse(resultText);
 
-        try { rotationManager.recordSuccess(); } catch (_) {}
-
-        return {
-            run: {
-                stdout: result.stdout || "",
-                stderr: result.stderr || "",
-                code: result.code ?? 0,
-                signal: null,
-                output: result.stdout || result.stderr || ""
+            if (error) {
+                console.error("Failed to parse virtual compiler JSON:", error.message);
+                throw new Error("Invalid JSON response from AI");
             }
-        };
+
+            try { if (rotationManager) rotationManager.recordSuccess(); } catch (_) {}
+
+            return {
+                run: {
+                    stdout: data.stdout || "",
+                    stderr: data.stderr || "",
+                    code: data.code ?? 0,
+                    signal: null,
+                    output: data.stdout || data.stderr || ""
+                }
+            };
+        }, {
+            maxRetries: 3,
+            baseDelayMs: 1500, // Short delay for quick compilation fallback feedback
+            onRetry: (attempt, max, delay, err) => {
+                console.warn(`Gemini runner retry ${attempt}/${max} in ${delay}ms: ${err.message}`);
+                if (rotationManager) {
+                    if (rotationManager.constructor.isQuotaError(err) || rotationManager.constructor.isAuthError(err)) {
+                        rotationManager.handleQuotaExhausted();
+                    } else if (rotationManager.constructor.isRateLimitError(err)) {
+                        rotationManager.handleRateLimit();
+                    }
+                }
+            }
+        });
+
+        return runData;
     } catch (geminiError) {
-        console.error("Gemini fallback runner failed:", geminiError);
+        console.error("Gemini fallback runner failed after retries:", geminiError);
         throw geminiError;
     }
 }
