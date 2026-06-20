@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
 import { db } from '@/configs/db'
 import { ADAPTIVE_PERFORMANCE_TABLE } from '@/configs/schema'
 import { and, eq } from 'drizzle-orm'
 import { getMasterySummary } from '@/lib/adaptiveDifficulty'
 import { buildReminderEmailHTML } from '@/lib/reminderEmail'
-
-// Initialize Resend with API key (will be undefined if not set in env)
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+import { emailService } from '@/lib/emailService'
 
 export async function POST(req) {
     try {
-        if (!resend || !process.env.RESEND_API_KEY) {
+        if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
             return NextResponse.json(
-                { error: 'Email service not configured. Set RESEND_API_KEY in environment variables.' },
+                { error: 'Email service not configured. Set SMTP_USER and SMTP_PASSWORD in environment variables.' },
                 { status: 500 }
             )
         }
@@ -81,21 +78,12 @@ export async function POST(req) {
             weakTopics
         })
 
-        // Send email via Resend
-        const result = await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        // Send email via emailService
+        const result = await emailService.sendHtmlEmail({
             to: studentEmail,
             subject: `Your Weekly Progress Summary - ${courseName}`,
             html
         })
-
-        if (result.error) {
-            console.error('Resend error:', result.error)
-            return NextResponse.json(
-                { error: `Email service error: ${result.error.message || 'Unknown error'}` },
-                { status: 500 }
-            )
-        }
 
         return NextResponse.json({
             result: {

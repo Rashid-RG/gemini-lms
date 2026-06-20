@@ -3,6 +3,7 @@ import { ADMIN_TABLE, PASSWORD_RESET_TABLE } from "@/configs/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { emailService } from "@/lib/emailService";
 
 /**
  * POST /api/admin/auth/forgot-password
@@ -65,12 +66,8 @@ export async function POST(req) {
 
         // Try to send email
         try {
-            const { Resend } = await import("resend");
-            const resend = new Resend(process.env.RESEND_API_KEY);
-
-            if (process.env.RESEND_API_KEY) {
-                await resend.emails.send({
-                    from: process.env.RESEND_FROM_EMAIL || "noreply@geminilms.com",
+            if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+                await emailService.sendHtmlEmail({
                     to: email.toLowerCase(),
                     subject: "Password Reset - Gemini LMS Admin",
                     html: `
@@ -98,7 +95,7 @@ export async function POST(req) {
                 });
                 console.log(`Password reset email sent to ${email}`);
             } else {
-                console.log(`⚠️ RESEND_API_KEY not set. Reset URL: ${resetUrl}`);
+                console.log(`⚠️ SMTP credentials not set. Reset URL: ${resetUrl}`);
             }
         } catch (emailErr) {
             // Email failed, but token is created — log the URL for manual use

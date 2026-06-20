@@ -3,11 +3,8 @@ import { db } from '@/configs/db'
 import { ADMIN_TABLE } from '@/configs/schema'
 import { eq } from 'drizzle-orm'
 import { hashPassword } from '@/lib/adminAuth'
-import { Resend } from 'resend'
 import { requireAdminOrAbove } from '@/lib/adminApiAuth'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@geminilms.com'
+import { emailService } from '@/lib/emailService'
 
 export async function POST(req) {
   const authResult = await requireAdminOrAbove();
@@ -104,8 +101,7 @@ export async function POST(req) {
       `
 
       try {
-        await resend.emails.send({
-          from: fromEmail,
+        await emailService.sendHtmlEmail({
           to: email,
           subject: '🔐 Your Password Has Been Reset',
           html: emailHtml

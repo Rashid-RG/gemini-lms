@@ -2,12 +2,9 @@ import { NextResponse } from 'next/server'
 import { db } from '@/configs/db'
 import { TUTOR_REQUESTS_TABLE, ADMIN_TABLE } from '@/configs/schema'
 import { eq } from 'drizzle-orm'
-import { Resend } from 'resend'
 import { hashPassword } from '@/lib/adminAuth'
 import { requireAdminOrAbove } from '@/lib/adminApiAuth'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@geminilms.com'
+import { emailService } from '@/lib/emailService'
 
 // Email templates
 const TutorApprovedEmail = ({ userName, tutorEmail, password, loginUrl }) => `
@@ -214,8 +211,7 @@ export async function PATCH(req, { params }) {
     if (status === 'rejected') {
       try {
         // Send rejection email
-        await resend.emails.send({
-          from: fromEmail,
+        await emailService.sendHtmlEmail({
           to: tutorEmail,
           subject: 'Your Tutor Application Status',
           html: TutorRejectedEmail({ userName, rejectionReason })

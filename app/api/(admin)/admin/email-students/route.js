@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { Resend } from 'resend';
 import { db } from "@/configs/db";
 import { USER_TABLE, STUDY_MATERIAL_TABLE, STUDENT_PROGRESS_TABLE, ADMIN_ACTIVITY_LOG_TABLE } from "@/configs/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 import { requireAdminOrAbove } from "@/lib/adminApiAuth";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { emailService } from "@/lib/emailService";
 
 /**
  * GET /api/admin/email-students
@@ -117,21 +115,15 @@ export async function POST(req) {
             failed: []
         };
 
-        // Resend supports batch sending
         for (const email of recipients) {
             try {
-                const { data, error } = await resend.emails.send({
-                    from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-                    to: [email],
+                const result = await emailService.sendHtmlEmail({
+                    to: email,
                     subject: subject,
                     html: htmlContent
                 });
 
-                if (error) {
-                    results.failed.push({ email, error: error.message });
-                } else {
-                    results.successful.push({ email, id: data?.id });
-                }
+                results.successful.push({ email, id: result.data?.id });
             } catch (err) {
                 results.failed.push({ email, error: err.message });
             }

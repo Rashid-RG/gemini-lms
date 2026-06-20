@@ -23,7 +23,7 @@ import {
 import zlib from "zlib";
 import crypto from "crypto";
 import { eq, and, lt, sql } from "drizzle-orm";
-import { Resend } from "resend";
+import { emailService } from "@/lib/emailService";
 import { getMasterySummary } from "@/lib/adaptiveDifficulty";
 import { buildReminderEmailHTML } from "@/lib/reminderEmail";
 import { refundCourseCredits } from "@/lib/credits";
@@ -33,12 +33,10 @@ export const SendWeeklyProgressReminders = inngest.createFunction(
     { id: 'weekly-progress-reminders' },
     { cron: '0 9 * * 1' },
     async ({ step }) => {
-        if (!process.env.RESEND_API_KEY) {
-            console.error('SendWeeklyProgressReminders: RESEND_API_KEY missing; skipping run');
-            throw new Error('RESEND_API_KEY not configured');
+        if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+            console.error('SendWeeklyProgressReminders: SMTP credentials missing; skipping run');
+            throw new Error('SMTP credentials not configured');
         }
-
-        const resend = new Resend(process.env.RESEND_API_KEY);
 
         const performance = await step.run('Load performance records', async () => {
             return await db.select().from(ADAPTIVE_PERFORMANCE_TABLE);
@@ -128,16 +126,11 @@ export const SendWeeklyProgressReminders = inngest.createFunction(
 
             try {
                 await step.run(`send-${sent + 1}`, async () => {
-                    const res = await resend.emails.send({
-                        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+                    const res = await emailService.sendHtmlEmail({
                         to: studentEmail,
                         subject: `Your Weekly Progress Summary - ${courseName}`,
                         html,
                     });
-
-                    if (res.error) {
-                        throw new Error(res.error.message || 'Resend send failed');
-                    }
 
                     return res.data?.id || null;
                 });

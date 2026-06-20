@@ -1,7 +1,7 @@
 import { db } from "../configs/db";
 import { COURSE_ASSIGNMENTS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, USER_TABLE } from "../configs/schema";
 import { inngest } from "./client";
-import { Resend } from "resend";
+import { emailService } from "../lib/emailService";
 
 // This function runs daily to check for assignments due in 3 days and sends reminders
 export const AssignmentReminder = inngest.createFunction(
@@ -27,7 +27,7 @@ export const AssignmentReminder = inngest.createFunction(
         for (const user of users) {
           if (!submittedEmails.includes(user.email)) {
             // Send email reminder
-            await Resend.emails.send({
+            await emailService.sendHtmlEmail({
               to: user.email,
               subject: `Assignment Due Soon: ${assignment.title}`,
               html: `<p>Your assignment <b>${assignment.title}</b> is due on ${dueDate.toLocaleDateString()}. Please submit before the deadline.</p>`

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { emailService } from "@/lib/emailService";
 
 /**
  * POST /api/send-certificate-email
@@ -20,10 +18,9 @@ export async function POST(req) {
 
     const certificateUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/course/${courseId}/certificate`;
 
-    // Send email using Resend
-    const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-      to: [studentEmail],
+    // Send email using SMTP
+    const result = await emailService.sendHtmlEmail({
+      to: studentEmail,
       subject: `🎉 Congratulations! Your ${courseName} Certificate is Ready`,
       html: `
         <!DOCTYPE html>
@@ -79,34 +76,15 @@ export async function POST(req) {
           </div>
         </body>
         </html>
-      `,
-      text: `
-        Congratulations ${studentName}!
-        
-        You've successfully completed: ${courseName}
-        Certificate ID: ${certificateId}
-        Final Score: ${finalScore}%
-        
-        View your certificate at: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/course/certificate
-        
-        Keep up the great work!
       `
     });
 
-    if (error) {
-      console.error("Resend API Error:", error);
-      return NextResponse.json(
-        { error: "Failed to send email", details: error },
-        { status: 500 }
-      );
-    }
-
-    console.log('Certificate email sent successfully via Resend:', data);
+    console.log('Certificate email sent successfully via SMTP:', result.data?.id);
 
     return NextResponse.json({ 
       success: true,
       message: "Certificate email sent successfully",
-      emailId: data?.id
+      emailId: result.data?.id
     });
   } catch (err) {
     console.error("Email Send Error:", err);
