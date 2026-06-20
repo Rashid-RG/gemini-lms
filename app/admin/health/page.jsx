@@ -30,7 +30,7 @@ function AdminPortalHealthPage() {
     const [showRawJson, setShowRawJson] = useState(false)
     const timerRef = useRef(null)
 
-    const isAdmin = admin && (admin.role === 'admin' || admin.role === 'super_admin')
+    const isAdmin = admin && (admin.role === 'admin' || admin.role === 'super_admin' || admin.role === 'tutor')
 
     const fetchHealthData = async (silent = false) => {
         try {
