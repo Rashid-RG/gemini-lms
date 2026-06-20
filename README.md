@@ -106,7 +106,7 @@ SMTP_USER="geminilmsadmin@gmail.com"
 SMTP_PASSWORD="YOUR_GMAIL_APP_PASSWORD"
 
 # APPLICATION CONFIGURATION
-NEXT_PUBLIC_ADMIN_EMAILS="e2240212@bit.uom.lk,otheradmin@gmail.com"
+NEXT_PUBLIC_ADMIN_EMAILS="admin@yourdomain.com,superadmin@yourdomain.com"
 NEXT_PUBLIC_APP_URL="https://gemini-lms.vercel.app"
 NEXT_PUBLIC_BASE_URL="http://localhost:3000"
 ```
