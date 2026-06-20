@@ -3,6 +3,7 @@
  * Run with: npx tsx scripts/updateAdminEmail.js
  */
 
+require('dotenv').config({ path: '.env.local' });
 const { neon } = require("@neondatabase/serverless");
 const { drizzle } = require("drizzle-orm/neon-http");
 const { eq } = require("drizzle-orm");
@@ -26,9 +27,12 @@ const NEW_EMAIL = "e2240212@bit.uom.lk";
 
 async function updateAdminEmail() {
     try {
-        // Get connection string from env or hardcode for this one-time script
-        const connectionString = process.env.NEXT_PUBLIC_DB_CONNECTION_STRING ||
-            "postgresql://neondb_owner:npg_d8Fgih1lWUqH@ep-cool-tree-a4ll1itd-pooler.us-east-1.aws.neon.tech/AI-Study-Material-Gen?sslmode=require";
+        const connectionString = process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DB_CONNECTION_STRING;
+        
+        if (!connectionString) {
+            console.error("❌ Error: DATABASE_URL or NEXT_PUBLIC_DB_CONNECTION_STRING is not defined in .env.local");
+            return;
+        }
 
         const sql = neon(connectionString);
         const db = drizzle(sql);
