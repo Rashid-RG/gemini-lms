@@ -3,6 +3,7 @@
 import React from 'react'
 import WelcomeBanner from './_components/WelcomeBanner'
 import CourseList from './_components/CourseList'
+import AnnouncementFeed from './_components/AnnouncementFeed'
 import AdaptiveInsights from '@/components/AdaptiveInsights'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertCircle } from 'lucide-react'
@@ -56,6 +57,8 @@ function Dashboard() {
             </Link>
           </div>
         )}
+
+        <AnnouncementFeed />
 
         <WelcomeBanner studentIdentifier={studentProfile?.studentIdentifier} />
 
