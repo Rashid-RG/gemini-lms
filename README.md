@@ -37,12 +37,12 @@
 
 ```mermaid
 graph TD
-    Client[Browser UI / Monaco Editor] -->|Clerk JWT Auth| NextApp[Next.js App Router]
+    Client["Browser UI / Monaco Editor"] -->|Clerk JWT Auth| NextApp["Next.js App Router"]
     NextApp -->|Drizzle ORM| NeonDB[(Neon Postgres Database)]
-    NextApp -->|Event Push| Inngest[Inngest Background Orchestration]
+    NextApp -->|Event Push| Inngest["Inngest Background Orchestration"]
     Inngest -->|Job Queue| NextApp
-    Inngest -->|Generative Queries| Gemini[Google Gemini AI Core]
-    Inngest -->|Nodemailer SMTP| Gmail[geminilmsadmin@gmail.com Gateway]
+    Inngest -->|Generative Queries| Gemini["Google Gemini AI Core"]
+    Inngest -->|Nodemailer SMTP| Gmail["geminilmsadmin@gmail.com Gateway"]
 ```
 
 ### Technical Highlights
