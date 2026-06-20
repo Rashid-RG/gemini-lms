@@ -39,6 +39,14 @@ const PRIORITY_CONFIG = {
     urgent: { color: 'text-red-500 font-bold', label: 'Urgent' }
 }
 
+const SIGNATURE_PRESETS = {
+    my_profile: { name: '', role: '', label: 'Logged-in Admin (Default)' },
+    help_desk: { name: 'Help Desk Team', role: 'help_desk', label: 'Help Desk Team' },
+    academic_support: { name: 'Academic Support Team', role: 'academic_support', label: 'Academic Support Team' },
+    system_admin: { name: 'System Admin Team', role: 'system_admin', label: 'System Admin Team' },
+    custom: { name: '', role: '', label: 'Custom Signature...' }
+}
+
 function AnnouncementsPage() {
     const { admin, loading: authLoading } = useAdminAuth()
     const [announcements, setAnnouncements] = useState([])
@@ -57,7 +65,10 @@ function AnnouncementsPage() {
         priority: 'normal',
         targetAudience: 'all',
         isPinned: false,
-        expiresAt: ''
+        expiresAt: '',
+        signaturePreset: 'my_profile',
+        creatorName: '',
+        creatorRole: ''
     })
 
     useEffect(() => {
@@ -82,6 +93,20 @@ function AnnouncementsPage() {
     const handleOpenModal = (announcement = null) => {
         if (announcement) {
             setEditingAnnouncement(announcement)
+            
+            // Determine preset
+            let presetKey = 'my_profile'
+            if (announcement.creatorName || announcement.creatorRole) {
+                const match = Object.entries(SIGNATURE_PRESETS).find(([key, preset]) => 
+                    preset.name === announcement.creatorName && preset.role === announcement.creatorRole
+                )
+                if (match) {
+                    presetKey = match[0]
+                } else {
+                    presetKey = 'custom'
+                }
+            }
+
             setFormData({
                 title: announcement.title,
                 content: announcement.content,
@@ -91,7 +116,10 @@ function AnnouncementsPage() {
                 isPinned: announcement.isPinned,
                 expiresAt: announcement.expiresAt 
                     ? new Date(announcement.expiresAt).toISOString().slice(0, 16)
-                    : ''
+                    : '',
+                signaturePreset: presetKey,
+                creatorName: announcement.creatorName || '',
+                creatorRole: announcement.creatorRole || ''
             })
         } else {
             setEditingAnnouncement(null)
@@ -102,7 +130,10 @@ function AnnouncementsPage() {
                 priority: 'normal',
                 targetAudience: 'all',
                 isPinned: false,
-                expiresAt: ''
+                expiresAt: '',
+                signaturePreset: 'my_profile',
+                creatorName: '',
+                creatorRole: ''
             })
         }
         setShowModal(true)
@@ -116,6 +147,31 @@ function AnnouncementsPage() {
             return
         }
 
+        let finalName = null
+        let finalRole = null
+        if (formData.signaturePreset === 'custom') {
+            finalName = formData.creatorName.trim()
+            finalRole = formData.creatorRole.trim()
+        } else if (formData.signaturePreset !== 'my_profile') {
+            const preset = SIGNATURE_PRESETS[formData.signaturePreset]
+            if (preset) {
+                finalName = preset.name
+                finalRole = preset.role
+            }
+        }
+
+        const payload = {
+            title: formData.title,
+            content: formData.content,
+            type: formData.type,
+            priority: formData.priority,
+            targetAudience: formData.targetAudience,
+            isPinned: formData.isPinned,
+            expiresAt: formData.expiresAt || null,
+            creatorName: finalName,
+            creatorRole: finalRole
+        }
+
         try {
             setActionLoading(prev => ({ ...prev, submit: true }))
             
@@ -123,14 +179,14 @@ function AnnouncementsPage() {
                 // Update existing
                 await axios.put('/api/admin/announcements', {
                     id: editingAnnouncement.id,
-                    updates: formData,
+                    updates: payload,
                     adminEmail: userEmail
                 })
                 toast.success('Announcement updated')
             } else {
                 // Create new
                 await axios.post('/api/admin/announcements', {
-                    ...formData,
+                    ...payload,
                     adminEmail: userEmail
                 })
                 toast.success('Announcement created')
@@ -458,6 +514,59 @@ function AnnouncementsPage() {
                                 <label htmlFor="isPinned" className="text-sm font-medium">
                                     Pin this announcement (shows at top)
                                 </label>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Announcement Signature</h4>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Preset Signature</label>
+                                        <select
+                                            value={formData.signaturePreset}
+                                            onChange={(e) => {
+                                                const presetVal = e.target.value
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    signaturePreset: presetVal,
+                                                    creatorName: SIGNATURE_PRESETS[presetVal]?.name || '',
+                                                    creatorRole: SIGNATURE_PRESETS[presetVal]?.role || ''
+                                                }))
+                                            }}
+                                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                        >
+                                            {Object.entries(SIGNATURE_PRESETS).map(([key, val]) => (
+                                                <option key={key} value={key}>{val.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    {formData.signaturePreset === 'custom' && (
+                                        <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-200">
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Custom Sender Name *</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.creatorName}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, creatorName: e.target.value }))}
+                                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                                    placeholder="e.g. Help Desk Team"
+                                                    required={formData.signaturePreset === 'custom'}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Custom Role/Title *</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.creatorRole}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, creatorRole: e.target.value }))}
+                                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                                                    placeholder="e.g. Help Desk"
+                                                    required={formData.signaturePreset === 'custom'}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="flex justify-end gap-2 pt-4 border-t">
                                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>

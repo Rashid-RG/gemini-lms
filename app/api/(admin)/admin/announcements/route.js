@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
-import { ANNOUNCEMENTS_TABLE, ADMIN_ACTIVITY_LOG_TABLE } from "@/configs/schema";
+import { ANNOUNCEMENTS_TABLE, ADMIN_ACTIVITY_LOG_TABLE, ADMIN_TABLE } from "@/configs/schema";
 import { eq, desc } from "drizzle-orm";
 import { requireAdminOrAbove } from "@/lib/adminApiAuth";
 import { auth } from "@clerk/nextjs/server";
@@ -36,19 +36,79 @@ export async function GET(req) {
 
         if (isAdmin) {
             // Admin view - get all announcements
-            announcements = await db.select()
-                .from(ANNOUNCEMENTS_TABLE)
-                .orderBy(desc(ANNOUNCEMENTS_TABLE.isPinned), desc(ANNOUNCEMENTS_TABLE.createdAt));
+            const rawAnnouncements = await db.select({
+                id: ANNOUNCEMENTS_TABLE.id,
+                title: ANNOUNCEMENTS_TABLE.title,
+                content: ANNOUNCEMENTS_TABLE.content,
+                type: ANNOUNCEMENTS_TABLE.type,
+                priority: ANNOUNCEMENTS_TABLE.priority,
+                targetAudience: ANNOUNCEMENTS_TABLE.targetAudience,
+                isActive: ANNOUNCEMENTS_TABLE.isActive,
+                isPinned: ANNOUNCEMENTS_TABLE.isPinned,
+                expiresAt: ANNOUNCEMENTS_TABLE.expiresAt,
+                viewCount: ANNOUNCEMENTS_TABLE.viewCount,
+                dismissedBy: ANNOUNCEMENTS_TABLE.dismissedBy,
+                createdBy: ANNOUNCEMENTS_TABLE.createdBy,
+                colCreatorName: ANNOUNCEMENTS_TABLE.creatorName,
+                colCreatorRole: ANNOUNCEMENTS_TABLE.creatorRole,
+                createdAt: ANNOUNCEMENTS_TABLE.createdAt,
+                updatedAt: ANNOUNCEMENTS_TABLE.updatedAt,
+                joinedName: ADMIN_TABLE.name,
+                joinedRole: ADMIN_TABLE.role
+            })
+            .from(ANNOUNCEMENTS_TABLE)
+            .leftJoin(ADMIN_TABLE, eq(ANNOUNCEMENTS_TABLE.createdBy, ADMIN_TABLE.email))
+            .orderBy(desc(ANNOUNCEMENTS_TABLE.isPinned), desc(ANNOUNCEMENTS_TABLE.createdAt));
+
+            announcements = rawAnnouncements.map(a => ({
+                ...a,
+                creatorName: a.colCreatorName || a.joinedName || null,
+                creatorRole: a.colCreatorRole || a.joinedRole || null,
+                colCreatorName: undefined,
+                colCreatorRole: undefined,
+                joinedName: undefined,
+                joinedRole: undefined
+            }));
         } else {
             // User view - get only active, non-expired announcements
             const now = new Date();
             
             // First get all announcements then filter in JS for compatibility
-            const allAnnouncements = await db.select()
-                .from(ANNOUNCEMENTS_TABLE)
-                .orderBy(desc(ANNOUNCEMENTS_TABLE.isPinned), desc(ANNOUNCEMENTS_TABLE.priority), desc(ANNOUNCEMENTS_TABLE.createdAt));
+            const allAnnouncements = await db.select({
+                id: ANNOUNCEMENTS_TABLE.id,
+                title: ANNOUNCEMENTS_TABLE.title,
+                content: ANNOUNCEMENTS_TABLE.content,
+                type: ANNOUNCEMENTS_TABLE.type,
+                priority: ANNOUNCEMENTS_TABLE.priority,
+                targetAudience: ANNOUNCEMENTS_TABLE.targetAudience,
+                isActive: ANNOUNCEMENTS_TABLE.isActive,
+                isPinned: ANNOUNCEMENTS_TABLE.isPinned,
+                expiresAt: ANNOUNCEMENTS_TABLE.expiresAt,
+                viewCount: ANNOUNCEMENTS_TABLE.viewCount,
+                dismissedBy: ANNOUNCEMENTS_TABLE.dismissedBy,
+                createdBy: ANNOUNCEMENTS_TABLE.createdBy,
+                colCreatorName: ANNOUNCEMENTS_TABLE.creatorName,
+                colCreatorRole: ANNOUNCEMENTS_TABLE.creatorRole,
+                createdAt: ANNOUNCEMENTS_TABLE.createdAt,
+                updatedAt: ANNOUNCEMENTS_TABLE.updatedAt,
+                joinedName: ADMIN_TABLE.name,
+                joinedRole: ADMIN_TABLE.role
+            })
+            .from(ANNOUNCEMENTS_TABLE)
+            .leftJoin(ADMIN_TABLE, eq(ANNOUNCEMENTS_TABLE.createdBy, ADMIN_TABLE.email))
+            .orderBy(desc(ANNOUNCEMENTS_TABLE.isPinned), desc(ANNOUNCEMENTS_TABLE.priority), desc(ANNOUNCEMENTS_TABLE.createdAt));
             
-            announcements = allAnnouncements.filter(a => {
+            const resolvedAnnouncements = allAnnouncements.map(a => ({
+                ...a,
+                creatorName: a.colCreatorName || a.joinedName || null,
+                creatorRole: a.colCreatorRole || a.joinedRole || null,
+                colCreatorName: undefined,
+                colCreatorRole: undefined,
+                joinedName: undefined,
+                joinedRole: undefined
+            }));
+
+            announcements = resolvedAnnouncements.filter(a => {
                 // Check if active (handle both boolean and string)
                 const isActive = a.isActive === true || a.isActive === 'true';
                 if (!isActive) return false;
@@ -107,7 +167,9 @@ export async function POST(req) {
             targetAudience = 'all',
             isPinned = false,
             expiresAt,
-            adminEmail 
+            adminEmail,
+            creatorName,
+            creatorRole
         } = await req.json();
 
         if (!title || !content) {
@@ -134,7 +196,9 @@ export async function POST(req) {
             targetAudience,
             isPinned,
             expiresAt: expiresAt ? new Date(expiresAt) : null,
-            createdBy: adminEmail
+            createdBy: adminEmail,
+            creatorName: creatorName || null,
+            creatorRole: creatorRole || null
         }).returning();
 
         // Log activity
@@ -218,7 +282,7 @@ export async function PUT(req) {
             return NextResponse.json({ error: 'Admin email is required' }, { status: 400 });
         }
 
-        const allowedFields = ['title', 'content', 'type', 'priority', 'targetAudience', 'isActive', 'isPinned', 'expiresAt'];
+        const allowedFields = ['title', 'content', 'type', 'priority', 'targetAudience', 'isActive', 'isPinned', 'expiresAt', 'creatorName', 'creatorRole'];
         const sanitizedUpdates = { updatedAt: new Date() };
         
         for (const [key, value] of Object.entries(updates || {})) {

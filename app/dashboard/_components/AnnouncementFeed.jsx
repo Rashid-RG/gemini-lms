@@ -53,6 +53,52 @@ const PRIORITY_CONFIG = {
     }
 };
 
+const formatRole = (role) => {
+    if (!role) return 'Help Desk / Admin';
+    if (role === 'super_admin') return 'Super Admin';
+    if (role === 'tutor') return 'Academic Tutor';
+    if (role === 'admin') return 'Administrator';
+    if (role === 'help_desk') return 'Help Desk Team';
+    if (role === 'academic_support') return 'Academic Support';
+    if (role === 'system_admin') return 'System Admin';
+    return role.split(/[_-]/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
+const getRoleTheme = (role) => {
+    const r = (role || '').toLowerCase();
+    if (r.includes('help') || r.includes('support') || r.includes('desk')) {
+        return {
+            avatar: 'bg-teal-50 dark:bg-teal-950/40 text-teal-650 dark:text-teal-400 border-teal-100/30 dark:border-teal-900/20',
+            badge: 'text-teal-650 dark:text-teal-400 bg-teal-50/80 dark:bg-teal-950/20 border-teal-100/30 dark:border-teal-900/20'
+        };
+    }
+    if (r.includes('super') || r.includes('system') || r.includes('director')) {
+        return {
+            avatar: 'bg-violet-50 dark:bg-violet-950/40 text-violet-650 dark:text-violet-400 border-violet-100/30 dark:border-violet-900/20',
+            badge: 'text-violet-650 dark:text-violet-400 bg-violet-50/80 dark:bg-violet-950/20 border-violet-100/30 dark:border-violet-900/20'
+        };
+    }
+    if (r.includes('tutor') || r.includes('academic') || r.includes('teacher') || r.includes('instructor')) {
+        return {
+            avatar: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400 border-emerald-100/30 dark:border-emerald-900/20',
+            badge: 'text-emerald-650 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-100/30 dark:border-emerald-900/20'
+        };
+    }
+    return {
+        avatar: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-100/30 dark:border-indigo-900/20',
+        badge: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/20 border-indigo-100/30 dark:border-indigo-900/20'
+    };
+};
+
+const getInitials = (name) => {
+    if (!name) return 'AD';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+};
+
 function AnnouncementFeed() {
     const { user, isLoaded } = useUser();
     const [announcements, setAnnouncements] = useState([]);
@@ -173,6 +219,27 @@ function AnnouncementFeed() {
                                     <p className="text-[10px] text-slate-400 font-bold tracking-wide">
                                         Posted on {new Date(a.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </p>
+
+                                    {/* Creator Signature Block */}
+                                    {(a.creatorName || a.createdBy) && (() => {
+                                        const theme = getRoleTheme(a.creatorRole);
+                                        return (
+                                            <div className="pt-2.5 mt-2 border-t border-slate-100 dark:border-slate-800/40 flex items-center gap-2.5 w-full">
+                                                <div className={`h-6 w-6 rounded-lg flex items-center justify-center text-[10px] font-black tracking-tighter uppercase shadow-sm border ${theme.avatar}`}>
+                                                    {getInitials(a.creatorName)}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350">
+                                                        {a.creatorName || 'Administrator'}
+                                                    </span>
+                                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold">•</span>
+                                                    <span className={`inline-flex items-center text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${theme.badge}`}>
+                                                        {formatRole(a.creatorRole)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
 

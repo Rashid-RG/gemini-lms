@@ -527,6 +527,8 @@ export const ANNOUNCEMENTS_TABLE = pgTable('announcements', {
     viewCount: integer().default(0),
     dismissedBy: json().default(JSON.stringify([])), // array of user emails who dismissed
     createdBy: varchar().notNull(),
+    creatorName: varchar('creator_name'),
+    creatorRole: varchar('creator_role'),
     createdAt: timestamp().defaultNow(),
     updatedAt: timestamp().defaultNow()
 }, (table) => ({
