@@ -1,6 +1,7 @@
 import { db } from "@/configs/db";
 import { SUPPORT_TICKETS_TABLE } from "@/configs/schema";
 import { eq, desc } from "drizzle-orm";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 // Global map to track active SSE connections per user
 const connections = new Map();
@@ -8,16 +9,14 @@ const connections = new Map();
 export const dynamic = 'force-dynamic';
 
 export async function GET(req) {
-    const { searchParams } = new URL(req.url);
-    const userEmail = searchParams.get('userEmail')?.toLowerCase();
-
-    // EventSource can't send custom headers, so we rely on query param + Clerk middleware protection
-    if (!userEmail) {
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-            status: 403,
+            status: 401,
             headers: { 'Content-Type': 'application/json' }
         });
     }
+    const userEmail = authResult.email;
 
     const encoder = new TextEncoder();
     

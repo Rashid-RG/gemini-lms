@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/configs/db'
 import { STUDY_TYPE_CONTENT_TABLE } from '@/configs/schema'
 import axios from 'axios'
+import { requireUserAuth } from "@/lib/userApiAuth"
 
 /**
  * POST /api/submit-quiz
@@ -10,9 +11,13 @@ import axios from 'axios'
  */
 export async function POST(req) {
     try {
-        const { courseId, studentEmail, chapterId, topicName, answers, quizData } = await req.json()
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated) return authResult.error;
+        const studentEmail = authResult.email;
 
-        if (!courseId || !studentEmail || !chapterId || !answers || !quizData) {
+        const { courseId, chapterId, topicName, answers, quizData } = await req.json()
+
+        if (!courseId || !chapterId || !answers || !quizData) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
@@ -50,6 +55,10 @@ export async function POST(req) {
                 topicName,
                 score,
                 assessmentType: 'quiz'
+            }, {
+                headers: {
+                    'x-internal-key': process.env.CLERK_SECRET_KEY
+                }
             })
         } catch (perfError) {
             console.error('Warning: Could not track adaptive performance:', perfError.message)

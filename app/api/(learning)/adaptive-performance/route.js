@@ -3,6 +3,7 @@ import { db } from '@/configs/db'
 import { ADAPTIVE_PERFORMANCE_TABLE } from '@/configs/schema'
 import { eq, and } from 'drizzle-orm'
 import { calculatePerformanceMetrics } from '@/lib/adaptiveDifficulty'
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 /**
  * POST /api/adaptive-performance
@@ -11,7 +12,12 @@ import { calculatePerformanceMetrics } from '@/lib/adaptiveDifficulty'
  */
 export async function POST(req) {
     try {
-        const { courseId, studentEmail, topicId, topicName, score, assessmentType } = await req.json()
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated) return authResult.error;
+
+        const body = await req.json();
+        const studentEmail = authResult.isInternal ? body.studentEmail : authResult.email;
+        const { courseId, topicId, topicName, score, assessmentType } = body;
 
         if (!courseId || !studentEmail || !topicId || !topicName || score === undefined) {
             return NextResponse.json(
@@ -113,13 +119,16 @@ export async function POST(req) {
  */
 export async function GET(req) {
     try {
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated) return authResult.error;
+        const studentEmail = authResult.email;
+
         const { searchParams } = new URL(req.url)
         const courseId = searchParams.get('courseId')
-        const studentEmail = searchParams.get('studentEmail')
 
-        if (!courseId || !studentEmail) {
+        if (!courseId) {
             return NextResponse.json(
-                { error: 'Missing courseId or studentEmail' },
+                { error: 'Missing courseId' },
                 { status: 400 }
             )
         }

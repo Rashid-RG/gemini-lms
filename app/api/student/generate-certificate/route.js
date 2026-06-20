@@ -7,7 +7,7 @@ import {
   STUDY_MATERIAL_TABLE
 } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { v4 as uuidv4 } from 'uuid';
 import { shouldIssueCertificate } from "@/lib/gradingEngine";
 
@@ -17,14 +17,13 @@ import { shouldIssueCertificate } from "@/lib/gradingEngine";
  */
 export async function POST(req) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await currentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const clerkUser = await auth();
-    const studentEmail = clerkUser?.user?.emailAddresses?.[0]?.emailAddress;
-    const studentName = clerkUser?.user?.firstName + ' ' + clerkUser?.user?.lastName;
+    const studentEmail = (user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress)?.toLowerCase();
+    const studentName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Student';
 
     if (!studentEmail) {
       return NextResponse.json({ error: "Student email not found" }, { status: 400 });

@@ -2,27 +2,32 @@ import { db } from "@/configs/db";
 import { SUPPORT_TICKETS_TABLE } from "@/configs/schema";
 import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { verifyAdminSession } from "@/lib/adminAuth";
+import { cookies } from "next/headers";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
-const isAdminRequest = (req) => {
-    const adminEmail = req.headers.get('x-admin-email')?.toLowerCase();
-    const adminList = (process.env.ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-        .split(',')
-        .map(e => e.trim().toLowerCase())
-        .filter(Boolean);
-    return adminEmail && adminList.includes(adminEmail);
-}
-
-const isUserRequest = (req, userEmail) => {
-    const headerEmail = req.headers.get('x-user-email')?.toLowerCase();
-    return headerEmail && userEmail && headerEmail === userEmail.toLowerCase();
+const isAdminRequest = async () => {
+    try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('admin_session')?.value;
+        if (!token) return false;
+        const session = await verifyAdminSession(token);
+        return session.valid;
+    } catch {
+        return false;
+    }
 }
 
 export async function POST(req) {
     try {
-        const { userEmail, subject, message, category, aiIssue, metadata } = await req.json();
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated) return authResult.error;
+        const userEmail = authResult.email;
 
-        if (!userEmail || !subject || !message) {
-            return NextResponse.json({ error: 'userEmail, subject, and message are required' }, { status: 400 });
+        const { subject, message, category, aiIssue, metadata } = await req.json();
+
+        if (!subject || !message) {
+            return NextResponse.json({ error: 'Subject and message are required' }, { status: 400 });
         }
 
         // Input validation: length limits
@@ -53,10 +58,9 @@ export async function GET(req) {
     try {
         const { searchParams } = new URL(req.url);
         const status = searchParams.get('status');
-        const userEmail = searchParams.get('userEmail');
 
         // Admin path
-        if (isAdminRequest(req)) {
+        if (await isAdminRequest()) {
             let query = db.select().from(SUPPORT_TICKETS_TABLE)
                 .orderBy(desc(SUPPORT_TICKETS_TABLE.createdAt))
                 .limit(200);
@@ -70,7 +74,9 @@ export async function GET(req) {
         }
 
         // User path
-        if (userEmail && isUserRequest(req, userEmail)) {
+        const authResult = await requireUserAuth(req);
+        if (authResult.authenticated) {
+            const userEmail = authResult.email;
             const tickets = await db.select().from(SUPPORT_TICKETS_TABLE)
                 .where(eq(SUPPORT_TICKETS_TABLE.userEmail, userEmail))
                 .orderBy(desc(SUPPORT_TICKETS_TABLE.updatedAt))
@@ -90,8 +96,14 @@ export async function PATCH(req) {
         const { id, status, adminMessage, userReply } = await req.json();
 
         // Check if admin or user request
-        const isAdmin = isAdminRequest(req);
-        const userEmail = req.headers.get('x-user-email')?.toLowerCase();
+        const isAdmin = await isAdminRequest();
+        let userEmail = null;
+
+        if (!isAdmin) {
+            const authResult = await requireUserAuth(req);
+            if (!authResult.authenticated) return authResult.error;
+            userEmail = authResult.email;
+        }
 
         if (!isAdmin && !userEmail) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -108,7 +120,7 @@ export async function PATCH(req) {
         } else {
             // User reply - verify ownership
             const [ticket] = await db.select().from(SUPPORT_TICKETS_TABLE).where(eq(SUPPORT_TICKETS_TABLE.id, id));
-            if (!ticket || ticket.userEmail.toLowerCase() !== userEmail) {
+            if (!ticket || ticket.userEmail.toLowerCase() !== userEmail.toLowerCase()) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
             // Block replies on closed tickets

@@ -2,18 +2,16 @@ import { db } from "@/configs/db";
 import { LEADERBOARD_TABLE, STUDENT_PROGRESS_TABLE } from "@/configs/schema";
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 // POST: Update leaderboard for a user
 export async function POST(req) {
   try {
-    const { studentEmail, studentName, totalCoursesCompleted, totalPoints, averageRating, isAnonymous } = await req.json();
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
 
-    if (!studentEmail) {
-      return NextResponse.json(
-        { error: "studentEmail is required" },
-        { status: 400 }
-      );
-    }
+    const { studentName, totalCoursesCompleted, totalPoints, averageRating, isAnonymous } = await req.json();
 
     // Get all leaderboard entries to calculate rank
     const allEntries = await db

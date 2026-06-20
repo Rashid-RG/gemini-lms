@@ -2,15 +2,20 @@ import { db } from "@/configs/db";
 import { SOCIAL_SHARES_TABLE, STUDENT_PROGRESS_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 // POST: Share course completion
 export async function POST(req) {
   try {
-    const { courseId, studentEmail, shareMessage, isAnonymous } = await req.json();
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
 
-    if (!courseId || !studentEmail) {
+    const { courseId, shareMessage, isAnonymous } = await req.json();
+
+    if (!courseId) {
       return NextResponse.json(
-        { error: "courseId and studentEmail are required" },
+        { error: "courseId is required" },
         { status: 400 }
       );
     }

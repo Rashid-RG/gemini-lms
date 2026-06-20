@@ -2,6 +2,7 @@ import { db } from "@/configs/db";
 import { STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE, USER_STREAK_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 /**
  * GET /api/student-progress?courseId=xyz&studentEmail=abc@example.com
@@ -9,13 +10,16 @@ import { NextResponse } from "next/server";
  */
 export async function GET(req) {
   try {
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
+
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
-    const studentEmail = searchParams.get("studentEmail");
 
-    if (!courseId || !studentEmail) {
+    if (!courseId) {
       return NextResponse.json(
-        { error: "Missing courseId or studentEmail" },
+        { error: "Missing courseId" },
         { status: 400 }
       );
     }
@@ -73,9 +77,13 @@ export async function GET(req) {
  */
 export async function POST(req) {
   try {
-    const { courseId, studentEmail, completedChapters, quizScores, assignmentScores, mcqScores, progressPercentage, activityType, completedNotes, totalNotes, completedFlashcards, totalFlashcards } = await req.json();
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
 
-    if (!courseId || !studentEmail) {
+    const { courseId, completedChapters, quizScores, assignmentScores, mcqScores, progressPercentage, activityType, completedNotes, totalNotes, completedFlashcards, totalFlashcards } = await req.json();
+
+    if (!courseId) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }

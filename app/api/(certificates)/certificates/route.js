@@ -2,6 +2,7 @@ import { db } from "@/configs/db";
 import { CERTIFICATES_TABLE } from "@/configs/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 /**
  * GET /api/certificates?studentEmail=abc@example.com
@@ -9,15 +10,9 @@ import { NextResponse } from "next/server";
  */
 export async function GET(req) {
   try {
-    const { searchParams } = new URL(req.url);
-    const studentEmail = searchParams.get("studentEmail");
-
-    if (!studentEmail) {
-      return NextResponse.json(
-        { error: "studentEmail is required" },
-        { status: 400 }
-      );
-    }
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
 
     // Get all certificates for this student
     const certificates = await db

@@ -2,6 +2,7 @@ import { db } from "@/configs/db";
 import { STUDENT_PROGRESS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 /**
  * POST /api/sync-progress
@@ -10,11 +11,15 @@ import { NextResponse } from "next/server";
  */
 export async function POST(req) {
     try {
-        const { courseId, studentEmail } = await req.json();
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated) return authResult.error;
+        const studentEmail = authResult.email;
 
-        if (!courseId || !studentEmail) {
+        const { courseId } = await req.json();
+
+        if (!courseId) {
             return NextResponse.json(
-                { error: "Missing courseId or studentEmail" },
+                { error: "Missing courseId" },
                 { status: 400 }
             );
         }

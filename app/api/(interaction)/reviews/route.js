@@ -2,15 +2,20 @@ import { db } from "@/configs/db";
 import { COURSE_REVIEWS_TABLE, STUDY_MATERIAL_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 // POST: Submit a course review
 export async function POST(req) {
   try {
-    const { courseId, studentEmail, rating, reviewText, isAnonymous } = await req.json();
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
 
-    if (!courseId || !studentEmail || !rating) {
+    const { courseId, rating, reviewText, isAnonymous } = await req.json();
+
+    if (!courseId || !rating) {
       return NextResponse.json(
-        { error: "courseId, studentEmail, and rating are required" },
+        { error: "courseId and rating are required" },
         { status: 400 }
       );
     }

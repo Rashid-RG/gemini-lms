@@ -6,7 +6,7 @@ import {
   STUDENT_PROGRESS_TABLE
 } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { requireUserAuth } from "@/lib/userApiAuth";
 import { gradeQuiz, calculateProgress } from "@/lib/gradingEngine";
 
 /**
@@ -15,17 +15,9 @@ import { gradeQuiz, calculateProgress } from "@/lib/gradingEngine";
  */
 export async function POST(req) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const clerkUser = await auth();
-    const studentEmail = clerkUser?.user?.emailAddresses?.[0]?.emailAddress;
-
-    if (!studentEmail) {
-      return NextResponse.json({ error: "Student email not found" }, { status: 400 });
-    }
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
 
     const { courseId, chapterId, questions, answers, timeSpentSeconds } = await req.json();
 
@@ -134,13 +126,9 @@ export async function POST(req) {
  */
 export async function GET(req, { params }) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const clerkUser = await auth();
-    const studentEmail = clerkUser?.user?.emailAddresses?.[0]?.emailAddress;
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const studentEmail = authResult.email;
     const { courseId } = params;
 
     if (!courseId) {

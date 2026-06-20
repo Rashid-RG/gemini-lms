@@ -2,13 +2,18 @@ import { NextResponse } from 'next/server';
 import { db } from '@/configs/db';
 import { TUTOR_REQUESTS_TABLE } from '@/configs/schema';
 import { eq, desc } from 'drizzle-orm';
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 export async function POST(req) {
   try {
-    const { userEmail, userName, experienceLevel, subjectExpertise, motivation, certifications } = await req.json();
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const userEmail = authResult.email;
+
+    const { userName, experienceLevel, subjectExpertise, motivation, certifications } = await req.json();
 
     // Validation
-    if (!userEmail || !userName || !experienceLevel || !subjectExpertise || !motivation) {
+    if (!userName || !experienceLevel || !subjectExpertise || !motivation) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -65,15 +70,9 @@ export async function POST(req) {
 
 export async function GET(req) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userEmail = searchParams.get('email');
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: 'Email parameter required' },
-        { status: 400 }
-      );
-    }
+    const authResult = await requireUserAuth(req);
+    if (!authResult.authenticated) return authResult.error;
+    const userEmail = authResult.email;
 
     const request = await db
       .select()

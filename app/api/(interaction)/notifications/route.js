@@ -3,18 +3,18 @@ import { SUPPORT_TICKETS_TABLE } from "@/configs/schema";
 import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { withDbRetry } from "@/lib/dbUtils";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 export const maxDuration = 15;
 
 export async function GET(req) {
     try {
-        const { searchParams } = new URL(req.url);
-        const userEmail = searchParams.get('userEmail')?.toLowerCase();
-        const limit = parseInt(searchParams.get('limit') || '5');
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated) return authResult.error;
+        const userEmail = authResult.email;
 
-        if (!userEmail) {
-            return NextResponse.json({ error: 'userEmail is required' }, { status: 400 });
-        }
+        const { searchParams } = new URL(req.url);
+        const limit = parseInt(searchParams.get('limit') || '5');
 
         const tickets = await withDbRetry(async () => {
             return db.select()

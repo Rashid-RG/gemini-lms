@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
 import { PAYMENT_RECORD_TABLE } from "@/configs/schema";
 import { eq, desc } from "drizzle-orm";
+import { requireUserAuth } from "@/lib/userApiAuth";
 
 /**
  * GET /api/payments/history
@@ -9,12 +10,9 @@ import { eq, desc } from "drizzle-orm";
  */
 export async function GET(req) {
     try {
-        const { searchParams } = new URL(req.url);
-        const email = searchParams.get('email');
-
-        if (!email) {
-            return NextResponse.json({ error: 'User email is required' }, { status: 400 });
-        }
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated) return authResult.error;
+        const email = authResult.email;
 
         const history = await db.select()
             .from(PAYMENT_RECORD_TABLE)
