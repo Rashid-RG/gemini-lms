@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced System & Features Report - Gemini LMS</title>
+  <style>
+    /* Premium CSS Stylesheet for System Report */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --secondary: #7c3aed;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --text: #334155;
+      --text-dark: #0f172a;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --amber: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background-color: #ffffff;
+      padding: 40px;
+    }
+
+    /* Print Break Configuration */
+    @media print {
+      body {
+        padding: 0;
+        font-size: 11pt;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .card, table, pre {
+        page-break-inside: avoid;
+      }
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Print Button */
+    .print-banner {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+    .btn-print {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+      transition: all 0.2s;
+    }
+    .btn-print:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+    }
+
+    /* Cover Page */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 85vh;
+      border-bottom: 4px solid var(--slate-100);
+      margin-bottom: 60px;
+      padding-bottom: 40px;
+    }
+    .cover-tag {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+      color: var(--primary);
+      width: fit-content;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      margin-bottom: 24px;
+    }
+    .cover h1 {
+      font-size: 48px;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      color: var(--slate-900);
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .cover h2 {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--slate-700);
+      margin-bottom: 48px;
+      max-width: 600px;
+    }
+    .cover-meta {
+      display: grid;
+      grid-template-cols: repeat(3, 1fr);
+      gap: 20px;
+      border-top: 2px solid var(--slate-100);
+      padding-top: 32px;
+      margin-top: auto;
+    }
+    .meta-item p:first-child {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--slate-700);
+      letter-spacing: 0.5px;
+    }
+    .meta-item p:last-child {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--slate-900);
+      margin-top: 4px;
+    }
+
+    /* Typography & Layout */
+    h2.section-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--slate-900);
+      border-bottom: 2px solid var(--slate-100);
+      padding-bottom: 10px;
+      margin-top: 50px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h3.subsection-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-top: 32px;
+      margin-bottom: 14px;
+    }
+    p {
+      margin-bottom: 16px;
+      color: var(--text);
+      font-size: 15px;
+    }
+    strong {
+      color: var(--slate-900);
+    }
+    ul, ol {
+      margin-bottom: 20px;
+      padding-left: 24px;
+    }
+    li {
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    /* Callouts */
+    .callout {
+      background-color: var(--slate-50);
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 0 12px 12px 0;
+      margin: 24px 0;
+    }
+    .callout-title {
+      font-weight: 700;
+      color: var(--slate-900);
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .callout p {
+      margin-bottom: 0;
+      font-size: 14px;
+    }
+
+    /* Cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin: 24px 0;
+    }
+    .card {
+      background-color: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .card-header {
+      font-weight: 700;
+      color: var(--slate-900);
+      font-size: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-body {
+      font-size: 13.5px;
+      color: var(--text);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+    th {
+      background-color: var(--slate-900);
+      color: #ffffff;
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 16px;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--slate-200);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td {
+      background-color: var(--slate-50);
+    }
+
+    /* Code Blocks */
+    pre {
+      background-color: var(--slate-900);
+      color: #f8fafc;
+      padding: 20px;
+      border-radius: 12px;
+      overflow-x: auto;
+      margin: 24px 0;
+      font-size: 13px;
+    }
+    code {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1px solid transparent;
+    }
+    .badge-primary {
+      background-color: rgba(79, 70, 229, 0.1);
+      color: var(--primary);
+      border-color: rgba(79, 70, 229, 0.15);
+    }
+    .badge-emerald {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--emerald);
+      border-color: rgba(16, 185, 129, 0.15);
+    }
+    .badge-rose {
+      background-color: rgba(244, 63, 94, 0.1);
+      color: var(--rose);
+      border-color: rgba(244, 63, 94, 0.15);
+    }
+    .badge-amber {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: var(--amber);
+      border-color: rgba(245, 158, 11, 0.15);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Print Button (Hidden in Print Mode) -->
+    <div class="print-banner no-print">
+      <button class="btn-print" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        Export as PDF Document
+      </button>
+    </div>
+
+    <!-- COVER PAGE -->
+    <div class="cover">
+      <div class="cover-tag">Gemini LMS Project</div>
+      <h1>Advanced System Architecture &amp; Features Report</h1>
+      <h2>A comprehensive blueprint mapping the technology, folder organization, user/admin workflows, security remediations, and code quality systems of the Gemini-LMS platform.</h2>
+      
+      <div class="cover-meta">
+        <div class="meta-item">
+          <p>Prepared For</p>
+          <p>LMS Engineering Board</p>
+        </div>
+        <div class="meta-item">
+          <p>Created By</p>
+          <p>Antigravity AI Engineer</p>
+        </div>
+        <div class="meta-item">
+          <p>Date Generated</p>
+          <p>June 20, 2026</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: EXECUTIVE SUMMARY -->
+    <div class="page-break"></div>
+    <h2 class="section-title">1. Executive Summary &amp; Core Purpose</h2>
+    <p>
+      <strong>Gemini LMS</strong> is an advanced, AI-driven Learning Management System designed to orchestrate automated study material generation, student evaluation, and administrative moderation in real-time. By leveraging Google Gemini Pro and Flash models, the platform translates raw learning topics into complete, structured courses containing lecture summaries, chapters notes, flashcards, interactive quizzes, timed mock exams, and homework assignments.
+    </p>
+    <p>
+      The platform operates with a hybrid user interface: a Clerk-authenticated client dashboard for students/course creators, and a custom database-authenticated administrative panel for instructors, curators, and administrators. Background generation tasks are run via Inngest serverless event listeners, ensuring that heavy AI workloads do not block standard Next.js request threads.
+    </p>
+    
+    <div class="callout">
+      <div class="callout-title">Core Architecture Goals</div>
+      <p>
+        Ensure rapid outline rendering, offload notes compilation to cron workers, secure student routes against data leakage (BOLA/IDOR), and provide robust database backup layers without requiring bloated third-party cloud configurations.
+      </p>
+    </div>
+
+    <!-- SECTION 2: TECHNOLOGY STACK -->
+    <h2 class="section-title">2. System Technology Stack</h2>
+    <p>
+      Gemini LMS is built on a modern, robust Web stack optimized for serverless deployment and rapid horizontal scaling:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 25%">Layer</th>
+          <th style="width: 35%">Technology Selected</th>
+          <th style="width: 40%">Architectural Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Framework</strong></td>
+          <td>Next.js 15 (App Router, Node.js)</td>
+          <td>Supports high-performance hybrid rendering (SSR/SSG), API endpoints, route grouping, and streaming.</td>
+        </tr>
+        <tr>
+          <td><strong>Database</strong></td>
+          <td>Neon Serverless (PostgreSQL)</td>
+          <td>HTTP-based serverless Postgres queries, scale-to-zero capabilities, and connection caching.</td>
+        </tr>
+        <tr>
+          <td><strong>ORM</strong></td>
+          <td>Drizzle ORM</td>
+          <td>Type-safe database mapping, query builder syntax, schema declarations, and migration scripts.</td>
+        </tr>
+        <tr>
+          <td><strong>Worker Jobs</strong></td>
+          <td>Inngest</td>
+          <td>Event-driven serverless background workers, concurrency queues, step-retry handling, and scheduled cron jobs.</td>
+        </tr>
+        <tr>
+          <td><strong>AI Integration</strong></td>
+          <td>Google Generative AI (Gemini Pro/Flash)</td>
+          <td>Drives outline structuring, notes summarization, question generation, and homework grading.</td>
+        </tr>
+        <tr>
+          <td><strong>Security / Auth</strong></td>
+          <td>Clerk Auth &amp; Custom Session Cookies</td>
+          <td>Dual authentication: Clerk for students; custom hashed session cookies for administrators.</td>
+        </tr>
+        <tr>
+          <td><strong>Styling / UI</strong></td>
+          <td>Tailwind CSS &amp; Vanilla CSS</td>
+          <td>Responsive utility layouts paired with specialized custom CSS styles for glassmorphism and animations.</td>
+        </tr>
+        <tr>
+          <td><strong>Notifications</strong></td>
+          <td>Resend API &amp; Sonner Toast</td>
+          <td>Triggers student reminders and grading updates; alerts client UI of real-time state changes.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- SECTION 3: DIRECTORY ORGANIZATION -->
+    <div class="page-break"></div>
+    <h2 class="section-title">3. Folder &amp; File Organization</h2>
+    <p>
+      The codebase adheres to a strict, modular Next.js App Router workspace organization:
+    </p>
+    <pre><code>├── app/                               # NEXT.JS ROUTE TREE
+│   ├── (auth)/                        # Student login/signup routes via Clerk
+│   ├── admin/                         # DB-authenticated Admin Portal routes
+│   │   ├── dashboard/                 # Admin Dashboard homepage
+│   │   ├── backup/                    # Backup management interface [NEW]
+│   │   └── layout.jsx                 # Custom admin sidebar & session provider
+│   ├── api/                           # BACKEND REST API ENDPOINTS
+│   │   ├── (admin)/admin/             # Administrative APIs (auth checked)
+│   │   │   ├── backup/                # Backup generate, history, and download [NEW]
+│   │   │   └── announcements/         # Announcements moderation
+│   │   └── (system)/inngest/          # Inngest integration worker route
+│   ├── dashboard/                     # Clerk-authenticated Student Portal
+│   │   ├── admin/                     # Clerk-auth Admin View
+│   │   │   └── backup/                # Backup page using shared component [NEW]
+│   │   └── explore/                   # Course exploration feed
+│   ├── layout.js                      # Root HTML and fonts provider
+│   └── page.js                        # System landing page
+├── components/                        # REUSABLE FRONTEND COMPONENTS
+│   ├── admin/                         # Admin panel dashboard cards and elements
+│   │   ├── AdminPageShell.jsx         # Layout wrappers for admin pages
+│   │   └── BackupDashboard.jsx        # Glassmorphic database backup engine [NEW]
+│   └── ui/                            # Shadcn/Radix atomic UI components
+├── configs/                           # SYSTEM CONFIGURATION FILES
+│   ├── db.js                          # Neon database connection driver
+│   ├── schema.js                      # Drizzle Postgres schema definitions
+│   └── AiModel.js                     # Gemini AI models API connector
+├── hooks/                             # CLIENT-SIDE CUSTOM REACT HOOKS
+├── inngest/                           # BACKGROUND ACTION WORKERS
+│   ├── client.js                      # Inngest event registration configuration
+│   ├── functions/                     # Modular background job controllers
+│   │   ├── cronJobs.js                # System health, course cleaner, weekly cron
+│   │   └── course.js                  # Notes generation, youtube mapping worker
+│   └── functions.js                   # Aggregate exports wrapper
+├── lib/                               # CORE HELPER UTILITIES
+│   ├── adminAuth.js                   # Hashing (PBKDF2) and session encryption
+│   └── adminApiAuth.js                # API authorization middleware checks
+└── public/                            # STATIC ASSETS (logos, icons, certificates)</code></pre>
+
+    <!-- SECTION 4: USER WORKFLOWS -->
+    <div class="page-break"></div>
+    <h2 class="section-title">4. Detailed Features: User/Student Section</h2>
+    <p>
+      The student portal revolves around learning, quiz evaluation, peer collaboration, and tracking progress:
+    </p>
+    
+    <h3 class="subsection-title">4.1. Course Outline &amp; Content Generation</h3>
+    <p>
+      Students input a desired topic and course layout preference. The system calls the Gemini API to construct a structured course outline containing chapters, study modules, and descriptions. This outline is reviewable and can be generated into sub-contents asynchronously.
+    </p>
+
+    <h3 class="subsection-title">4.2. Chapter Notes Summary</h3>
+    <p>
+      Once the outline is approved, an Inngest background event triggers the notes generation worker. The worker queries Gemini to compile highly detailed markdown pages for each chapter, caching them in the `chapterNotes` table.
+    </p>
+
+    <h3 class="subsection-title">4.3. Interactive Quizzes &amp; Summaries</h3>
+    <p>
+      The student can request interactive study contents. For each chapter, the system generates study materials:
+    </p>
+    <ul>
+      <li><strong>Flashcards</strong>: Fully interactive double-sided cards rendering study terms with 3D flip animations.</li>
+      <li><strong>Practice Quizzes</strong>: Support for Multiple Choice, True/False, Short Answer, and Fill-in-the-blank questions dynamically evaluated with scores.</li>
+    </ul>
+
+    <h3 class="subsection-title">4.4. Timed Mock Exams</h3>
+    <p>
+      Provides complete, timed evaluations mimicking actual exams. The exam runs with a countdown clock and grades answers on submit, saving scores in the `mockExamSubmissions` table.
+    </p>
+
+    <h3 class="subsection-title">4.5. Chapter Peer Discussions</h3>
+    <p>
+      Every course chapter includes a collaborative forum. Students write questions or feedback, and other learners or course tutors reply in real-time, linked by discussion and reply foreign keys.
+    </p>
+
+    <h3 class="subsection-title">4.6. Assignment Editor &amp; Submission</h3>
+    <p>
+      Students can submit homework drafts as rich text, code (with language labels), or document links. The editor includes a real-time markdown split preview pane.
+    </p>
+
+    <h3 class="subsection-title">4.7. Adaptive Difficulty Adjustment</h3>
+    <p>
+      Tracks performance scores per student/topic. If a student falls below 60% after multiple attempts, the topic is flagged, and the quiz engine automatically downshifts the difficulty level (e.g. from Hard to Medium) to reinforce basic concepts, adjusting up as the student improves.
+    </p>
+
+    <h3 class="subsection-title">4.8. Parent Portal Tokens</h3>
+    <p>
+      Allows parents to monitor child performance. Students generate a secure parental access token. Parents use this token to access a clean view containing grade summaries, active assignments, and tutor remarks without editing capabilities.
+    </p>
+
+    <!-- SECTION 5: ADMIN WORKFLOWS -->
+    <div class="page-break"></div>
+    <h2 class="section-title">5. Detailed Features: Administrative Section</h2>
+    <p>
+      The administrative workflows secure, moderate, audit, and safeguard the LMS:
+    </p>
+    
+    <h3 class="subsection-title">5.1. Operations Command Dashboard &amp; Analytics</h3>
+    <p>
+      Renders live metrics: total registered users, credits spent, generations running, failed runs, monthly revenue logs, and support queue backlogs.
+    </p>
+
+    <h3 class="subsection-title">5.2. Course Content Moderation &amp; Review Queue</h3>
+    <p>
+      Curators view course outlines. Admins can edit generated content, approve outline layouts, override AI notes, or flag inaccurate study questions before publishing.
+    </p>
+
+    <h3 class="subsection-title">5.3. Announcements Manager</h3>
+    <p>
+      Allows super-admins to deploy system-wide banner notifications. Targets can be filtered (all users, students only, tutors only) and pinned, supporting automatic expiration timestamps.
+    </p>
+
+    <h3 class="subsection-title">5.4. Submissions &amp; Manual Regrading Queue</h3>
+    <p>
+      Displays all student assignment submissions. Tutors can read drafts, review the automated AI grade/feedback, and apply a manual override score with instructor remarks.
+    </p>
+
+    <h3 class="subsection-title">5.5. Team Access &amp; Hashed Password Manager</h3>
+    <p>
+      Super-admins add team staff (admins/tutors). The system creates a secure activation token. When the staff member clicks the link, they set their credentials, which are cryptographically hashed using PBKDF2.
+    </p>
+
+    <h3 class="subsection-title">5.6. Tutor Applications Moderation</h3>
+    <p>
+      Normal users apply to become tutors. Administrators review the motivation letters, subject expertise, and qualifications queue to approve or reject requests.
+    </p>
+
+    <h3 class="subsection-title">5.7. Audit Logs &amp; Activity Tracking</h3>
+    <p>
+      Logs every administrative action (grades manually overridden, credits adjusted, passwords reset, courses deleted) alongside IP address and timestamps for strict accountability.
+    </p>
+
+    <h3 class="subsection-title">5.8. Premium System Data Backup</h3>
+    <p>
+      Protects platform data by packing all tables into compressed, downloadable archives:
+    </p>
+    <ul>
+      <li><strong>Manual Snapshots</strong>: On-demand generation compiles 16 database tables, compresses them with Gzip, hashes a transient token, and logs the metadata.</li>
+      <li><strong>Scheduled Backups</strong>: An Inngest cron job automates this process weekly.</li>
+      <li><strong>Direct Downloads</strong>: Serves `.json.gz` attachments securely using verified transient download tokens.</li>
+    </ul>
+
+    <!-- SECTION 6: SECURITY & AUDIT -->
+    <div class="page-break"></div>
+    <h2 class="section-title">6. Security Architecture &amp; Audit Remediation</h2>
+    <p>
+      We recently executed a comprehensive security audit and remediation to secure all API endpoints against BOLA, IDOR, Stored XSS, and authorization lockouts:
+    </p>
+    
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="badge badge-emerald">Fixed</span> BOLA &amp; Spoofing
+        </div>
+        <div class="card-body">
+          Previously, client-supplied email arguments in payloads were trusted. Endpoints (`DELETE /api/course`, `/api/user-streak`, `/api/submit-assignment`) now query active Clerk session claims to guarantee students can only delete or read their own data.
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="badge badge-emerald">Fixed</span> Admin Endpoint Guards
+        </div>
+        <div class="card-body">
+          All administrative routes are wrapped with `@/lib/adminApiAuth` middleware. Tutors and admins are checked for valid session cookies (`admin_session`) to block unauthenticated access.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="badge badge-emerald">Fixed</span> Tutor Lockout Bug
+        </div>
+        <div class="card-body">
+          Aligned password hashing in `/api/admin/auth/set-password` (previously using mismatching bcryptjs) to PBKDF2Sync. Temporary passwords are automatically cleared upon verification to prevent credentials leak.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="badge badge-emerald">Fixed</span> DOM / Stored XSS
+        </div>
+        <div class="card-body">
+          Integrated `DOMPurify.sanitize()` inside the assignment split editor preview pane to neutralize scripts and sanitizes markdown inputs before rendering.
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 7: CODE QUALITY & DEVOPS -->
+    <h2 class="section-title">7. Code Quality &amp; Development Standards</h2>
+    <p>
+      The codebase implements modular code guidelines to ensure maintainability:
+    </p>
+    <ul>
+      <li><strong>Drizzle Schemas</strong>: Centralized table definitions in `configs/schema.js` ensure type-safe database queries.</li>
+      <li><strong>Session Helpers</strong>: Admin checks are centralized in `lib/adminApiAuth.js` to prevent validation logic sprawl.</li>
+      <li><strong>Separation of Concerns</strong>: React pages utilize hooks (e.g. `useAdminDashboard`) for state management, keeping layout code clean.</li>
+      <li><strong>Gzip Compression</strong>: Backup files utilize Node's built-in `zlib` to compress text files into standard `.gz` archives, saving bandwidth and space.</li>
+    </ul>
+
+    <div class="callout" style="border-left-color: var(--emerald);">
+      <div class="callout-title">Integration Test Verification</div>
+      <p>
+        The backup system was verified using a standalone integration script that successfully queries all 16 database tables, compresses them into an archive, registers logs, and decodes/decompresses the file to confirm payload integrity.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { TUTOR_REQUESTS_TABLE, ADMIN_TABLE } from '@/configs/schema'
 import { eq } from 'drizzle-orm'
 import { Resend } from 'resend'
 import { hashPassword } from '@/lib/adminAuth'
+import { requireAdminOrAbove } from '@/lib/adminApiAuth'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@geminilms.com'
@@ -117,8 +118,11 @@ const TutorRejectedEmail = ({ userName, rejectionReason }) => `
 `
 
 export async function PATCH(req, { params }) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
-    const { id } = params
+    const { id } = await params
     const { status, userEmail, password, rejectionReason, reviewedBy } = await req.json()
 
     if (!id || !status) {

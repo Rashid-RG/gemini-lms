@@ -3,10 +3,21 @@ import { db } from '@/configs/db'
 import { ADMIN_TABLE } from '@/configs/schema'
 import { eq } from 'drizzle-orm'
 import { verifyPassword } from '@/lib/adminAuth'
+import { requireAdminOrAbove } from '@/lib/adminApiAuth'
 
 export async function POST(req) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
     const { password, email } = await req.json()
+
+    if (authResult.admin.email.toLowerCase() !== email.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
 
     if (!password || !email) {
       return NextResponse.json(

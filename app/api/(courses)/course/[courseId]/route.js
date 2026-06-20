@@ -3,6 +3,8 @@ import { STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ST
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { refundCourseCredits } from "@/lib/credits";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 /**
  * DELETE /api/course/[courseId]
@@ -12,6 +14,12 @@ import { refundCourseCredits } from "@/lib/credits";
  */
 export async function DELETE(req, { params }) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const { courseId } = await params;
         const { userEmail } = await req.json();
 
@@ -19,6 +27,13 @@ export async function DELETE(req, { params }) {
             return NextResponse.json(
                 { error: "courseId and userEmail are required" },
                 { status: 400 }
+            );
+        }
+
+        if (authEmail !== userEmail.trim().toLowerCase()) {
+            return NextResponse.json(
+                { error: "Forbidden" },
+                { status: 403 }
             );
         }
 

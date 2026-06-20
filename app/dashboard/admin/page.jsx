@@ -20,7 +20,8 @@ import {
     CreditCard,
     BarChart3,
     Megaphone,
-    Mail
+    Mail,
+    Database
 } from 'lucide-react'
 
 function AdminDashboardPage() {
@@ -225,6 +226,12 @@ function AdminDashboardPage() {
                     description="Live database & AI health"
                     href="/dashboard/admin/health"
                     icon={<RefreshCw className="h-5 w-5" />}
+                />
+                <QuickActionCard
+                    title="Data Backups"
+                    description="Backup & download database tables"
+                    href="/dashboard/admin/backup"
+                    icon={<Database className="h-5 w-5" />}
                 />
             </div>
 

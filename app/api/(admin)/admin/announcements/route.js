@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
 import { ANNOUNCEMENTS_TABLE, ADMIN_ACTIVITY_LOG_TABLE } from "@/configs/schema";
 import { eq, desc } from "drizzle-orm";
+import { requireAdminOrAbove } from "@/lib/adminApiAuth";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 /**
  * GET /api/admin/announcements
@@ -12,6 +15,22 @@ export async function GET(req) {
         const { searchParams } = new URL(req.url, 'http://localhost');
         const isAdmin = searchParams.get('admin') === 'true';
         const userEmail = searchParams.get('userEmail');
+
+        if (isAdmin) {
+            const authResult = await requireAdminOrAbove();
+            if (!authResult.authenticated) return authResult.error;
+        } else {
+            const { userId, sessionClaims } = await auth();
+            if (!userId) {
+                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            }
+            if (userEmail) {
+                const authEmail = await getAuthEmail(sessionClaims);
+                if (authEmail !== userEmail.trim().toLowerCase()) {
+                    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+                }
+            }
+        }
 
         let announcements;
 
@@ -76,6 +95,9 @@ export async function GET(req) {
  * Create a new announcement
  */
 export async function POST(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const { 
             title, 
@@ -148,6 +170,15 @@ export async function PUT(req) {
 
         // Handle user dismissal
         if (action === 'dismiss' && userEmail) {
+            const { userId, sessionClaims } = await auth();
+            if (!userId) {
+                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            }
+            const authEmail = await getAuthEmail(sessionClaims);
+            if (authEmail !== userEmail.trim().toLowerCase()) {
+                return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+            }
+
             const announcement = await db.select()
                 .from(ANNOUNCEMENTS_TABLE)
                 .where(eq(ANNOUNCEMENTS_TABLE.id, id))
@@ -180,6 +211,9 @@ export async function PUT(req) {
         }
 
         // Handle admin updates
+        const authResult = await requireAdminOrAbove();
+        if (!authResult.authenticated) return authResult.error;
+
         if (!adminEmail) {
             return NextResponse.json({ error: 'Admin email is required' }, { status: 400 });
         }
@@ -222,6 +256,9 @@ export async function PUT(req) {
  * Delete an announcement
  */
 export async function DELETE(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');

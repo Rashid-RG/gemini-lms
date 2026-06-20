@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
-import { PAYMENT_RECORD_TABLE, USER_TABLE } from "@/configs/schema";
+import { PAYMENT_RECORD_TABLE, USER_TABLE, CREDIT_TRANSACTION_TABLE } from "@/configs/schema";
 import { eq, desc, sql, gte, and, between } from "drizzle-orm";
+import { requireAdminOrAbove } from "@/lib/adminApiAuth";
 
 /**
  * GET /api/admin/payments
  * Get payment records with analytics
  */
 export async function GET(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const { searchParams } = new URL(req.url);
         const period = searchParams.get('period') || 'all'; // 'today', 'week', 'month', 'year', 'all'
@@ -159,6 +163,9 @@ export async function GET(req) {
  * Manually record a payment (for admin use)
  */
 export async function POST(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const {
             userEmail,
@@ -217,6 +224,9 @@ export async function POST(req) {
  * Automatically reverses credits when marking as refunded
  */
 export async function PUT(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const { id, status, adminEmail, refundReason = 'Admin refund' } = await req.json();
 

@@ -2,10 +2,14 @@ import { db } from "@/configs/db";
 import { ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireAdminOrAbove } from "@/lib/adminApiAuth";
 
 // POST /api/admin/bulk-unlock-decision
 // Admin bulk approves or denies multiple unlock requests
 export async function POST(req) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
     const { requests, approve } = await req.json();
 

@@ -4,6 +4,8 @@ import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { inngest } from "@/inngest/client";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 /**
  * GET /api/submit-assignment?assignmentId=xyz&studentEmail=abc@example.com
@@ -11,6 +13,12 @@ import { checkRateLimit } from "@/lib/rateLimit";
  */
 export async function GET(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { searchParams } = new URL(req.url);
     const assignmentId = searchParams.get("assignmentId");
     const studentEmail = searchParams.get("studentEmail");
@@ -19,6 +27,13 @@ export async function GET(req) {
       return NextResponse.json(
         { error: "Missing assignmentId or studentEmail" },
         { status: 400 }
+      );
+    }
+
+    if (authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
       );
     }
 
@@ -107,12 +122,25 @@ export async function GET(req) {
  */
 export async function POST(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { assignmentId, courseId, studentEmail, submission, submissionType, language } = await req.json();
 
     if (!assignmentId || !courseId || !studentEmail || !submission) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
+      );
+    }
+
+    if (authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
       );
     }
 

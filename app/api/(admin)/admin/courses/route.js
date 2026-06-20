@@ -2,7 +2,7 @@ import { db } from "@/configs/db";
 import { STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE, COURSE_ENROLLMENT_TABLE, STUDENT_PROGRESS_TABLE, USER_TABLE } from "@/configs/schema";
 import { eq, desc, sql, like, or, inArray, and, ilike } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/adminApiAuth";
+import { requireAdminAuth, requireAdminOrAbove } from "@/lib/adminApiAuth";
 import { addCredits, CREDIT_TYPES } from "@/lib/credits";
 
 /**
@@ -188,6 +188,9 @@ export async function GET(req) {
  * Update course properties (visibility, status, category, etc.)
  */
 export async function PUT(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const { courseId, updates, adminEmail } = await req.json();
 

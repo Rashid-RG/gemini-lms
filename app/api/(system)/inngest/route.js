@@ -11,6 +11,7 @@ import {
   SystemHealthCheck,
   helloWorld,
   FetchYouTubeVideos,
+  SystemBackupCron,
 } from "@/inngest/functions";
 
 export const runtime = "nodejs";
@@ -41,5 +42,6 @@ export const { GET, POST, PUT } = serve({
     CleanupStaleCourses,
     SystemHealthCheck,
     FetchYouTubeVideos,
+    SystemBackupCron,
   ],
 });

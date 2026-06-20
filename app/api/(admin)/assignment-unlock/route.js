@@ -2,14 +2,27 @@ import { db } from "@/configs/db";
 import { ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { requireAdminOrAbove } from "@/lib/adminApiAuth";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 // POST /api/assignment-unlock
 // Student requests unlock for overdue assignment
 export async function POST(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { assignmentId, courseId, studentEmail, reason } = await req.json();
     if (!assignmentId || !courseId || !studentEmail) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     // Mark submission as unlock requested
     const result = await db.update(ASSIGNMENT_SUBMISSIONS_TABLE)
@@ -28,6 +41,9 @@ export async function POST(req) {
 // POST /api/assignment-unlock/admin
 // Admin approves unlock request
 export async function PATCH(req) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
     const { assignmentId, courseId, studentEmail, approve } = await req.json();
     if (!assignmentId || !courseId || !studentEmail || typeof approve !== "boolean") {

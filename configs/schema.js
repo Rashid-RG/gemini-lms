@@ -780,3 +780,19 @@ export const DISCUSSION_REPLIES_TABLE = pgTable('discussionReplies', {
 }, (table) => ({
     discussionIdx: index('disc_replies_disc_idx').on(table.discussionId),
 }));
+
+// System Backup Table - tracks system data backups
+export const SYSTEM_BACKUP_TABLE = pgTable('systemBackups', {
+    id: serial().primaryKey(),
+    fileName: varchar().notNull(),
+    backupType: varchar().default('manual'), // 'manual', 'scheduled'
+    recordCount: integer().default(0), // total number of database records serialized
+    fileSize: integer(), // file size in bytes (compressed)
+    backupData: text().notNull(), // base64 encoded gzip string
+    downloadToken: varchar().unique(), // secure token for downloading the file programmatically
+    createdBy: varchar().notNull(), // 'system' (for cron) or administrator/tutor email
+    createdAt: timestamp().defaultNow()
+}, (table) => ({
+    createdByIdx: index('system_backup_created_by_idx').on(table.createdBy),
+    downloadTokenIdx: index('system_backup_download_token_idx').on(table.downloadToken),
+}));

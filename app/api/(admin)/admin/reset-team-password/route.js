@@ -4,11 +4,15 @@ import { ADMIN_TABLE } from '@/configs/schema'
 import { eq } from 'drizzle-orm'
 import { hashPassword } from '@/lib/adminAuth'
 import { Resend } from 'resend'
+import { requireAdminOrAbove } from '@/lib/adminApiAuth'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@geminilms.com'
 
 export async function POST(req) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
     const { email, password, sendEmail } = await req.json()
 

@@ -7,6 +7,7 @@ import { CheckCircle, AlertCircle, Loader, Send, FileText, Code, FileUp, ArrowLe
 import { toast } from 'sonner'
 import CodeEditor from './CodeEditor'
 import { useRouter, useParams } from 'next/navigation'
+import DOMPurify from 'dompurify'
 
 const SUBMISSION_TYPES = {
     'text': { label: 'Text Answer', icon: FileText, description: 'Write your answer as text' },
@@ -536,7 +537,7 @@ Or use a template to get started quickly!"
                             <div 
                                 className="prose prose-sm max-w-none"
                                 dangerouslySetInnerHTML={{ 
-                                    __html: content ? `<p class="mb-3">${renderPreview(content)}</p>` : '<p class="text-slate-400 italic">Nothing to preview yet...</p>' 
+                                    __html: content ? DOMPurify.sanitize(`<p class="mb-3">${renderPreview(content)}</p>`) : '<p class="text-slate-400 italic">Nothing to preview yet...</p>' 
                                 }}
                             />
                         </div>

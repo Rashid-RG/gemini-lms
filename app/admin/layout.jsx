@@ -30,7 +30,8 @@ import {
     Plus,
     GraduationCap,
     PanelLeft,
-    PanelLeftClose
+    PanelLeftClose,
+    Database
 } from 'lucide-react'
 
 function AdminLayoutContent({ children }) {
@@ -108,6 +109,7 @@ function AdminLayoutContent({ children }) {
         { href: '/admin/health', label: 'System Health', icon: Shield, roles: ['tutor', 'admin', 'super_admin'] },
         { href: '/admin/team', label: 'Manage Team', icon: UsersRound, roles: ['super_admin'] },
         { href: '/admin/gradebook', label: 'GradeBook', icon: GraduationCap, roles: ['tutor', 'admin', 'super_admin'] },
+        { href: '/admin/backup', label: 'Data Backups', icon: Database, roles: ['tutor', 'admin', 'super_admin'] },
     ]
 
     // Super admin only items

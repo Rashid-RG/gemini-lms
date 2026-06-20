@@ -3,8 +3,12 @@ import { db } from '@/configs/db'
 import { TUTOR_REQUESTS_TABLE, ADMIN_TABLE } from '@/configs/schema'
 import { eq, desc } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
+import { requireAdminOrAbove } from '@/lib/adminApiAuth'
 
 export async function GET(req) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
@@ -30,6 +34,9 @@ export async function GET(req) {
 }
 
 export async function PATCH(req) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
     const body = await req.json()
     const { id } = body

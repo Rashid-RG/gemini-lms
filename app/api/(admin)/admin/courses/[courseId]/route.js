@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
 import { STUDY_MATERIAL_TABLE } from "@/configs/schema";
 import { eq } from "drizzle-orm";
+import { requireAdminOrAbove } from "@/lib/adminApiAuth";
 
 export async function GET(req, { params }) {
+  const authResult = await requireAdminOrAbove();
+  if (!authResult.authenticated) return authResult.error;
+
   try {
     const { courseId } = params;
 

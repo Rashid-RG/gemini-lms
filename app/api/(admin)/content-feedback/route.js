@@ -2,6 +2,8 @@ import { db } from "@/configs/db";
 import { CONTENT_FEEDBACK_TABLE, CONTENT_REVIEW_TABLE, SUPPORT_TICKETS_TABLE } from "@/configs/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 /**
  * POST /api/content-feedback
@@ -9,7 +11,17 @@ import { NextResponse } from "next/server";
  */
 export async function POST(req) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const { courseId, contentType, contentId, studentEmail, issueType, description, specificContent } = await req.json();
+
+        if (studentEmail && authEmail !== studentEmail.trim().toLowerCase()) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
 
         // Validate required fields
         if (!courseId || !contentType || !studentEmail || !issueType || !description) {
@@ -190,9 +202,19 @@ export async function POST(req) {
  */
 export async function GET(req) {
     try {
+        const { userId, sessionClaims } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const authEmail = await getAuthEmail(sessionClaims);
+
         const { searchParams } = new URL(req.url);
         const courseId = searchParams.get("courseId");
         const studentEmail = searchParams.get("studentEmail");
+
+        if (studentEmail && authEmail !== studentEmail.trim().toLowerCase()) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
 
         if (!courseId || !studentEmail) {
             return NextResponse.json(

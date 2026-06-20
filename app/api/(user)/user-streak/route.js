@@ -3,6 +3,8 @@ import { USER_STREAK_TABLE } from "@/configs/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { withDbRetry } from "@/lib/dbUtils";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 export const maxDuration = 15;
 
@@ -12,6 +14,12 @@ export const maxDuration = 15;
  */
 export async function GET(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { searchParams } = new URL(req.url);
     const studentEmail = searchParams.get("studentEmail");
 
@@ -19,6 +27,13 @@ export async function GET(req) {
       return NextResponse.json(
         { error: "Missing studentEmail" },
         { status: 400 }
+      );
+    }
+
+    if (authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
       );
     }
 
@@ -98,12 +113,25 @@ export async function GET(req) {
  */
 export async function POST(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { studentEmail, activityType } = await req.json();
 
     if (!studentEmail) {
       return NextResponse.json(
         { error: "Missing studentEmail" },
         { status: 400 }
+      );
+    }
+
+    if (authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
       );
     }
 

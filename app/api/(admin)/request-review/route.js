@@ -2,6 +2,8 @@ import { db } from "@/configs/db";
 import { ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 /**
  * POST /api/request-review
@@ -9,6 +11,12 @@ import { NextResponse } from "next/server";
  */
 export async function POST(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { assignmentId, studentEmail, reason } = await req.json();
 
     if (!assignmentId || !studentEmail) {
@@ -16,6 +24,10 @@ export async function POST(req) {
         { error: "Missing assignmentId or studentEmail" },
         { status: 400 }
       );
+    }
+
+    if (studentEmail && authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Find the submission
@@ -91,9 +103,19 @@ export async function POST(req) {
  */
 export async function GET(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { searchParams } = new URL(req.url);
     const assignmentId = searchParams.get("assignmentId");
     const studentEmail = searchParams.get("studentEmail");
+
+    if (studentEmail && authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (!assignmentId || !studentEmail) {
       return NextResponse.json(

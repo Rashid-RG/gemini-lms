@@ -3,6 +3,8 @@ import { ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { inngest } from "@/inngest/client";
+import { auth } from "@clerk/nextjs/server";
+import { getAuthEmail } from "@/lib/clerkUtils";
 
 /**
  * POST /api/retry-grading
@@ -10,7 +12,17 @@ import { inngest } from "@/inngest/client";
  */
 export async function POST(req) {
   try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const authEmail = await getAuthEmail(sessionClaims);
+
     const { assignmentId, studentEmail } = await req.json();
+
+    if (studentEmail && authEmail !== studentEmail.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (!assignmentId || !studentEmail) {
       return NextResponse.json(

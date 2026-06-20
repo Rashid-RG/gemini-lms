@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { db } from "@/configs/db";
 import { USER_TABLE, STUDY_MATERIAL_TABLE, STUDENT_PROGRESS_TABLE, ADMIN_ACTIVITY_LOG_TABLE } from "@/configs/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";
+import { requireAdminOrAbove } from "@/lib/adminApiAuth";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -11,6 +12,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
  * Get list of students for emailing with optional filters
  */
 export async function GET(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const { searchParams } = new URL(req.url);
         const courseId = searchParams.get('courseId');
@@ -76,6 +80,9 @@ export async function GET(req) {
  * Send bulk or individual emails to students
  */
 export async function POST(req) {
+    const authResult = await requireAdminOrAbove();
+    if (!authResult.authenticated) return authResult.error;
+
     try {
         const { 
             recipients, // array of email addresses
