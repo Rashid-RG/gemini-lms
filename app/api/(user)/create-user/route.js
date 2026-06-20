@@ -47,6 +47,18 @@ export async function POST(req) {
             return NextResponse.json({ error: "Email required" }, { status: 400 });
         }
 
+        const adminEmails = (process.env.ADMIN_EMAILS || '')
+            .split(',')
+            .map(e => e.trim().toLowerCase())
+            .filter(Boolean);
+        adminEmails.push('admin@demo.com');
+
+        if (adminEmails.includes(normalizedEmail)) {
+            return NextResponse.json({ 
+                error: "Admin accounts cannot register as standard students." 
+            }, { status: 403 });
+        }
+
         if (authEmail !== normalizedEmail) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }

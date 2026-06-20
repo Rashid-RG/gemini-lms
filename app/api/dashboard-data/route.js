@@ -22,6 +22,18 @@ export async function GET(req) {
             return NextResponse.json({ error: "Email not found" }, { status: 400 });
         }
 
+        const adminEmails = (process.env.ADMIN_EMAILS || '')
+            .split(',')
+            .map(e => e.trim().toLowerCase())
+            .filter(Boolean);
+        adminEmails.push('admin@demo.com');
+
+        if (adminEmails.includes(userEmail.toLowerCase())) {
+            return NextResponse.json({ 
+                error: "Admin accounts cannot access student dashboard data." 
+            }, { status: 403 });
+        }
+
         const baseUrl = process.env.NEXT_PUBLIC_HOST_NAME || 
                         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
