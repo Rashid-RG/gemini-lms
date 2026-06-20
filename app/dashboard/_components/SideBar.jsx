@@ -245,19 +245,26 @@ function SideBar({ onNavigate, onCollapseToggle }) {
                 </div>
 
                 <div className='mt-8 flex-1 flex flex-col overflow-hidden'>
-                    <Link href={'/create'} className="w-full block px-1">
-                        <Button 
-                            className={`w-full text-white font-bold transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-lg ${
-                                !isMember && userCredits <= 0
-                                    ? 'bg-slate-300 cursor-not-allowed text-slate-500'
-                                    : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-200'
-                            }`}
-                            disabled={!isMember && userCredits <= 0}
-                            title={!isMember && userCredits <= 0 ? 'No credits available. Please upgrade or purchase credits.' : 'Create a new course'}
-                        >
-                            + Create New {isMember && '✨'}
-                        </Button>
-                    </Link>
+                    {!isMember && userCredits <= 0 ? (
+                        <div className="w-full px-1">
+                            <Button 
+                                className="w-full text-slate-500 font-bold bg-slate-300 cursor-not-allowed"
+                                disabled={true}
+                                title="No credits available. Please upgrade or purchase credits."
+                            >
+                                + Create New
+                            </Button>
+                        </div>
+                    ) : (
+                        <Link href={'/create'} className="w-full block px-1">
+                            <Button 
+                                className="w-full text-white font-bold transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-lg bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-200"
+                                title="Create a new course"
+                            >
+                                + Create New {isMember && '✨'}
+                            </Button>
+                        </Link>
+                    )}
 
                     <div className='mt-6 pr-1 overflow-y-auto flex-1 space-y-1'>
                         {MenuList.map((menu, index) => {

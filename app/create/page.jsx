@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import SelectOption from './_components/SelectOption'
 import { Button } from '@/components/ui/button';
 import TopicInput from './_components/TopicInput';
@@ -20,11 +20,44 @@ function Create() {
       category: 'General',
       tags: []
     });
-    const {user}=useUser();
+    const {user, isLoaded}=useUser();
     const [loading,setLoading]=useState(false);
     const [tagInput, setTagInput] = useState('');
+    const [creditsCheck, setCreditsCheck] = useState({ loading: true, hasCredits: true, isMember: false });
 
     const router=useRouter();
+
+    useEffect(() => {
+      if (user?.primaryEmailAddress?.emailAddress) {
+        checkUserCredits();
+      } else if (isLoaded && !user) {
+        setCreditsCheck({ loading: false, hasCredits: false, isMember: false });
+      }
+    }, [user, isLoaded]);
+
+    const checkUserCredits = async () => {
+      try {
+        const response = await axios.post('/api/create-user', {
+          user: {
+            fullName: user?.fullName,
+            email: user?.primaryEmailAddress?.emailAddress
+          }
+        });
+        if (response.data?.result) {
+          const { credits, isMember } = response.data.result;
+          setCreditsCheck({
+            loading: false,
+            hasCredits: isMember || (credits && credits > 0),
+            isMember: isMember || false
+          });
+        } else {
+          setCreditsCheck({ loading: false, hasCredits: true, isMember: false });
+        }
+      } catch (err) {
+        console.error('Error checking credits:', err);
+        setCreditsCheck({ loading: false, hasCredits: true, isMember: false }); // Graceful fallback
+      }
+    };
 
     const handleUserInput=(fieldName,fieldValue)=>{
 
@@ -69,6 +102,37 @@ function Create() {
     }
 
    
+
+  if (!isLoaded || (user && creditsCheck.loading)) {
+    return (
+      <div className='flex flex-col items-center justify-center min-h-[60vh]'>
+        <Loader className='w-10 h-10 animate-spin text-primary' />
+        <p className='text-slate-500 mt-4 text-sm'>Checking account details...</p>
+      </div>
+    );
+  }
+
+  if (user && !creditsCheck.loading && !creditsCheck.hasCredits) {
+    return (
+      <div className='flex flex-col items-center justify-center p-6 md:px-24 lg:px-36 mt-10 md:mt-20 max-w-xl mx-auto text-center'>
+        <div className='p-6 bg-red-50 dark:bg-red-950/20 rounded-full mb-6'>
+          <Lock className='w-12 h-12 text-red-650 dark:text-red-400' />
+        </div>
+        <h2 className='font-bold text-3xl text-slate-800 dark:text-white mb-3'>Out of Credits</h2>
+        <p className='text-slate-500 dark:text-slate-400 mb-8 max-w-md'>
+          You have used all of your available course creation credits. Upgrade to premium for unlimited course creation or purchase a credit pack to continue.
+        </p>
+        <div className='flex flex-col sm:flex-row gap-4 w-full justify-center'>
+          <Button onClick={() => router.push('/dashboard/upgrade')} className='bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition hover:scale-[1.02]'>
+            Upgrade Account
+          </Button>
+          <Button variant='outline' onClick={() => router.push('/dashboard')} className='px-8 py-3 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50'>
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='flex flex-col items-center p-4 md:px-24 lg:px-36 mt-10 md:mt-20'>
