@@ -1,0 +1,194 @@
+================================================================================
+                    GEMINI LMS: ADVANCED SYSTEM & FEATURES REPORT
+================================================================================
+Date: June 20, 2026
+Prepared By: Antigravity AI Engineer
+Prepared For: LMS Engineering Board & Administrators
+System Version: 3.0 (Security Audited & Premium Backup Implemented)
+================================================================================
+
+1. EXECUTIVE SUMMARY & CORE PURPOSE
+--------------------------------------------------------------------------------
+Gemini LMS is an advanced, AI-powered Learning Management System designed to
+automate the process of course generation, study content compilation, student 
+performance tracking, and administrative grading review. 
+
+By leveraging Google Gemini models (Gemini Flash/Pro), the system dynamically
+translates learning topics into rich courses with outlines, chapters notes, 
+flashcards, practice quizzes, timed mock exams, and homework assignments.
+
+The system uses a hybrid authentication model: Clerk Auth for student-facing
+portals and a custom PostgreSQL-based session cookie implementation for the 
+administrative team (tutors, admins, and super_admins).
+
+
+2. SYSTEM TECHNOLOGY STACK
+--------------------------------------------------------------------------------
+* core framework:
+  Next.js 15 (Node.js runtime, utilizing App Router)
+* database layer:
+  Neon Serverless (PostgreSQL)
+* database driver & orm:
+  Drizzle ORM (type-safe SQL schema mappings and dynamic queries)
+* background action scheduler:
+  Inngest (runs time-consuming AI generation and weekly cron tasks in the background)
+* artificial intelligence engine:
+  Google Generative AI SDK (Gemini Flash/Pro models)
+* authentication & session validation:
+  Clerk Auth JWTs (Students/Creators) + Custom Encrypted Cookies (Staff Panel)
+* email notifications relay:
+  Resend API (triggers weekly progress reports and grading notifications)
+* user interface styling:
+  Tailwind CSS (utility layouts) + Scoped Vanilla CSS (glassmorphism/custom UI)
+* utility dependencies:
+  DOMPurify (HTML sanitization), sonner (toast alerts), zlib (gzip compression)
+
+
+3. FOLDER & FILE LAYOUT STRUCTURE
+--------------------------------------------------------------------------------
+├── app/                               # NEXT.JS ROUTE TREE
+│   ├── (auth)/                        # Clerk login and registration views
+│   ├── admin/                         # Staff Portal dashboard & backup UI [NEW]
+│   ├── api/                           # BACKEND REST API ENDPOINTS
+│   │   ├── (admin)/admin/             # Secured administrative APIs
+│   │   │   ├── backup/                # Backup download/generate/history APIs [NEW]
+│   │   │   └── announcements/         # Announcements publishing and targets
+│   │   └── (system)/inngest/          # Inngest background event integration
+│   └── dashboard/                     # Clerk-authenticated student dashboard
+├── components/                        # REUSABLE FRONTEND COMPONENTS
+│   ├── admin/                         # Staff layout shells and panels
+│   │   └── BackupDashboard.jsx        # Premium glassmorphic backup utility [NEW]
+│   └── ui/                            # Shadcn/Radix core components
+├── configs/                           # ARCHITECTURAL CONFIGURATIONS
+│   ├── db.js                          # Neon serverless client export
+│   └── schema.js                      # Drizzle Postgres schema declarations
+├── hooks/                             # CLIENT STATE CUSTOM HOOKS
+├── inngest/                           # BACKGROUND ASYNC CONTROLLERS
+│   ├── functions/                     # Modular async handlers
+│   │   ├── cronJobs.js                # Weekly backups, reminders, stale cleanup
+│   │   └── course.js                  # Chapter notes outline generation
+│   └── functions.js                   # Registered handlers exports
+└── lib/                               # CORE CRYPTO & MIDDLEWARE SERVICES
+    ├── adminAuth.js                   # PBKDF2 hashing & cookie encryptor
+    └── adminApiAuth.js                # staff middleware check guards
+
+
+4. USER PORTAL WORKFLOWS (STUDENT & CREATOR FEATURES)
+--------------------------------------------------------------------------------
+The User portal supports interactive learning, self-assessment, and trackable 
+progress parameters:
+
+* 4.1. Course Outline Generation:
+  Users input learning topics. The system calls Gemini to output a structured 
+  JSON outline of modules, chapters, and topics, which is saved to the database.
+  
+* 4.2. Chapter Notes Summary:
+  Triggers an Inngest worker. Gemini compiles comprehensive, detailed learning notes 
+  formatted in Markdown for each chapter, cached inside the `chapterNotes` table.
+
+* 4.3. Interactive Flashcards:
+  Converts chapter concepts into interactive card structures with 3D flip 
+  animations, helping students memorize definitions.
+
+* 4.4. Dynamic Quizzes:
+  Generates practice quizzes for chapters. Supports multiple-choice, true/false, 
+  short answer, and fill-in-the-blanks formats.
+
+* 4.5. Timed Mock Exams:
+  A timed environment mimicking actual exams. Tracks remaining seconds and evaluates 
+  grades and pass/fail thresholds on completion.
+
+* 4.6. Chapter Peer Discussions:
+  A per-chapter forum where students post questions, read feedback, and staff/peers 
+  reply to threads.
+
+* 4.7. Homework Submissions:
+  Students write answers in a split markdown editor (with live preview) or link files. 
+  AI runs initial grading rubrics, highlighting strengths and improvements needed.
+
+* 4.8. Adaptive Difficulty System:
+  Tracks performance averages per topic. If scores fall below 60%, the topic is 
+  flagged, and the quiz engine automatically downshifts the difficulty level 
+  (e.g., from Hard to Medium) to rebuild core understanding.
+
+* 4.9. Parent Portal Access:
+  Students generate secure tokens. Parents use these tokens to view student grades, 
+  active assignments, and streak metrics without editing permissions.
+
+* 4.10. Support Tickets:
+  Students log support tickets categorized by topic, which are dispatched directly 
+  to the administrative staff inbox.
+
+
+5. STAFF PORTAL WORKFLOWS (ADMINISTRATIVE & TUTOR FEATURES)
+--------------------------------------------------------------------------------
+The Staff Portal secures, moderately edits, and backups the entire platform:
+
+* 5.1. Operations dashboard Analytics:
+  Renders registration rates, AI generation logs, monthly revenue records, queue 
+  backlogs, and diagnostic system health charts.
+
+* 5.2. Course Outline Moderation:
+  Staff review outlines, manually edit outline structures, or queue manual 
+  courses before notes and study aids begin generating.
+
+* 5.3. Announcements Banner:
+  Publishes banners to target audiences (all, students, tutors) with custom 
+  priorities, pin settings, and expiration timestamps.
+
+* 5.4. Submissions & Grading Queue:
+  Lists student assignments. Tutors read submitted code/text, review the AI 
+  feedback, apply manual score overrides, and record grader remarks.
+
+* 5.5. Team Credentials Manager:
+  Super-admins create staff accounts. The system generates setup activation 
+  links, hashing passwords securely on setup.
+
+* 5.6. Tutor Approval Queue:
+  Allows staff to review, approve, or reject user applications to become tutors.
+
+* 5.7. Audit Log System:
+  Logs every administrative action (grade override, password reset, manual credit 
+  adjustments) alongside user, IP, and time details.
+
+* 5.8. Premium Data Backups:
+  Generates, queries, and streams gzipped snapshots of 16 core database tables:
+  - Manual snapshots compiled on-demand.
+  - Weekly backups automated via Inngest cron.
+  - Attachment file streaming via secure transient tokens.
+
+
+6. SECURITY ARCHITECTURE & REMEDIATION SUMMARY
+--------------------------------------------------------------------------------
+The system was recently audited and remediated against high-risk security flaws:
+
+* BOLA / IDOR Protection:
+  Secured student delete, user streak, and assignment submissions. Endpoints 
+  verify that Clerk session emails match target records, blocking spoofing.
+  
+* Staff Guard Middleware:
+  All staff routes verify the encrypted `admin_session` cookie via 
+  `requireAdminOrAbove()`, blocking access to unauthenticated actors.
+
+* Hashing Mismatch Fix:
+  Resolved tutor lockout bug by aligning `/set-password` hashing to PBKDF2Sync. 
+  Temporary passwords are cleared on setup.
+
+* DOM / Stored XSS Mitigation:
+  Integrated `DOMPurify` to sanitize markdown inputs inside the student assignment 
+  editor preview pane, neutralizing script injections.
+
+* Backup Download Safety:
+  File streaming is locked behind cryptographically random download tokens, 
+  avoiding session cookie leakage on direct browser downloads.
+
+
+7. VERIFICATION RESULTS
+--------------------------------------------------------------------------------
+* Production Compile:
+  `npm run build` compiled with 100% success.
+* Integration Test:
+  `scratch/test_backup_features.js` successfully queried all 16 database tables, 
+  compressed 536 records into a 654 KB Gzip buffer, and parsed it back into 
+  original JSON structures with matching counts.
+================================================================================
