@@ -105,6 +105,7 @@ function AdminLayoutContent({ children }) {
         { href: '/admin/assignment-unlocks', label: 'Unlock Requests', icon: Key, roles: ['admin', 'super_admin'] },
         { href: '/admin/support', label: 'Support Tickets', icon: MessageSquare, roles: ['admin', 'super_admin'] },
         { href: '/admin/activity-log', label: 'Activity Log', icon: History, roles: ['admin', 'super_admin'] },
+        { href: '/admin/health', label: 'System Health', icon: Shield, roles: ['admin', 'super_admin'] },
         { href: '/admin/team', label: 'Manage Team', icon: UsersRound, roles: ['super_admin'] },
         { href: '/admin/gradebook', label: 'GradeBook', icon: GraduationCap, roles: ['tutor', 'admin', 'super_admin'] },
     ]
