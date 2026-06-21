@@ -1,12 +1,12 @@
 <p align="center">
   <a href="https://github.com/Rashid-RG/gemini-lms" target="_blank" rel="noopener noreferrer">
-    <img src="public/logo.svg" alt="Gemini LMS Logo" width="120" style="animation: float 4s ease-in-out infinite;" />
+    <img src="https://raw.githubusercontent.com/Rashid-RG/gemini-lms/main/public/logo.svg" alt="Gemini LMS Logo" width="120" style="animation: float 4s ease-in-out infinite;" />
   </a>
 </p>
 
 <h1 align="center">🎓 Gemini LMS</h1>
 <p align="center">
-  <img src="public/typing-header.svg" alt="Gemini LMS 3.0 — AI-First SaaS Platform" width="550" />
+  <img src="https://raw.githubusercontent.com/Rashid-RG/gemini-lms/main/public/typing-header.svg" alt="Gemini LMS 3.0 — AI-First SaaS Platform" width="550" />
 </p>
 
 <div align="center">
@@ -24,7 +24,7 @@
 ---
 
 <p align="center">
-  <img src="public/animated-banner.svg" alt="Gemini LMS Banner" width="100%" />
+  <img src="https://raw.githubusercontent.com/Rashid-RG/gemini-lms/main/public/animated-banner.svg" alt="Gemini LMS Banner" width="100%" />
 </p>
 
 ---
@@ -33,7 +33,7 @@
 Experience the full interactive product launch trailer directly inside your browser. Featuring an adaptive high-fidelity soundtrack and active real-time AI voiceover synthesis.
 
 <p align="center">
-  <video src="public/launch-video.mp4" width="100%" poster="public/gemini_lms_banner.png" controls loop>
+  <video src="https://raw.githubusercontent.com/Rashid-RG/gemini-lms/main/public/launch-video.mp4" width="100%" poster="https://raw.githubusercontent.com/Rashid-RG/gemini-lms/main/public/gemini_lms_banner.png" controls loop>
     Your browser does not support the video tag.
   </video>
 </p>
@@ -48,7 +48,7 @@ Experience the full interactive product launch trailer directly inside your brow
 ## 🌟 Premium SaaS Feature Suite
 
 <p align="center">
-  <img src="public/features-showcase.svg" alt="Gemini LMS Feature Showcase" width="100%" />
+  <img src="https://raw.githubusercontent.com/Rashid-RG/gemini-lms/main/public/features-showcase.svg" alt="Gemini LMS Feature Showcase" width="100%" />
 </p>
 
 ### 👩‍🎓 Student Core
@@ -110,7 +110,7 @@ graph TD
 Watch the automatic terminal setup simulator below to see how to download, compile, and boot up the Gemini LMS development environment.
 
 <p align="center">
-  <img src="public/installation-terminal.svg" alt="Gemini LMS Installation Terminal Simulator" width="100%" />
+  <img src="https://raw.githubusercontent.com/Rashid-RG/gemini-lms/main/public/installation-terminal.svg" alt="Gemini LMS Installation Terminal Simulator" width="100%" />
 </p>
 
 <details>
