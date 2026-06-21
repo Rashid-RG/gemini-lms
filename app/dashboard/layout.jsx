@@ -16,6 +16,7 @@ function DashboardLayout({children}) {
     const [isMember, setIsMember] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
     const adminEmails = React.useMemo(() => 
@@ -28,13 +29,14 @@ function DashboardLayout({children}) {
     const isRestrictedAdmin = isLoaded && userEmail && (adminEmails.includes(userEmail) || userEmail === 'geminilmsadmin@gmail.com');
 
     useEffect(() => {
+        setMounted(true);
         const saved = localStorage.getItem('sidebarCollapsed');
         if (saved !== null) {
             setIsSidebarCollapsed(saved === 'true');
         }
     }, []);
 
-    if (isRestrictedAdmin) {
+    if (mounted && isRestrictedAdmin) {
         return (
             <div style={{
                 display: 'flex',
