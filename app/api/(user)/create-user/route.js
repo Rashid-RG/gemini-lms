@@ -9,6 +9,7 @@ import { captureError, startTimer } from "@/lib/monitoring";
 import { ensureStudentIdentifierForUser, hasStudentIdentifier } from "@/lib/studentIdentifier";
 import { auth } from "@clerk/nextjs/server";
 import { getAuthEmail } from "@/lib/clerkUtils";
+import { getUserCredits } from "@/lib/credits";
 
 // In-memory request deduplication to prevent duplicate DB queries
 const pendingRequests = new Map();
@@ -114,9 +115,18 @@ export async function POST(req) {
             ).catch(() => null);
 
             if (existingUser?.length > 0) {
-                const ensuredUser = hasStudentIdentifier(existingUser[0]?.studentIdentifier)
-                    ? existingUser[0]
-                    : await ensureStudentIdentifierForUser(existingUser[0]);
+                const userCreditsResult = await getUserCredits(normalizedEmail);
+                const updatedUser = userCreditsResult ? userCreditsResult.user : existingUser[0];
+                const totalCreditsLimit = userCreditsResult ? userCreditsResult.totalCreditsLimit : 5;
+
+                const userWithLimit = {
+                    ...updatedUser,
+                    totalCreditsLimit
+                };
+
+                const ensuredUser = hasStudentIdentifier(userWithLimit?.studentIdentifier)
+                    ? userWithLimit
+                    : await ensureStudentIdentifierForUser(userWithLimit);
 
                 // Cache user data for 5 minutes
                 cache.set(cacheKey, ensuredUser, CACHE_TTL.MEDIUM);
@@ -139,6 +149,7 @@ export async function POST(req) {
             // Return default for new user
             return { 
                 credits: 5, 
+                totalCreditsLimit: 5,
                 isMember: false,
                 email: normalizedEmail,
             };

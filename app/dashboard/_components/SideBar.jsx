@@ -12,6 +12,7 @@ import axios from 'axios'
 
 function SideBar({ onNavigate, onCollapseToggle }) {
     const [mounted, setMounted] = useState(false);
+    const [totalCreditsLimit, setTotalCreditsLimit] = useState(5);
     const { user } = useUser();
     const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
     const adminEmails = useMemo(() => (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean), []);
@@ -200,16 +201,19 @@ function SideBar({ onNavigate, onCollapseToggle }) {
             if (userResult?.data?.result) {
                 const userData = userResult.data.result;
                 setUserCredits(userData.credits ?? 5);
+                setTotalCreditsLimit(userData.totalCreditsLimit ?? 5);
                 setIsMember(userData.isMember ?? false);
             } else {
                 setUserCredits(5);
+                setTotalCreditsLimit(5);
                 setIsMember(false);
             }
         } catch (userError) {
             setUserCredits(5);
+            setTotalCreditsLimit(5);
             setIsMember(false);
         }
-    }, [user, setTotalCourse, setUserCredits, setIsMember]);
+    }, [user, setTotalCourse, setUserCredits, setIsMember, setTotalCreditsLimit]);
 
     // Load data on user change
     useEffect(() => {
@@ -305,9 +309,9 @@ function SideBar({ onNavigate, onCollapseToggle }) {
                     <>
                         <div className="flex justify-between items-center text-xs">
                             <span className="font-bold text-slate-700 dark:text-slate-300">Available Credits</span>
-                            <span className="font-black text-indigo-600">{userCredits} / 5</span>
+                            <span className="font-black text-indigo-600">{userCredits} / {totalCreditsLimit}</span>
                         </div>
-                        <Progress value={userCredits > 0 ? (userCredits / 5) * 100 : 0} className="h-1.5 bg-indigo-50 [&>div]:bg-indigo-600" />
+                        <Progress value={userCredits > 0 ? (userCredits / totalCreditsLimit) * 100 : 0} className="h-1.5 bg-indigo-50 [&>div]:bg-indigo-600" />
                         <h2 className='text-[10px] text-slate-500 dark:text-slate-400 font-medium'>{totalCourse} Courses Created</h2>
                     </>
                 )}

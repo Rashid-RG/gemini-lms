@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getAuthEmail } from "@/lib/clerkUtils";
+import { getUserCredits } from "@/lib/credits";
 
 /**
  * GET /api/credits
@@ -31,22 +32,16 @@ export async function GET(req) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        // Get user credits
-        const users = await db.select({
-            credits: USER_TABLE.credits,
-            totalCreditsUsed: USER_TABLE.totalCreditsUsed,
-            isMember: USER_TABLE.isMember
-        }).from(USER_TABLE)
-          .where(eq(USER_TABLE.email, email));
-
-        if (users.length === 0) {
+        // Get user credits via self-healing getUserCredits
+        const userCreditsResult = await getUserCredits(email);
+        if (!userCreditsResult) {
             return NextResponse.json(
                 { error: "User not found" },
                 { status: 404 }
             );
         }
 
-        const user = users[0];
+        const { credits, totalCreditsLimit, user } = userCreditsResult;
 
         // Get transaction history
         const transactions = await db.select()
@@ -56,7 +51,8 @@ export async function GET(req) {
             .limit(50);
 
         return NextResponse.json({
-            credits: user.credits ?? 0,
+            credits: credits ?? 0,
+            totalCreditsLimit: totalCreditsLimit ?? 5,
             totalUsed: user.totalCreditsUsed ?? 0,
             isMember: user.isMember ?? false,
             transactions: transactions.map(t => ({
