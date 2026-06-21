@@ -111,20 +111,40 @@ export async function DELETE(req, { params }) {
         await db.delete(STUDY_MATERIAL_TABLE)
             .where(eq(STUDY_MATERIAL_TABLE.courseId, courseId));
 
-        // 4. Refund the credit using proper transaction logging
-        const refundResult = await refundCourseCredits(
-            userEmail,
-            courseId,
-            `Manual deletion: ${courseData.status === 'Ready' ? 'Completed course' : 'Failed/stuck course'} - ${courseData.topic}`
-        );
+        // 4. Refund the credit if not already refunded
+        // Courses in 'Error' or 'Failed' status have already been refunded by the Inngest failure handler or cleanup cron job.
+        const alreadyRefunded = courseData.status === 'Error' || courseData.status === 'Failed';
+        
+        let refundResult = { success: false, newBalance: null };
+        if (!alreadyRefunded) {
+            refundResult = await refundCourseCredits(
+                userEmail,
+                courseId,
+                `Manual deletion: ${courseData.status} course - ${courseData.topic}`
+            );
+        } else {
+            console.log(`Course ${courseId} has status ${courseData.status} and was already refunded. Skipping duplicate refund on delete.`);
+            // Get current balance
+            const userCreditsResult = await db.select({ credits: USER_TABLE.credits })
+                .from(USER_TABLE)
+                .where(eq(USER_TABLE.email, userEmail.trim().toLowerCase()))
+                .limit(1);
+            refundResult = { 
+                success: true, 
+                newBalance: userCreditsResult[0]?.credits ?? 0,
+                alreadyRefunded: true 
+            };
+        }
 
         return NextResponse.json({
             success: true,
-            message: refundResult.success 
-                ? "Course deleted successfully. Credit has been refunded."
-                : "Course deleted but credit refund failed. Contact support.",
+            message: refundResult.alreadyRefunded 
+                ? "Course deleted successfully. (Credit was already refunded previously.)"
+                : refundResult.success 
+                    ? "Course deleted successfully. Credit has been refunded."
+                    : "Course deleted but credit refund failed. Contact support.",
             deletedCourseId: courseId,
-            creditRefunded: refundResult.success,
+            creditRefunded: refundResult.alreadyRefunded ? false : refundResult.success,
             newCreditBalance: refundResult.newBalance
         });
 
