@@ -21,13 +21,13 @@ async function fixPasswords() {
 
     // Fix Admin password
     const adminHash = hashPassword(adminPassword);
-    await sql`UPDATE admins SET "passwordHash" = ${adminHash}, "updatedAt" = NOW() WHERE email = 'admin@demo.com'`;
-    console.log('✅ Fixed admin@demo.com password');
+    await sql`UPDATE admins SET "passwordHash" = ${adminHash}, "updatedAt" = NOW() WHERE email = 'geminilmsadmin@gmail.com'`;
+    console.log('✅ Fixed geminilmsadmin@gmail.com password');
 
     // Fix Tutor password
     const tutorHash = hashPassword(tutorPassword);
-    await sql`UPDATE admins SET "passwordHash" = ${tutorHash}, "updatedAt" = NOW() WHERE email = 'tutor@demo.com'`;
-    console.log('✅ Fixed tutor@demo.com password');
+    await sql`UPDATE admins SET "passwordHash" = ${tutorHash}, "updatedAt" = NOW() WHERE email = 'geminilmsturor@gmail.com'`;
+    console.log('✅ Fixed geminilmsturor@gmail.com password');
 
     console.log('\n🔐 Passwords updated. Login with the credentials from your env vars.');
 }

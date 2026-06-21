@@ -26,7 +26,7 @@ export async function GET(req) {
             .split(',')
             .map(e => e.trim().toLowerCase())
             .filter(Boolean);
-        adminEmails.push('admin@demo.com');
+        adminEmails.push('geminilmsadmin@gmail.com');
 
         if (adminEmails.includes(userEmail.toLowerCase())) {
             return NextResponse.json({ 

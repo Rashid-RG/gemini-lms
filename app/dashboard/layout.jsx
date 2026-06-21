@@ -25,7 +25,7 @@ function DashboardLayout({children}) {
             .filter(Boolean), 
         []
     );
-    const isRestrictedAdmin = isLoaded && userEmail && (adminEmails.includes(userEmail) || userEmail === 'admin@demo.com');
+    const isRestrictedAdmin = isLoaded && userEmail && (adminEmails.includes(userEmail) || userEmail === 'geminilmsadmin@gmail.com');
 
     useEffect(() => {
         const saved = localStorage.getItem('sidebarCollapsed');

@@ -22,9 +22,9 @@ async function createDemoAccounts() {
     const adminHash = hashPassword(adminPassword);
     try {
         await sql`INSERT INTO admins (email, "passwordHash", name, role, "isActive", "createdAt", "updatedAt")
-                  VALUES ('admin@demo.com', ${adminHash}, 'Demo Admin', 'admin', true, NOW(), NOW())
+                  VALUES ('geminilmsadmin@gmail.com', ${adminHash}, 'Demo Admin', 'admin', true, NOW(), NOW())
                   ON CONFLICT (email) DO NOTHING`;
-        console.log('✅ Admin account created: admin@demo.com');
+        console.log('✅ Admin account created: geminilmsadmin@gmail.com');
     } catch (e) {
         console.log('ℹ️  Admin already exists or error:', e.message);
     }
@@ -33,9 +33,9 @@ async function createDemoAccounts() {
     const tutorHash = hashPassword(tutorPassword);
     try {
         await sql`INSERT INTO admins (email, "passwordHash", name, role, "isActive", "createdAt", "updatedAt")
-                  VALUES ('tutor@demo.com', ${tutorHash}, 'Demo Tutor', 'tutor', true, NOW(), NOW())
+                  VALUES ('geminilmsturor@gmail.com', ${tutorHash}, 'Demo Tutor', 'tutor', true, NOW(), NOW())
                   ON CONFLICT (email) DO NOTHING`;
-        console.log('✅ Tutor account created: tutor@demo.com');
+        console.log('✅ Tutor account created: geminilmsturor@gmail.com');
     } catch (e) {
         console.log('ℹ️  Tutor already exists or error:', e.message);
     }
@@ -56,8 +56,8 @@ async function createDemoAccounts() {
     console.log('\n📌 All 3 roles live in the SAME "admins" table');
     console.log('📌 The "role" column tells them apart: super_admin / admin / tutor');
     console.log('\n🔐 Demo credentials:');
-    console.log('   Admin: admin@demo.com / Admin@123');
-    console.log('   Tutor: tutor@demo.com / Tutor@123\n');
+    console.log('   Admin: geminilmsadmin@gmail.com / Admin@123');
+    console.log('   Tutor: geminilmsturor@gmail.com / Tutor@123\n');
 }
 
 createDemoAccounts().catch(console.error);
