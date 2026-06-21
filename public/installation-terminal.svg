@@ -35,7 +35,7 @@
       92.8%, 100% { width: 0px; }
     }
 
-    /* Opacity fade keyframes for Outputs & Prompts */
+    /* Opacity fade keyframes for Outputs and Prompts */
     @keyframes fadeOut1 {
       0%, 17.8% { opacity: 0; }
       17.9%, 85.7% { opacity: 1; }
