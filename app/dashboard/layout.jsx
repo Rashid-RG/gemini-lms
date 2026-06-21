@@ -4,6 +4,7 @@ import SideBar from './_components/SideBar'
 import DashboardHeader from './_components/DashboardHeader'
 import { CourseCountContext } from '../_context/CourseCountContext'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
+import LowCreditsBanner from '@/components/LowCreditsBanner'
 import { Menu, X } from 'lucide-react'
 import BottomNav from './_components/BottomNav'
 import { useUser, useClerk } from '@clerk/nextjs'
@@ -175,6 +176,7 @@ function DashboardLayout({children}) {
             />
             <main className='flex-1 p-4 md:p-8 pt-6 pb-20 md:pb-8'>
                 <AnnouncementBanner />
+                <LowCreditsBanner />
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {children}
                 </div>
