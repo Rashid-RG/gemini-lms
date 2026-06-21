@@ -83,10 +83,15 @@ export default function AdminLoginPage() {
     }
 
     const handleGoogleLogin = async () => {
-        if (!signInLoaded) return
+        console.log("handleGoogleLogin: Button clicked. signInLoaded =", signInLoaded);
+        if (!signInLoaded) {
+            console.log("handleGoogleLogin: Early return because signIn is not loaded yet.");
+            return
+        }
         setError('')
         setLoading(true)
         try {
+            console.log("handleGoogleLogin: Redirecting to Google OAuth...");
             // Start Google OAuth flow
             await signIn.authenticateWithRedirect({
                 strategy: 'oauth_google',
