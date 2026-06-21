@@ -1,0 +1,53 @@
+<svg fill="none" viewBox="0 0 800 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes typingText {
+      0%, 5% { width: 0px; }
+      45%, 55% { width: 620px; }
+      95%, 100% { width: 0px; }
+    }
+    @keyframes cursorMovement {
+      0%, 5% { transform: translateX(0px); }
+      45%, 55% { transform: translateX(615px); }
+      95%, 100% { transform: translateX(0px); }
+    }
+    @keyframes cursorBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .typing-text {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      fill: url(#textGrad);
+    }
+    .cursor-rect {
+      animation: cursorBlink 0.8s infinite;
+      fill: #818cf8;
+    }
+    .clip-block {
+      animation: typingText 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    .cursor-group {
+      animation: cursorMovement 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+  </style>
+  
+  <defs>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="50%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#f472b6" />
+    </linearGradient>
+    <clipPath id="typeClip">
+      <rect class="clip-block" x="90" y="0" width="0" height="100" />
+    </clipPath>
+  </defs>
+
+  <!-- Typing Text -->
+  <text x="100" y="58" class="typing-text" clip-path="url(#typeClip)">🎓 Gemini LMS 3.0 — AI-First SaaS Platform</text>
+  
+  <!-- Typing Cursor -->
+  <g class="cursor-group" transform="translate(100, 0)">
+    <rect class="cursor-rect" x="0" y="32" width="3" height="32" rx="1.5" />
+  </g>
+</svg>

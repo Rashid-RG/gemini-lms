@@ -1,0 +1,198 @@
+<svg fill="none" viewBox="0 0 760 380" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Terminal window animations */
+    @keyframes terminalGlow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.15)) drop-shadow(0 0 25px rgba(99, 102, 241, 0.05)); }
+      50% { filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.25)) drop-shadow(0 0 45px rgba(168, 85, 247, 0.1)); }
+    }
+    .terminal-container {
+      animation: terminalGlow 6s ease-in-out infinite;
+    }
+
+    /* Core Cursor Blinking Keyframes */
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    /* Typewriter width-reveal keyframes (14s total cycle) */
+    @keyframes typeCmd1 {
+      0%, 3.5% { width: 0px; }
+      17.8% { width: 440px; } /* finishes typing at 2.5s */
+      85.7% { width: 440px; } /* holds until 12s */
+      92.8%, 100% { width: 0px; } /* reset/fade */
+    }
+    @keyframes typeCmd2 {
+      0%, 20.0% { width: 0px; } /* starts at 2.8s */
+      34.2% { width: 240px; } /* finishes typing at 4.8s */
+      85.7% { width: 240px; }
+      92.8%, 100% { width: 0px; }
+    }
+    @keyframes typeCmd3 {
+      0%, 36.4% { width: 0px; } /* starts at 5.1s */
+      47.1% { width: 100px; } /* finishes typing at 6.6s */
+      85.7% { width: 100px; }
+      92.8%, 100% { width: 0px; }
+    }
+
+    /* Opacity fade keyframes for Outputs & Prompts */
+    @keyframes fadeOut1 {
+      0%, 17.8% { opacity: 0; }
+      17.9%, 85.7% { opacity: 1; }
+      92.8%, 100% { opacity: 0; }
+    }
+    @keyframes fadeCmd2 {
+      0%, 20.0% { opacity: 0; }
+      20.1%, 85.7% { opacity: 1; }
+      92.8%, 100% { opacity: 0; }
+    }
+    @keyframes fadeOut2 {
+      0%, 34.2% { opacity: 0; }
+      34.3%, 85.7% { opacity: 1; }
+      92.8%, 100% { opacity: 0; }
+    }
+    @keyframes fadeCmd3 {
+      0%, 36.4% { opacity: 0; }
+      36.5%, 85.7% { opacity: 1; }
+      92.8%, 100% { opacity: 0; }
+    }
+    @keyframes fadeOut3 {
+      0%, 47.1% { opacity: 0; }
+      47.2%, 85.7% { opacity: 1; }
+      92.8%, 100% { opacity: 0; }
+    }
+
+    /* Cursor activity switches */
+    @keyframes cursor1 {
+      0% { opacity: 0; }
+      1%, 17.8% { opacity: 1; animation: blink 0.8s infinite; }
+      17.9%, 100% { opacity: 0; }
+    }
+    @keyframes cursor2 {
+      0%, 20.0% { opacity: 0; }
+      20.1%, 34.2% { opacity: 1; animation: blink 0.8s infinite; }
+      34.3%, 100% { opacity: 0; }
+    }
+    @keyframes cursor3 {
+      0%, 36.4% { opacity: 0; }
+      36.5%, 47.1% { opacity: 1; animation: blink 0.8s infinite; }
+      47.2%, 100% { opacity: 0; }
+    }
+    @keyframes cursor4 {
+      0%, 47.1% { opacity: 0; }
+      47.2%, 85.7% { opacity: 1; animation: blink 0.8s infinite; }
+      92.8%, 100% { opacity: 0; }
+    }
+
+    /* General classes */
+    .prompt-label { font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold; fill: #10b981; }
+    .path-label { font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold; fill: #38bdf8; }
+    .cmd-text { font-family: 'Courier New', monospace; font-size: 13px; fill: #f8fafc; }
+    .out-text { font-family: 'Courier New', monospace; font-size: 12px; fill: #94a3b8; }
+    .cursor { fill: #818cf8; }
+
+    /* Assigning animations to classes */
+    .cmd1-clip { animation: typeCmd1 14s ease-in-out infinite; }
+    .cmd2-clip { animation: typeCmd2 14s ease-in-out infinite; }
+    .cmd3-clip { animation: typeCmd3 14s ease-in-out infinite; }
+
+    .c1 { animation: cursor1 14s step-end infinite; }
+    .c2 { animation: cursor2 14s step-end infinite; }
+    .c3 { animation: cursor3 14s step-end infinite; }
+    .c4 { animation: cursor4 14s step-end infinite; }
+
+    .prompt2 { animation: fadeCmd2 14s step-end infinite; }
+    .out1 { animation: fadeOut1 14s step-end infinite; }
+    .prompt3 { animation: fadeCmd3 14s step-end infinite; }
+    .out2 { animation: fadeOut2 14s step-end infinite; }
+    .prompt4 { animation: fadeOut3 14s step-end infinite; }
+    .out3 { animation: fadeOut3 14s step-end infinite; }
+  </style>
+
+  <defs>
+    <!-- Clip Paths for Typewriter Reveal -->
+    <clipPath id="cmd1Clip">
+      <rect class="cmd1-clip" x="175" y="0" width="0" height="380" />
+    </clipPath>
+    <clipPath id="cmd2Clip">
+      <rect class="cmd2-clip" x="175" y="0" width="0" height="380" />
+    </clipPath>
+    <clipPath id="cmd3Clip">
+      <rect class="cmd3-clip" x="250" y="0" width="0" height="380" />
+    </clipPath>
+  </defs>
+
+  <!-- Terminal Window Shadow Box -->
+  <rect class="terminal-container" x="10" y="10" width="740" height="360" rx="16" fill="#0b0f19" stroke="#1e293b" stroke-width="2" />
+
+  <!-- Window Header / Title Bar -->
+  <g>
+    <!-- Mac-style colored control circles -->
+    <circle cx="36" cy="32" r="6" fill="#ef4444" />
+    <circle cx="56" cy="32" r="6" fill="#f59e0b" />
+    <circle cx="76" cy="32" r="6" fill="#10b981" />
+    
+    <!-- Title Text -->
+    <text x="380" y="37" font-family="'Inter', sans-serif" font-size="12" font-weight="bold" fill="#64748b" text-anchor="middle">visitor@gemini-lms: ~</text>
+    
+    <!-- Header Border -->
+    <line x1="10" y1="52" x2="750" y2="52" stroke="#1e293b" stroke-width="1.5" />
+  </g>
+
+  <!-- Terminal Body / Text Area -->
+  <g transform="translate(25, 70)">
+    
+    <!-- Line 1: Clone Command -->
+    <g>
+      <text x="0" y="15" class="prompt-label">visitor@gemini-lms:~$</text>
+      <text x="175" y="15" class="cmd-text" clip-path="url(#cmd1Clip)">git clone https://github.com/Rashid-RG/gemini-lms.git</text>
+      <!-- Cursor 1 -->
+      <rect class="cursor c1" x="618" y="2" width="6.5" height="15" />
+    </g>
+
+    <!-- Line 2: Clone Output -->
+    <g class="out1">
+      <text x="0" y="38" class="out-text">Cloning into 'gemini-lms'...</text>
+      <text x="0" y="56" class="out-text">remote: Enumerating objects: 432, done.</text>
+      <text x="0" y="74" class="out-text">Unpacking objects: 100% (432/432), 4.31 MiB | 8.22 MiB/s, done.</text>
+    </g>
+
+    <!-- Line 3: CD & NPM Install -->
+    <g class="prompt2">
+      <text x="0" y="105" class="prompt-label">visitor@gemini-lms:~$</text>
+      <text x="175" y="105" class="cmd-text" clip-path="url(#cmd2Clip)">cd gemini-lms &amp;&amp; npm install</text>
+      <!-- Cursor 2 -->
+      <rect class="cursor c2" x="418" y="92" width="6.5" height="15" />
+    </g>
+
+    <!-- Line 4: Install Output -->
+    <g class="out2">
+      <text x="0" y="128" class="out-text" fill="#10b981">✓ added 1422 packages, and audited 1423 packages in 4.82s</text>
+      <text x="0" y="146" class="out-text">found 0 vulnerabilities</text>
+    </g>
+
+    <!-- Line 5: Launch Dev Server -->
+    <g class="prompt3">
+      <text x="0" y="177" class="prompt-label">visitor@gemini-lms:~/gemini-lms$</text>
+      <text x="250" y="177" class="cmd-text" clip-path="url(#cmd3Clip)">npm run dev</text>
+      <!-- Cursor 3 -->
+      <rect class="cursor c3" x="353" y="164" width="6.5" height="15" />
+    </g>
+
+    <!-- Line 6: Launch Output -->
+    <g class="out3">
+      <text x="0" y="200" class="out-text" fill="#64748b">&gt; gemini-lms@3.0.0 dev</text>
+      <text x="0" y="218" class="out-text" fill="#64748b">&gt; next dev</text>
+      <text x="0" y="244" class="out-text" fill="#a855f7" font-weight="bold">▲ Next.js 15.0.0</text>
+      <text x="0" y="262" class="out-text">  - Local:        http://localhost:3000</text>
+      <text x="0" y="288" class="out-text" fill="#10b981" font-weight="bold">✓ Ready in 800ms</text>
+    </g>
+
+    <!-- Line 7: Active Cursor blinking after server is ready -->
+    <g class="prompt4">
+      <text x="0" y="320" class="prompt-label">visitor@gemini-lms:~/gemini-lms$</text>
+      <rect class="cursor c4" x="250" y="307" width="6.5" height="15" />
+    </g>
+
+  </g>
+</svg>

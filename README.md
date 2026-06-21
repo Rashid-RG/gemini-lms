@@ -1,12 +1,17 @@
-# 🎓 Gemini LMS — AI-First SaaS Learning Platform
-
 <p align="center">
-  <img src="public/github-banner.png" alt="Gemini LMS Banner" width="100%" />
+  <a href="https://github.com/Rashid-RG/gemini-lms" target="_blank" rel="noopener noreferrer">
+    <img src="public/logo.svg" alt="Gemini LMS Logo" width="120" style="animation: float 4s ease-in-out infinite;" />
+  </a>
+</p>
+
+<h1 align="center">🎓 Gemini LMS</h1>
+<p align="center">
+  <img src="public/typing-header.svg" alt="Gemini LMS 3.0 — AI-First SaaS Platform" width="550" />
 </p>
 
 <div align="center">
   <p align="center">
-    <strong>A next-generation, AI-driven Learning Management System enabling custom course creation, voice-based tutoring, spaced-repetition testing, and automated grading.</strong>
+    Enabling custom course creation, voice-based tutoring, spaced-repetition testing, and automated grading.
   </p>
 
   [![Framework - Next.js 15](https://img.shields.io/badge/Framework-Next.js%2015-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -18,7 +23,33 @@
 
 ---
 
+<p align="center">
+  <img src="public/animated-banner.svg" alt="Gemini LMS Banner" width="100%" />
+</p>
+
+---
+
+## 🎬 Cinematic Product Launch Trailer
+Experience the full interactive product launch trailer directly inside your browser. Featuring an adaptive high-fidelity soundtrack and active real-time AI voiceover synthesis.
+
+<p align="center">
+  <video src="public/launch-video.mp4" width="100%" poster="public/gemini_lms_banner.png" controls loop>
+    Your browser does not support the video tag.
+  </video>
+</p>
+
+<p align="center">
+  <i>💡 To experience the video with interactive features and automatic voiceover:</i><br />
+  <a href="https://gemini-lms.vercel.app/trailer"><strong>🚀 Launch Interactive Web-Trailer with Sound</strong></a>
+</p>
+
+---
+
 ## 🌟 Premium SaaS Feature Suite
+
+<p align="center">
+  <img src="public/features-showcase.svg" alt="Gemini LMS Feature Showcase" width="100%" />
+</p>
 
 ### 👩‍🎓 Student Core
 - ⚡ **AI Course Generator**: Converts raw topics or uploaded PDF files into a structured course complete with curated YouTube lectures, chapters, quizzes, and dynamic flashcards.
@@ -71,70 +102,77 @@ graph TD
 
 ## 🚀 Installation & Local Setup
 
-### 1. Prerequisites
-Ensure you have **Node.js (v20+)** installed on your machine.
+### 🛠️ Prerequisites & Environment Setup
+1. **Node.js (v20+)** is required to run the development server.
+2. **Environment Variables**: Create a `.env.local` file in the root directory and configure the variables (detailed in the accordion below).
 
-### 2. Clone the Repository & Install Dependencies
-```bash
-git clone https://github.com/Rashid-RG/gemini-lms.git
-cd gemini-lms
-npm install
-```
+### 🚀 Live Interactive CLI Installation
+Watch the automatic terminal setup simulator below to see how to download, compile, and boot up the Gemini LMS development environment.
 
-### 3. Setup Environment Variables
-Create a `.env.local` file in the root directory and configure the following variables:
+<p align="center">
+  <img src="public/installation-terminal.svg" alt="Gemini LMS Installation Terminal Simulator" width="100%" />
+</p>
 
-```env
-# CLERK AUTHENTICATION KEYS
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+<details>
+  <summary>📋 View Plain Copy-Paste Setup Commands & Env Variables</summary>
 
-# DATABASE CONFIGURATION
-NEXT_PUBLIC_DB_CONNECTION_STRING="postgresql://neondb_owner:YOUR_NEW_PASSWORD@YOUR_NEON_HOST/AI-Study-Material-Gen?sslmode=require&channel_binding=require"
+  #### 1. Clone the Repository & Install Dependencies
+  ```bash
+  git clone https://github.com/Rashid-RG/gemini-lms.git
+  cd gemini-lms
+  npm install
+  ```
 
-# GOOGLE GEMINI AI
-NEXT_PUBLIC_GEMINI_API_KEY=AIza...
+  #### 2. Environment Variables (`.env.local`)
+  ```env
+  # CLERK AUTHENTICATION KEYS
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+  CLERK_SECRET_KEY=sk_test_...
+  NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+  NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
-# BACKGROUND QUEUE ORCHESTRATION (INNGEST)
-INNGEST_EVENT_KEY=local
-INNGEST_SIGNING_KEY=local
-INNGEST_BASE_URL=http://localhost:8288
+  # DATABASE CONFIGURATION
+  NEXT_PUBLIC_DB_CONNECTION_STRING="postgresql://neondb_owner:YOUR_NEW_PASSWORD@YOUR_NEON_HOST/AI-Study-Material-Gen?sslmode=require&channel_binding=require"
 
-# SMTP CONFIGURATION (GMAIL GATEWAY)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="465"
-SMTP_USER="geminilmsadmin@gmail.com"
-SMTP_PASSWORD="YOUR_GMAIL_APP_PASSWORD"
+  # GOOGLE GEMINI AI
+  NEXT_PUBLIC_GEMINI_API_KEY=AIza...
 
-# APPLICATION CONFIGURATION
-NEXT_PUBLIC_ADMIN_EMAILS="admin@yourdomain.com,superadmin@yourdomain.com"
-NEXT_PUBLIC_APP_URL="https://gemini-lms.vercel.app"
-NEXT_PUBLIC_BASE_URL="http://localhost:3000"
-```
+  # BACKGROUND QUEUE ORCHESTRATION (INNGEST)
+  INNGEST_EVENT_KEY=local
+  INNGEST_SIGNING_KEY=local
+  INNGEST_BASE_URL=http://localhost:8288
 
-### 4. Push Database Schema
-Use Drizzle-Kit to synchronize database tables and indexes on your Neon project:
-```bash
-npx drizzle-kit push
-```
+  # SMTP CONFIGURATION (GMAIL GATEWAY)
+  SMTP_HOST="smtp.gmail.com"
+  SMTP_PORT="465"
+  SMTP_USER="geminilmsadmin@gmail.com"
+  SMTP_PASSWORD="YOUR_GMAIL_APP_PASSWORD"
 
-### 5. Launch Local Servers
-Run the development server and the background queue manager concurrently:
+  # APPLICATION CONFIGURATION
+  NEXT_PUBLIC_ADMIN_EMAILS="admin@yourdomain.com,superadmin@yourdomain.com"
+  NEXT_PUBLIC_APP_URL="https://gemini-lms.vercel.app"
+  NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+  ```
 
-**Terminal 1 (Next.js Application)**
-```bash
-npm run dev
-```
+  #### 3. Push Database Schema
+  ```bash
+  npx drizzle-kit push
+  ```
 
-**Terminal 2 (Inngest Local GUI)**
-```bash
-npx inngest-cli@latest dev
-```
+  #### 4. Launch Local Development Servers
+  **Terminal 1 (Next.js Application)**
+  ```bash
+  npm run dev
+  ```
 
-- Application: [http://localhost:3000](http://localhost:3000)
-- Inngest Dashboard: [http://localhost:8288](http://localhost:8288)
+  **Terminal 2 (Inngest Local GUI)**
+  ```bash
+  npx inngest-cli@latest dev
+  ```
+
+  - **Application**: [http://localhost:3000](http://localhost:3000)
+  - **Inngest Dashboard**: [http://localhost:8288](http://localhost:8288)
+</details>
 
 ---
 

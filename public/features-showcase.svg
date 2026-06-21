@@ -1,0 +1,190 @@
+<svg fill="none" viewBox="0 0 920 360" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Card float animations */
+    @keyframes floatCard1 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes floatCard2 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes floatCard3 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    
+    .card-1 { animation: floatCard1 6s ease-in-out infinite; transform-origin: center; }
+    .card-2 { animation: floatCard2 5.5s ease-in-out infinite; transform-origin: center; }
+    .card-3 { animation: floatCard3 6.5s ease-in-out infinite; transform-origin: center; }
+
+    /* CSS Interactive Hover States */
+    .feature-card {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
+      cursor: pointer;
+    }
+    .feature-card:hover {
+      transform: scale(1.025) translateY(-5px) !important;
+      filter: drop-shadow(0 15px 25px rgba(99, 102, 241, 0.25));
+    }
+
+    /* Laser scan effect */
+    @keyframes laserScan {
+      0%, 100% { top: 120px; opacity: 0.2; }
+      50% { top: 220px; opacity: 0.9; }
+    }
+    .laser-line {
+      position: absolute;
+      animation: laserScan 3s ease-in-out infinite;
+    }
+
+    /* SVG-native implementation of scanline */
+    @keyframes svgLaser {
+      0%, 100% { transform: translateY(0px); opacity: 0.3; }
+      50% { transform: translateY(100px); opacity: 0.9; }
+    }
+    .laser-rect {
+      animation: svgLaser 3s ease-in-out infinite;
+    }
+
+    /* Flashcard rotate effect */
+    @keyframes cardFlip {
+      0%, 10% { transform: rotateY(0deg); }
+      40%, 60% { transform: rotateY(180deg); }
+      90%, 100% { transform: rotateY(360deg); }
+    }
+    .rotating-deck {
+      transform-style: preserve-3d;
+      animation: cardFlip 6s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+      transform-origin: 140px 180px;
+    }
+
+    /* Waveform visualizer animations */
+    @keyframes scaleWave {
+      0%, 100% { transform: scaleY(0.3); }
+      50% { transform: scaleY(1.0); }
+    }
+    .wave-bar {
+      transform-origin: bottom;
+      animation: scaleWave 1.2s ease-in-out infinite;
+    }
+    .wb-1 { animation-delay: 0.1s; }
+    .wb-2 { animation-delay: 0.4s; }
+    .wb-3 { animation-delay: 0.2s; }
+    .wb-4 { animation-delay: 0.6s; }
+    .wb-5 { animation-delay: 0.3s; }
+  </style>
+
+  <!-- Card 1: AI Course Gen -->
+  <g class="feature-card card-1" transform="translate(20, 20)">
+    <!-- Glassmorphic Background -->
+    <rect x="0" y="0" width="270" height="300" rx="20" fill="#0b0f19" stroke="#1e293b" stroke-width="2" />
+    <rect x="2" y="2" width="266" height="296" rx="18" fill="none" stroke="url(#cardGrad)" stroke-width="1" opacity="0.5" />
+    
+    <!-- Icon & Title Header -->
+    <rect x="20" y="20" width="44" height="44" rx="12" fill="rgba(99, 102, 241, 0.1)" stroke="rgba(99, 102, 241, 0.2)" />
+    <path d="M42 32h-12l4-8h-8l-4 8h12z" fill="#6366f1" />
+    <text x="76" y="47" font-family="'Inter', sans-serif" font-size="16" font-weight="800" fill="#f8fafc">AI Course Gen</text>
+    
+    <!-- Inside UI mock -->
+    <g transform="translate(20, 85)">
+      <!-- File Block -->
+      <rect x="0" y="0" width="230" height="180" rx="12" fill="#030712" stroke="#1e293b" stroke-width="1.5" />
+      <text x="15" y="30" font-family="monospace" font-size="10" fill="#64748b">> Scanner active...</text>
+      
+      <!-- PDF Document Icon -->
+      <rect x="15" y="55" width="40" height="50" rx="4" fill="#1e1b4b" stroke="#6366f1" stroke-width="1" />
+      <text x="23" y="85" font-family="'Inter', sans-serif" font-weight="900" font-size="10" fill="#818cf8">PDF</text>
+      
+      <!-- Arrow conversion indicators -->
+      <path d="M75 80h30m0 0l-5-5m5 5l-5 5" stroke="#818cf8" stroke-width="1.5" />
+
+      <!-- Course Chapters Mock -->
+      <rect x="125" y="55" width="90" height="12" rx="3" fill="#0f172a" stroke="#1e293b" />
+      <text x="132" y="64" font-family="'Inter', sans-serif" font-size="7" fill="#94a3b8">Ch 1: Introduction</text>
+
+      <rect x="125" y="73" width="90" height="12" rx="3" fill="#0f172a" stroke="#1e293b" />
+      <text x="132" y="82" font-family="'Inter', sans-serif" font-size="7" fill="#94a3b8">Ch 2: System Architecture</text>
+      
+      <rect x="125" y="91" width="90" height="12" rx="3" fill="#0f172a" stroke="#1e293b" />
+      <text x="132" y="100" font-family="'Inter', sans-serif" font-size="7" fill="#94a3b8">Ch 3: Live Compilation</text>
+
+      <!-- Dynamic Laser Scanner bar -->
+      <line x1="8" y1="50" x2="222" y2="50" stroke="#6366f1" stroke-width="2" class="laser-rect" />
+    </g>
+  </g>
+
+  <!-- Card 2: Spaced Repetition -->
+  <g class="feature-card card-2" transform="translate(320, 20)">
+    <!-- Glassmorphic Background -->
+    <rect x="0" y="0" width="270" height="300" rx="20" fill="#0b0f19" stroke="#1e293b" stroke-width="2" />
+    <rect x="2" y="2" width="266" height="296" rx="18" fill="none" stroke="url(#cardGrad)" stroke-width="1" opacity="0.5" />
+    
+    <!-- Icon & Title Header -->
+    <rect x="20" y="20" width="44" height="44" rx="12" fill="rgba(168, 85, 247, 0.1)" stroke="rgba(168, 85, 247, 0.2)" />
+    <path d="M42 32a10 10 0 11-10-10v10h10z" fill="#a855f7" />
+    <text x="76" y="47" font-family="'Inter', sans-serif" font-size="16" font-weight="800" fill="#f8fafc">SM-2 Spaced Rep</text>
+
+    <!-- Rotating Deck Wrapper -->
+    <g class="rotating-deck">
+      <!-- Flashcard Mock -->
+      <rect x="35" y="100" width="200" height="130" rx="12" fill="#030712" stroke="#a855f7" stroke-width="1.5" opacity="0.95" />
+      
+      <!-- Card Front details -->
+      <text x="50" y="130" font-family="'Inter', sans-serif" font-size="10" font-weight="bold" fill="#64748b">CARD 04 — RECALL</text>
+      <text x="50" y="155" font-family="'Inter', sans-serif" font-size="12" font-weight="bold" fill="#f1f5f9">What is encryption?</text>
+      
+      <rect x="50" y="185" width="45" height="18" rx="4" fill="#ef4444" opacity="0.2" />
+      <text x="60" y="197" font-family="'Inter', sans-serif" font-size="8" font-weight="bold" fill="#ef4444">Hard</text>
+
+      <rect x="105" y="185" width="45" height="18" rx="4" fill="#f59e0b" opacity="0.2" />
+      <text x="115" y="197" font-family="'Inter', sans-serif" font-size="8" font-weight="bold" fill="#f59e0b">Good</text>
+
+      <rect x="160" y="185" width="55" height="18" rx="4" fill="#10b981" opacity="0.2" />
+      <text x="173" y="197" font-family="'Inter', sans-serif" font-size="8" font-weight="bold" fill="#10b981">Easy</text>
+    </g>
+  </g>
+
+  <!-- Card 3: Voice Tutor -->
+  <g class="feature-card card-3" transform="translate(620, 20)">
+    <!-- Glassmorphic Background -->
+    <rect x="0" y="0" width="270" height="300" rx="20" fill="#0b0f19" stroke="#1e293b" stroke-width="2" />
+    <rect x="2" y="2" width="266" height="296" rx="18" fill="none" stroke="url(#cardGrad)" stroke-width="1" opacity="0.5" />
+    
+    <!-- Icon & Title Header -->
+    <rect x="20" y="20" width="44" height="44" rx="12" fill="rgba(236, 72, 153, 0.1)" stroke="rgba(236, 72, 153, 0.2)" />
+    <path d="M42 34c0 3.3-2.7 6-6 6h-8c-3.3 0-6-2.7-6-6v-8c0-3.3 2.7-6 6-6h8c3.3 0 6 2.7 6 6v8z" fill="#ec4899" />
+    <text x="76" y="47" font-family="'Inter', sans-serif" font-size="16" font-weight="800" fill="#f8fafc">AI Voice Tutor</text>
+
+    <!-- Voice Visualizer Box -->
+    <g transform="translate(20, 85)">
+      <rect x="0" y="0" width="230" height="180" rx="12" fill="#030712" stroke="#1e293b" stroke-width="1.5" />
+      
+      <!-- Listening Pulse -->
+      <circle cx="115" cy="55" r="30" fill="rgba(236, 72, 153, 0.1)" />
+      <circle cx="115" cy="55" r="20" fill="rgba(236, 72, 153, 0.2)" />
+      <!-- Mic symbol -->
+      <path d="M115 45v15M110 50h10M115 63v5" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" />
+
+      <!-- Equalizer Bars -->
+      <g transform="translate(70, 140)">
+        <rect class="wave-bar wb-1" x="0" y="0" width="6" height="30" rx="3" fill="#ec4899" />
+        <rect class="wave-bar wb-2" x="15" y="0" width="6" height="45" rx="3" fill="#818cf8" />
+        <rect class="wave-bar wb-3" x="30" y="0" width="6" height="38" rx="3" fill="#a855f7" />
+        <rect class="wave-bar wb-4" x="45" y="0" width="6" height="52" rx="3" fill="#818cf8" />
+        <rect class="wave-bar wb-5" x="60" y="0" width="6" height="25" rx="3" fill="#ec4899" />
+      </g>
+      
+      <text x="115" y="105" font-family="'Inter', sans-serif" font-size="10" font-weight="bold" fill="#ec4899" text-anchor="middle">Listening...</text>
+    </g>
+  </g>
+
+  <!-- Shared Gradients -->
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+</svg>
