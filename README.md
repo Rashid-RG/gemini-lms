@@ -1,7 +1,10 @@
 # 🎓 Gemini LMS — AI-First SaaS Learning Platform
 
+<p align="center">
+  <img src="public/github-banner.png" alt="Gemini LMS Banner" width="100%" />
+</p>
+
 <div align="center">
-  <img src="public/logo.svg" alt="Gemini LMS Logo" width="120" />
   <p align="center">
     <strong>A next-generation, AI-driven Learning Management System enabling custom course creation, voice-based tutoring, spaced-repetition testing, and automated grading.</strong>
   </p>
