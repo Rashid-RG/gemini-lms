@@ -26,9 +26,16 @@ export default function AdminLoginPage() {
 
     // Check session on mount and when Clerk user loads
     useEffect(() => {
+        console.log("AdminLoginPage: useEffect triggered", { userLoaded, hasUser: !!user });
+        if (userLoaded && user) {
+            console.log("AdminLoginPage: User is loaded and present. Email:", user.primaryEmailAddress?.emailAddress);
+        }
+        
         const init = async () => {
-            const authenticated = await checkSession()
+            const authenticated = await checkSession();
+            console.log("AdminLoginPage: checkSession result:", authenticated);
             if (!authenticated && userLoaded && user) {
+                console.log("AdminLoginPage: Triggering handleGoogleCallback...");
                 await handleGoogleCallback()
             }
         }
@@ -96,22 +103,27 @@ export default function AdminLoginPage() {
 
     const handleGoogleCallback = async () => {
         if (callbackRunning) return
+        console.log("handleGoogleCallback: starting flow...");
         setCallbackRunning(true)
         setLoading(true)
         setError('')
         try {
+            console.log("handleGoogleCallback: posting to /api/admin/auth/google-login");
             const response = await axios.post('/api/admin/auth/google-login')
+            console.log("handleGoogleCallback: success response:", response.data);
             if (response.data.success) {
                 toast.success('Google login successful!')
                 router.push('/admin/dashboard')
             }
         } catch (error) {
+            console.error("handleGoogleCallback: API error caught:", error.response?.data || error.message || error);
             const message = error.response?.data?.error || 'Access denied: Google account is not a registered admin'
             setError(message)
             toast.error(message)
             
             // Sign out of Clerk to prevent automatic re-authentication attempts
             try {
+                console.log("handleGoogleCallback: signing out of Clerk...");
                 await signOut()
             } catch (signOutErr) {
                 console.error("Clerk sign-out error:", signOutErr)
