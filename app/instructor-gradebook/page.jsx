@@ -17,34 +17,97 @@ export default function InstructorGradeBookPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('grade'); // grade, email, progress
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState('email');
 
-  // Fetch user's courses
-  useEffect(() => {
+  const fetchOwnCourses = async () => {
     if (!user?.primaryEmailAddress?.emailAddress) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.post(
+        '/api/courses',
+        { createdBy: user.primaryEmailAddress.emailAddress },
+        { timeout: 30000 }
+      );
+      const userCourses = response.data.result || [];
+      setMyCourses(userCourses);
+      if (userCourses.length > 0) {
+        setSelectedCourse(userCourses[0].courseId);
+      } else {
+        setSelectedCourse(null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch courses:', err);
+      setError('Failed to load your courses');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const fetchCourses = async () => {
+  const handleSearchCourses = async (e) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) {
+      fetchOwnCourses();
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const payload = searchType === 'email' 
+        ? { createdBy: searchQuery.trim() }
+        : { creatorName: searchQuery.trim() };
+        
+      const response = await axios.post('/api/courses', payload, { timeout: 30000 });
+      const foundCourses = response.data.result || [];
+      setMyCourses(foundCourses);
+      if (foundCourses.length > 0) {
+        setSelectedCourse(foundCourses[0].courseId);
+      } else {
+        setSelectedCourse(null);
+        toast.info('No courses found for this query');
+      }
+    } catch (err) {
+      console.error('Failed to search courses:', err);
+      setError('Failed to load matching courses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check role & load user's courses
+  useEffect(() => {
+    const checkRole = async () => {
+      const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+      if (!email) return;
+      
+      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+        .split(',')
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean);
+      const isAdmin = adminEmails.includes(email);
+      
+      if (isAdmin) {
+        setIsAuthorized(true);
+        return;
+      }
+      
       try {
-        setLoading(true);
-        const response = await axios.post(
-          '/api/courses',
-          { createdBy: user.primaryEmailAddress.emailAddress },
-          { timeout: 30000 }
-        );
-        const userCourses = response.data.result || [];
-        setMyCourses(userCourses);
-        if (userCourses.length > 0) {
-          setSelectedCourse(userCourses[0].courseId);
+        const response = await axios.get(`/api/user/tutor-request?email=${email}`);
+        if (response.data.result?.status === 'approved') {
+          setIsAuthorized(true);
         }
-        setError(null);
       } catch (err) {
-        console.error('Failed to fetch courses:', err);
-        setError('Failed to load your courses');
-      } finally {
-        setLoading(false);
+        console.log('Error checking tutor status:', err);
       }
     };
 
-    fetchCourses();
+    if (user) {
+      checkRole();
+      fetchOwnCourses();
+    }
   }, [user]);
 
   // Fetch grades for selected course
@@ -177,8 +240,54 @@ export default function InstructorGradeBookPage() {
             <CardTitle>Select Course</CardTitle>
           </CardHeader>
           <CardContent>
+            {isAuthorized && (
+              <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  🔍 View Other Instructor's Courses
+                </p>
+                <form onSubmit={handleSearchCourses} className="flex flex-col sm:flex-row gap-3">
+                  <select
+                    value={searchType}
+                    onChange={(e) => setSearchType(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-xl bg-white text-sm focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="email">Creator Email</option>
+                    <option value="name">Creator Name</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder={searchType === 'email' ? "Enter instructor email..." : "Enter instructor name..."}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition active:scale-[0.98] disabled:opacity-50"
+                    >
+                      Search
+                    </button>
+                    {(searchQuery || myCourses.length > 0) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          fetchOwnCourses();
+                        }}
+                        className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition"
+                      >
+                        Reset to Mine
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            )}
+
             {myCourses.length === 0 ? (
-              <p className="text-gray-600">You haven't created any courses yet.</p>
+              <p className="text-gray-600">No courses found.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {myCourses.map((course) => (

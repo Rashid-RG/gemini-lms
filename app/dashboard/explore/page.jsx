@@ -22,6 +22,26 @@ function ExplorePage() {
   const [selectedCourseForReview, setSelectedCourseForReview] = useState(null)
   const [reviewData, setReviewData] = useState({ rating: 5, reviewText: '', isAnonymous: false })
   const [courseReviews, setCourseReviews] = useState({})
+  const [isTutor, setIsTutor] = useState(false)
+
+  const userEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase()
+  const adminEmails = React.useMemo(() => (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean), [])
+  const isAdmin = !!(userEmail && adminEmails.includes(userEmail))
+
+  useEffect(() => {
+    const checkTutorStatus = async () => {
+      if (!userEmail) return
+      try {
+        const response = await axios.get(`/api/user/tutor-request?email=${userEmail}`)
+        if (response.data.result?.status === 'approved') {
+          setIsTutor(true)
+        }
+      } catch (error) {
+        console.log('Error checking tutor status:', error)
+      }
+    }
+    checkTutorStatus()
+  }, [userEmail])
 
   useEffect(() => {
     fetchPublicCourses()
@@ -63,7 +83,8 @@ function ExplorePage() {
       filtered = filtered.filter(c =>
         c.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.courseType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.creatorName?.toLowerCase().includes(searchTerm.toLowerCase())
+        c.creatorName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (isAdmin && c.createdBy?.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     }
 
@@ -262,7 +283,10 @@ function ExplorePage() {
                         <div className="flex items-center gap-1 mt-0.5">
                           <User className="w-3 h-3 text-slate-500 flex-shrink-0" />
                           <p className="text-xs text-slate-600 truncate">
-                            {course.creatorName || course.createdBy?.split('@')[0] || course.createdBy}
+                            {isAdmin 
+                              ? `${course.creatorName || course.createdBy?.split('@')[0] || 'Unknown'} (${course.createdBy || 'No Email'})`
+                              : (course.creatorName || course.createdBy?.split('@')[0] || 'Unknown')
+                            }
                           </p>
                         </div>
                       </div>
