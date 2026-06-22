@@ -1,5 +1,5 @@
 import { db } from "@/configs/db";
-import { CONTENT_REVIEW_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, STUDY_MATERIAL_TABLE } from "@/configs/schema";
+import { CONTENT_REVIEW_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, STUDY_MATERIAL_TABLE, USER_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
@@ -103,15 +103,26 @@ export async function GET(req, { params }) {
                 topic: STUDY_MATERIAL_TABLE.topic,
                 courseType: STUDY_MATERIAL_TABLE.courseType,
                 createdBy: STUDY_MATERIAL_TABLE.createdBy,
+                creatorName: USER_TABLE.name,
                 difficultyLevel: STUDY_MATERIAL_TABLE.difficultyLevel,
             })
             .from(STUDY_MATERIAL_TABLE)
+            .leftJoin(USER_TABLE, eq(STUDY_MATERIAL_TABLE.createdBy, USER_TABLE.email))
             .where(eq(STUDY_MATERIAL_TABLE.courseId, review.courseId));
+
+        const isTutor = auth.admin.role === 'tutor';
+        let course = courseInfo[0] || null;
+        if (course) {
+            course.creatorName = course.creatorName || (course.createdBy ? course.createdBy.split('@')[0] : 'Unknown');
+            if (isTutor) {
+                course.createdBy = null;
+            }
+        }
 
         return NextResponse.json({
             review,
             currentContent,
-            courseInfo: courseInfo[0] || null,
+            courseInfo: course,
         });
     } catch (error) {
         console.error("Content Review Detail Error:", error);

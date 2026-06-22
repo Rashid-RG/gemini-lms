@@ -85,8 +85,10 @@ export async function GET(req) {
                 courseType: STUDY_MATERIAL_TABLE.courseType,
                 status: STUDY_MATERIAL_TABLE.status,
                 createdBy: STUDY_MATERIAL_TABLE.createdBy,
-                createdAt: STUDY_MATERIAL_TABLE.createdAt
+                createdAt: STUDY_MATERIAL_TABLE.createdAt,
+                creatorName: USER_TABLE.name
             }).from(STUDY_MATERIAL_TABLE)
+              .leftJoin(USER_TABLE, eq(STUDY_MATERIAL_TABLE.createdBy, USER_TABLE.email))
               .orderBy(desc(STUDY_MATERIAL_TABLE.createdAt))
               .limit(10),
             
@@ -146,6 +148,17 @@ export async function GET(req) {
         const readyCourses = courseStatsMap['ready'] || 0;
         const successRate = totalCourses > 0 ? Math.round((readyCourses / totalCourses) * 100) : 0;
 
+        // Sanitize recentCourses for tutor role
+        const isTutor = session.admin?.role === 'tutor';
+        const mappedRecentCourses = recentCourses.map(course => {
+            const creatorName = course.creatorName || (course.createdBy ? course.createdBy.split('@')[0] : 'Unknown');
+            return {
+                ...course,
+                createdBy: isTutor ? null : course.createdBy,
+                creatorName: creatorName
+            };
+        });
+
         const response = {
             stats: {
                 totalUsers: Number(userStats[0]?.total || 0),
@@ -168,7 +181,7 @@ export async function GET(req) {
                 totalPayments: Number(paymentStats[0]?.completedPayments || 0),
                 monthlyRevenue: parseFloat(monthlyRevenueResult[0]?.monthlyRevenue || 0).toFixed(2)
             },
-            recentCourses
+            recentCourses: mappedRecentCourses
         };
 
         return NextResponse.json(response);

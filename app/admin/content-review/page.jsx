@@ -301,7 +301,7 @@ function ContentReviewPage() {
                                             </p>
                                         )}
                                         <p className="text-xs text-gray-400 mt-1">
-                                            Created by {review.courseCreatedBy || 'unknown'} · {new Date(review.createdAt).toLocaleDateString()}
+                                            Created by {review.creatorName ? (review.courseCreatedBy ? `${review.creatorName} (${review.courseCreatedBy})` : review.creatorName) : (review.courseCreatedBy || 'unknown')} · {new Date(review.createdAt).toLocaleDateString()}
                                         </p>
                                     </div>
                                 </div>
@@ -374,7 +374,7 @@ function ContentReviewPage() {
                                             <p><strong>Topic:</strong> {reviewDetail.courseInfo.topic}</p>
                                             <p><strong>Type:</strong> {reviewDetail.courseInfo.courseType}</p>
                                             <p><strong>Difficulty:</strong> {reviewDetail.courseInfo.difficultyLevel}</p>
-                                            <p><strong>Created by:</strong> {reviewDetail.courseInfo.createdBy}</p>
+                                            <p><strong>Created by:</strong> {reviewDetail.courseInfo.creatorName ? (reviewDetail.courseInfo.createdBy ? `${reviewDetail.courseInfo.creatorName} (${reviewDetail.courseInfo.createdBy})` : reviewDetail.courseInfo.creatorName) : (reviewDetail.courseInfo.createdBy || 'Unknown')}</p>
                                         </div>
                                     )}
 

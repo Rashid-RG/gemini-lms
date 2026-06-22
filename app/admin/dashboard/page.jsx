@@ -343,7 +343,7 @@ export default function AdminDashboardPage() {
                                 <div className="space-y-1">
                                     <p className="font-semibold text-gray-900 dark:text-white text-sm">{course.topic}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        by <span className="font-medium text-gray-700 dark:text-gray-300">{course.createdBy}</span> • <span className="capitalize">{course.courseType}</span>
+                                        by <span className="font-medium text-gray-700 dark:text-gray-300">{course.creatorName ? (course.createdBy ? `${course.creatorName} (${course.createdBy})` : course.creatorName) : (course.createdBy || 'Unknown')}</span> • <span className="capitalize">{course.courseType}</span>
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">

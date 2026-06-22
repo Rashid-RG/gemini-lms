@@ -1,5 +1,5 @@
 import { db } from "@/configs/db";
-import { CONTENT_REVIEW_TABLE, STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE, TUTOR_ASSIGNMENT_TABLE } from "@/configs/schema";
+import { CONTENT_REVIEW_TABLE, STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE, TUTOR_ASSIGNMENT_TABLE, USER_TABLE } from "@/configs/schema";
 import { eq, and, desc, sql, count, like, or, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireReviewerAuth } from "@/lib/adminApiAuth";
@@ -51,9 +51,11 @@ export async function GET(req) {
                 courseTopic: STUDY_MATERIAL_TABLE.topic,
                 courseType: STUDY_MATERIAL_TABLE.courseType,
                 courseCreatedBy: STUDY_MATERIAL_TABLE.createdBy,
+                creatorName: USER_TABLE.name,
             })
             .from(CONTENT_REVIEW_TABLE)
             .leftJoin(STUDY_MATERIAL_TABLE, eq(CONTENT_REVIEW_TABLE.courseId, STUDY_MATERIAL_TABLE.courseId))
+            .leftJoin(USER_TABLE, eq(STUDY_MATERIAL_TABLE.createdBy, USER_TABLE.email))
             .where(whereClause)
             .orderBy(
                 sql`CASE WHEN ${CONTENT_REVIEW_TABLE.priority} = 'urgent' THEN 0
@@ -92,13 +94,19 @@ export async function GET(req) {
             .from(CONTENT_REVIEW_TABLE)
             .where(whereClause);
 
+        const isTutor = auth.admin.role === 'tutor';
+
         return NextResponse.json({
-            reviews: reviews.map(r => ({
-                ...r.review,
-                courseTopic: r.courseTopic,
-                courseType: r.courseType,
-                courseCreatedBy: r.courseCreatedBy,
-            })),
+            reviews: reviews.map(r => {
+                const creatorName = r.creatorName || (r.courseCreatedBy ? r.courseCreatedBy.split('@')[0] : 'Unknown');
+                return {
+                    ...r.review,
+                    courseTopic: r.courseTopic,
+                    courseType: r.courseType,
+                    courseCreatedBy: isTutor ? null : r.courseCreatedBy,
+                    creatorName: creatorName,
+                };
+            }),
             stats,
             pagination: {
                 page,

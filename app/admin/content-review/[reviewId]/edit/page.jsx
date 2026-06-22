@@ -492,7 +492,7 @@ function ContentEditPage() {
                         <div><span className="text-blue-600 dark:text-blue-400 font-medium">Course:</span> {courseInfo.topic}</div>
                         <div><span className="text-blue-600 dark:text-blue-400 font-medium">Type:</span> {courseInfo.courseType}</div>
                         <div><span className="text-blue-600 dark:text-blue-400 font-medium">Difficulty:</span> {courseInfo.difficultyLevel}</div>
-                        <div><span className="text-blue-600 dark:text-blue-400 font-medium">Creator:</span> {courseInfo.createdBy}</div>
+                        <div><span className="text-blue-600 dark:text-blue-400 font-medium">Creator:</span> {courseInfo.creatorName ? (courseInfo.createdBy ? `${courseInfo.creatorName} (${courseInfo.createdBy})` : courseInfo.creatorName) : (courseInfo.createdBy || 'Unknown')}</div>
                     </div>
                 </div>
             )}
