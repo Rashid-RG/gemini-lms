@@ -20,6 +20,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url)
     const template = searchParams.get('template') || 'welcome'
     const email = searchParams.get('email') || 'test@example.com'
+    const name = searchParams.get('name') || 'Test User'
     const isDev = process.env.NODE_ENV === 'development'
 
     // Only allow test endpoint in development
@@ -31,7 +32,7 @@ export async function GET(req) {
     }
 
     const templates = {
-      welcome: () => emailService.sendWelcomeEmail(email, 'Test User'),
+      welcome: () => emailService.sendWelcomeEmail(email, name),
       
       enrollment: () => emailService.sendCourseEnrollmentEmail(
         email,
