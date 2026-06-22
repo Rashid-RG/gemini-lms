@@ -183,14 +183,14 @@ export default function AdminDashboardPage() {
                                     animation: shimmer 3s infinite;
                                 }
                             `}</style>
-                            <button
-                                disabled
-                                className="coming-soon-btn-dashboard flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg transition-all shadow-lg cursor-not-allowed hover:shadow-2xl relative"
-                                title="This feature is coming soon! We're working on making it amazing."
-                            >
-                                <BookOpen className="h-4 w-4 relative z-10" />
-                                <span className="relative z-10">Create Course</span>
-                            </button>
+                            <Link href="/admin/create-course">
+                                <button
+                                    className="coming-soon-btn-dashboard flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-2xl relative"
+                                >
+                                    <BookOpen className="h-4 w-4 relative z-10" />
+                                    <span className="relative z-10">Create Course</span>
+                                </button>
+                            </Link>
                         </>
                     )}
                     <Button 

@@ -228,15 +228,14 @@ function AdminLayoutContent({ children }) {
                                 backdrop-filter: blur(10px);
                             }
                         `}</style>
-                        <button 
-                            disabled
-                            className="coming-soon-btn flex items-center justify-center gap-2 w-full px-4 py-3 text-white font-semibold rounded-lg transition-all shadow-lg cursor-not-allowed hover:shadow-2xl"
-                            title="This feature is coming soon! We're working on making it amazing."
-                        >
-                            <Plus className="h-5 w-5 relative z-10" />
-                            <span className="relative z-10">Create Course</span>
-                            <span className="coming-soon-badge relative z-10">Soon</span>
-                        </button>
+                        <Link href="/admin/create-course" className="block w-full">
+                            <button 
+                                className="coming-soon-btn flex items-center justify-center gap-2 w-full px-4 py-3 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-2xl"
+                            >
+                                <Plus className="h-5 w-5 relative z-10" />
+                                <span className="relative z-10">Create Course</span>
+                            </button>
+                        </Link>
                     </div>
                 )}
 
