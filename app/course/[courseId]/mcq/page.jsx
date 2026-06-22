@@ -462,6 +462,7 @@ ${course.courseLayout.chapters.map((ch, idx) => {
                             correctCount={correctCount} 
                             contentType="mcq"
                             onQuizComplete={(mcqScore) => handleMCQSubmit(mcqScore)}
+                            userAnswers={userAnswers}
                         />
                 </>
         ) : (

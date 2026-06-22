@@ -533,8 +533,8 @@ function Flashcards() {
                 <h2>Flashcards - {courseId}</h2>
                 {flashCards.content.map((card, idx) => (
                     <div key={idx} style={{ marginBottom: '12px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                        <div><strong>Q{idx + 1}:</strong> {card.question}</div>
-                        <div><strong>A:</strong> {card.answer}</div>
+                        <div><strong>Q{idx + 1}:</strong> {card.front || card.question}</div>
+                        <div><strong>A:</strong> {card.back || card.answer}</div>
                     </div>
                 ))}
             </div>

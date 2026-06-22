@@ -161,6 +161,7 @@ function Quiz() {
             return
         }
         setIsCorrectAnswer(false)
+        setCorrectAns(currentQuestion?.answer)
     }
 
     // Handle adaptive difficulty tracking after quiz submission
@@ -488,6 +489,7 @@ function Quiz() {
                         correctCount={correctCount}
                         contentType="quiz"
                         onQuizComplete={(quizScore) => handleQuizSubmit(quizScore)}
+                        userAnswers={userAnswers}
                     />
                 </>
             ) : (

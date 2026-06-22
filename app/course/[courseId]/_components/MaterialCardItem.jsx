@@ -45,6 +45,18 @@ function MaterialCardItem({item,studyTypeContent,course,refreshData}) {
     toast('Your content is ready to view')
   }
 
+  const getPath = () => {
+    if (item.type === 'playground') {
+      return `/dashboard/playground?courseId=${course?.courseId}`;
+    }
+    if (item.type === 'quiz') {
+      const isManual = studyTypeContent?.quiz?.[0]?.content?.[0] && 
+        ('correctOption' in studyTypeContent.quiz[0].content[0] || 'correct_option' in studyTypeContent.quiz[0].content[0]);
+      return `/course/${course?.courseId}${isManual ? '/manual-quiz' : '/quiz'}`;
+    }
+    return `/course/${course?.courseId}${item.path}`;
+  };
+
   return (
    
     <div className={`border shadow-md rounded-lg p-5 flex flex-col items-center
@@ -74,11 +86,11 @@ function MaterialCardItem({item,studyTypeContent,course,refreshData}) {
         <p className='text-gray-500 text-sm text-center'>{item.desc}</p>
 
         {item.type === 'playground' ? (
-          <Link href={`/dashboard/playground?courseId=${course?.courseId}`}>
+          <Link href={getPath()}>
             <Button className="mt-3 w-full" variant="outline">View</Button>
           </Link>
         ) : isCertificateOrMockOrPlayground ? (
-          <Link href={'/course/'+course?.courseId+item.path}>
+          <Link href={getPath()}>
             <Button className="mt-3 w-full" variant="outline">View</Button>
           </Link>
         ) : studyTypeContent?.[item.type]?.length==0 ? (
@@ -86,7 +98,7 @@ function MaterialCardItem({item,studyTypeContent,course,refreshData}) {
             {loading&& <RefreshCcw className='animate-spin' /> }
             Generate</Button>
         ) : (
-          <Link href={'/course/'+course?.courseId+item.path}>
+          <Link href={getPath()}>
             <Button className="mt-3 w-full" variant="outline">View</Button>
           </Link>
         )}

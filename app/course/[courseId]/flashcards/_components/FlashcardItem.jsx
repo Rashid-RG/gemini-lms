@@ -27,7 +27,7 @@ function FlashcardItem({isFlipped,handleClick,flashcard,schedule}) {
                   {badgeLabel}
               </span>
               <span className='absolute bottom-4 right-4 text-[10px] text-slate-500 font-semibold tracking-wider uppercase'>Question</span>
-              <h2 className='text-base md:text-xl font-bold text-center px-4 leading-relaxed'>{flashcard?.front}</h2>
+              <h2 className='text-base md:text-xl font-bold text-center px-4 leading-relaxed'>{flashcard?.front || flashcard?.question}</h2>
           </div>
 
           {/* Back Card */}
@@ -36,7 +36,7 @@ function FlashcardItem({isFlipped,handleClick,flashcard,schedule}) {
                   {badgeLabel}
               </span>
               <span className='absolute bottom-4 right-4 text-[10px] text-slate-400 font-semibold tracking-wider uppercase'>Answer</span>
-              <h2 className='text-sm md:text-lg font-medium px-4 leading-relaxed'>{flashcard?.back}</h2>
+              <h2 className='text-sm md:text-lg font-medium px-4 leading-relaxed'>{flashcard?.back || flashcard?.answer}</h2>
           </div>
       </ReactCardFlip>
     </div>

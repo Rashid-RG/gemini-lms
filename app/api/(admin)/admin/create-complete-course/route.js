@@ -124,11 +124,18 @@ export async function POST(req) {
 
     // Add flashcards if provided
     if (flashcards && Array.isArray(flashcards) && flashcards.length > 0) {
+      // Map to front/back properties for 100% compatibility with flashcard page
+      const mappedFlashcards = flashcards.map(fc => ({
+        front: fc.front || fc.question || '',
+        back: fc.back || fc.answer || '',
+        difficulty: fc.difficulty || 'Easy'
+      }));
+
       await withDbRetry(() =>
         db.insert(STUDY_TYPE_CONTENT_TABLE).values({
           courseId,
-          content: flashcards,
-          type: 'flashcard',
+          content: mappedFlashcards,
+          type: 'Flashcard', // Normalized capitalized casing
           status: 'Ready'
         })
       );
@@ -140,7 +147,7 @@ export async function POST(req) {
         db.insert(STUDY_TYPE_CONTENT_TABLE).values({
           courseId,
           content: quizzes,
-          type: 'quiz',
+          type: 'Quiz', // Normalized capitalized casing
           status: 'Ready'
         })
       );

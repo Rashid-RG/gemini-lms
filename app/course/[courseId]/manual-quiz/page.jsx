@@ -42,10 +42,20 @@ function ManualQuizPage() {
 
             setCourse(courseData)
             
-            // Extract quizzes from course (admin stores them in courseLayout or separate field)
-            const quizzesData = courseData.quizzes || []
+            // Fetch quizzes from STUDY_TYPE_CONTENT_TABLE
+            const quizResult = await axios.post('/api/study-type', {
+                courseId: courseId,
+                studyType: 'Quiz'
+            })
+            const quizRow = quizResult.data
+            let quizzesData = []
+            if (quizRow && quizRow.content) {
+                quizzesData = typeof quizRow.content === 'string'
+                    ? JSON.parse(quizRow.content)
+                    : quizRow.content
+            }
             
-            if (quizzesData.length === 0) {
+            if (!quizzesData || quizzesData.length === 0) {
                 setError('No quizzes available for this course')
             } else {
                 setQuizzes(quizzesData)
@@ -170,39 +180,110 @@ function ManualQuizPage() {
         const passed = score >= 70
         
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
-                <div className={`bg-white rounded-lg shadow-2xl p-12 max-w-md text-center ${
-                    passed ? 'border-t-4 border-green-500' : 'border-t-4 border-orange-500'
-                }`}>
-                    <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${
-                        passed ? 'bg-green-100' : 'bg-orange-100'
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-12">
+                <div className="flex flex-col gap-6 w-full max-w-2xl">
+                    <div className={`bg-white rounded-lg shadow-2xl p-12 text-center ${
+                        passed ? 'border-t-4 border-green-500' : 'border-t-4 border-orange-500'
                     }`}>
-                        <span className={`text-4xl font-bold ${
-                            passed ? 'text-green-600' : 'text-orange-600'
-                        }`}>{score}%</span>
+                        <div className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${
+                            passed ? 'bg-green-100' : 'bg-orange-100'
+                        }`}>
+                            <span className={`text-4xl font-bold ${
+                                passed ? 'text-green-600' : 'text-orange-600'
+                            }`}>{score}%</span>
+                        </div>
+                        
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                            {passed ? '🎉 Excellent!' : '📚 Good Effort!'}
+                        </h1>
+                        
+                        <p className="text-gray-600 mb-6 text-lg">
+                            You got <span className="font-bold text-primary">{correctCount}</span> out of <span className="font-bold">{quizzes.length}</span> questions correct
+                        </p>
+                        
+                        {passed ? (
+                            <p className="text-green-600 font-semibold mb-6">✓ You passed the quiz! Great job!</p>
+                        ) : (
+                            <p className="text-orange-600 font-semibold mb-6">Try again to improve your score</p>
+                        )}
+                        
+                        <div className="flex gap-3 max-w-sm mx-auto">
+                            <Button onClick={handleRestart} className="flex-1">
+                                <RotateCcw className="w-4 h-4 mr-2" /> Try Again
+                            </Button>
+                            <Button onClick={() => router.back()} variant="outline" className="flex-1">
+                                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Course
+                            </Button>
+                        </div>
                     </div>
-                    
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        {passed ? '🎉 Excellent!' : '📚 Good Effort!'}
-                    </h1>
-                    
-                    <p className="text-gray-600 mb-6 text-lg">
-                        You got <span className="font-bold text-primary">{correctCount}</span> out of <span className="font-bold">{quizzes.length}</span> questions correct
-                    </p>
-                    
-                    {passed ? (
-                        <p className="text-green-600 font-semibold mb-6">✓ You passed the quiz! Great job!</p>
-                    ) : (
-                        <p className="text-orange-600 font-semibold mb-6">Try again to improve your score</p>
-                    )}
-                    
-                    <div className="flex gap-3">
-                        <Button onClick={handleRestart} className="flex-1">
-                            <RotateCcw className="w-4 h-4 mr-2" /> Try Again
-                        </Button>
-                        <Button onClick={() => router.back()} variant="outline" className="flex-1">
-                            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Course
-                        </Button>
+
+                    {/* Review Section */}
+                    <div className="bg-white rounded-lg shadow-2xl p-8 text-left border border-slate-200">
+                        <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-3">
+                            📝 Quiz Review & Summary
+                        </h3>
+                        <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                            {quizzes.map((q, idx) => {
+                                const studentAns = userAnswers[idx];
+                                const isCorrect = studentAns === q.correctOption;
+
+                                return (
+                                    <div key={idx} className={`p-4 rounded-xl border ${
+                                        isCorrect 
+                                            ? 'bg-green-50/40 border-green-100' 
+                                            : 'bg-red-50/40 border-red-100'
+                                    }`}>
+                                        <p className="font-semibold text-slate-900 mb-2">
+                                            Question {idx + 1}: {q.question}
+                                        </p>
+                                        
+                                        {/* Options */}
+                                        {q.options && Array.isArray(q.options) && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+                                                {q.options.map((opt, oIdx) => {
+                                                    const isSelectedOpt = studentAns === oIdx;
+                                                    const isCorrectOpt = q.correctOption === oIdx;
+                                                    
+                                                    let optClass = "p-2 rounded-lg border text-sm text-slate-700 bg-white border-slate-200";
+                                                    if (isCorrectOpt) {
+                                                        optClass = "p-2 rounded-lg border text-sm font-semibold bg-green-100/70 border-green-300 text-green-800";
+                                                    } else if (isSelectedOpt && !isCorrect) {
+                                                        optClass = "p-2 rounded-lg border text-sm font-semibold bg-red-100/70 border-red-300 text-red-800";
+                                                    }
+
+                                                    return (
+                                                        <div key={oIdx} className={optClass}>
+                                                            {opt}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-wrap gap-2 text-xs font-bold mt-2">
+                                            <span className={`px-2.5 py-1 rounded-full ${
+                                                isCorrect 
+                                                    ? 'bg-green-100 text-green-800' 
+                                                    : 'bg-red-100 text-red-800'
+                                            }`}>
+                                                Your Answer: {q.options?.[studentAns] || 'Unanswered'}
+                                            </span>
+                                            {!isCorrect && (
+                                                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
+                                                    Correct Answer: {q.options?.[q.correctOption]}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {q.explanation && (
+                                            <p className="text-xs text-slate-500 italic mt-3 bg-slate-100/50 p-2.5 rounded-lg border border-slate-200/40">
+                                                <strong>Explanation:</strong> {q.explanation}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>

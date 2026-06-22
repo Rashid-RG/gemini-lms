@@ -6,7 +6,7 @@ import React, { useState } from 'react'
 import { toast } from 'sonner'
 import { Award, CheckCircle } from 'lucide-react'
 
-function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete}) {
+function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers}) {
     const route = useRouter();
     const params = useParams();
     const { user } = useUser();
@@ -115,51 +115,126 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
     };
 
     return (
-        <div>
+        <div className="w-full">
             {data?.length == stepCount && (
-                <div className='flex items-center gap-10 flex-col justify-center py-12 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-8'>
-                    <div className='text-center'>
-                        <h2 className='text-3xl font-bold text-green-600 mb-3'>✓ Content Completed!</h2>
-                        <p className='text-slate-600 text-lg mb-6'>
-                            You've finished all the {
-                                contentType === 'quiz' ? 'quiz questions' : 
-                                contentType === 'mcq' ? 'MCQ questions' : 
-                                'reading content'
-                            } in this section.
-                        </p>
-                        
-                        {(contentType === 'quiz' || contentType === 'mcq') && quizScore > 0 && (
-                            <div className='mb-6 inline-block bg-white rounded-lg p-4 border-2 border-green-300 shadow-md'>
-                                <div className='flex items-center gap-2 justify-center mb-2'>
-                                    <Award className='w-6 h-6 text-blue-600' />
-                                    <p className='text-sm font-medium text-slate-600'>{contentType === 'mcq' ? 'MCQ' : 'Quiz'} Score</p>
+                <div className="flex flex-col gap-8 w-full">
+                    <div className='flex items-center gap-10 flex-col justify-center py-12 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-8 text-center'>
+                        <div>
+                            <h2 className='text-3xl font-bold text-green-600 mb-3'>✓ Content Completed!</h2>
+                            <p className='text-slate-600 text-lg mb-6'>
+                                You've finished all the {
+                                    contentType === 'quiz' ? 'quiz questions' : 
+                                    contentType === 'mcq' ? 'MCQ questions' : 
+                                    'reading content'
+                                } in this section.
+                            </p>
+                            
+                            {(contentType === 'quiz' || contentType === 'mcq') && (
+                                <div className='mb-6 inline-block bg-white rounded-lg p-4 border-2 border-green-300 shadow-md text-center'>
+                                    <div className='flex items-center gap-2 justify-center mb-2'>
+                                        <Award className='w-6 h-6 text-blue-600' />
+                                        <p className='text-sm font-medium text-slate-600'>{contentType === 'mcq' ? 'MCQ' : 'Quiz'} Score</p>
+                                    </div>
+                                    <div className='text-4xl font-bold text-blue-600'>{quizScore}%</div>
+                                    <p className='text-xs text-slate-500 mt-1'>{correctCount} out of {data.length} correct</p>
                                 </div>
-                                <div className='text-4xl font-bold text-blue-600'>{quizScore}%</div>
-                                <p className='text-xs text-slate-500 mt-1'>{correctCount} out of {data.length} correct</p>
+                            )}
+                        </div>
+                        
+                        <div className='flex gap-4 justify-center'>
+                            <Button 
+                                onClick={markChapterComplete}
+                                disabled={marking || !user}
+                                className='bg-green-600 hover:bg-green-700 text-white'
+                            >
+                                <CheckCircle className='w-4 h-4 mr-2' />
+                                {marking ? 'Marking...' : 
+                                    contentType === 'mcq' ? 'Mark MCQ Completed' :
+                                    contentType === 'quiz' ? 'Mark Quiz Completed' : 
+                                    'Mark Chapter Complete'
+                                }
+                            </Button>
+                            <Button 
+                                onClick={() => route.back()}
+                                variant="outline"
+                            >
+                                Go to Course Page
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Quiz Review Section */}
+                    {(contentType === 'quiz' || contentType === 'mcq') && userAnswers && (
+                        <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-lg p-6 md:p-8 text-left">
+                            <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2 border-b pb-4">
+                                📝 Quiz Review & Answer Key
+                            </h3>
+                            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
+                                {data.map((q, idx) => {
+                                    const studentAns = userAnswers[idx];
+                                    const correctAns = q.answer || (q.options && q.options[q.correctOption]);
+                                    const isCorrect = String(studentAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase() || 
+                                                      (q.options && typeof studentAns === 'number' && studentAns === q.correctOption);
+
+                                    return (
+                                        <div key={idx} className={`p-5 rounded-xl border-2 transition ${
+                                            isCorrect 
+                                                ? 'bg-green-50/20 border-green-200' 
+                                                : 'bg-red-50/20 border-red-200'
+                                        }`}>
+                                            <p className="font-bold text-slate-900 text-lg mb-3">
+                                                Question {idx + 1}: {q.question}
+                                            </p>
+                                            
+                                            {/* Options */}
+                                            {q.options && Array.isArray(q.options) && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                                    {q.options.map((opt, oIdx) => {
+                                                        const isSelectedOpt = String(opt) === String(studentAns) || (typeof studentAns === 'number' && studentAns === oIdx);
+                                                        const isCorrectOpt = String(opt) === String(correctAns) || (q.correctOption === oIdx);
+                                                        
+                                                        let optClass = "p-3 rounded-lg border text-sm text-slate-700 bg-white border-slate-200 transition";
+                                                        if (isCorrectOpt) {
+                                                            optClass = "p-3 rounded-lg border-2 text-sm font-semibold bg-green-100/60 border-green-400 text-green-800";
+                                                        } else if (isSelectedOpt && !isCorrect) {
+                                                            optClass = "p-3 rounded-lg border-2 text-sm font-semibold bg-red-100/60 border-red-400 text-red-800";
+                                                        }
+
+                                                        return (
+                                                            <div key={oIdx} className={optClass}>
+                                                                {opt}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-wrap gap-2 text-xs font-bold mt-2">
+                                                <span className={`px-3 py-1.5 rounded-full ${
+                                                    isCorrect 
+                                                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                                                        : 'bg-red-100 text-red-800 border border-red-200'
+                                                }`}>
+                                                    Your Answer: {typeof studentAns === 'number' && q.options ? q.options[studentAns] : studentAns || 'Unanswered'}
+                                                </span>
+                                                {!isCorrect && (
+                                                    <span className="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                        Correct Answer: {correctAns}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {q.explanation && (
+                                                <p className="text-xs text-slate-600 italic mt-4 bg-slate-50 p-3 rounded-lg border border-slate-200/50 leading-relaxed">
+                                                    <strong>Explanation:</strong> {q.explanation}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
-                    </div>
-                    
-                    <div className='flex gap-4'>
-                        <Button 
-                            onClick={markChapterComplete}
-                            disabled={marking || !user}
-                            className='bg-green-600 hover:bg-green-700 text-white'
-                        >
-                            <CheckCircle className='w-4 h-4 mr-2' />
-                            {marking ? 'Marking...' : 
-                                contentType === 'mcq' ? 'Mark MCQ Completed' :
-                                contentType === 'quiz' ? 'Mark Quiz Completed' : 
-                                'Mark Chapter Complete'
-                            }
-                        </Button>
-                        <Button 
-                            onClick={() => route.back()}
-                            variant="outline"
-                        >
-                            Go to Course Page
-                        </Button>
-                    </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
