@@ -93,7 +93,7 @@ function AdminLayoutContent({ children }) {
         { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'super_admin'] },
         { href: '/admin/payments', label: 'Payments', icon: DollarSign, roles: ['admin', 'super_admin'] },
         { href: '/admin/announcements', label: 'Announcements', icon: Megaphone, roles: ['admin', 'super_admin'] },
-        { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin', 'super_admin'] },
+        { href: '/admin/users', label: 'Users', icon: Users, roles: ['tutor', 'admin', 'super_admin'] },
         { href: '/admin/tutor-requests', label: 'Tutor Requests', icon: Users, roles: ['admin', 'super_admin'] },
         { href: '/admin/team-passwords', label: 'Team Passwords', icon: Key, roles: ['admin', 'super_admin'] },
         { href: '/admin/courses', label: 'Courses', icon: BookOpen, roles: ['admin', 'super_admin'] },

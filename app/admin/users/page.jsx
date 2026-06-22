@@ -158,7 +158,9 @@ function AdminUsersPage() {
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Member</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Credits</th>
                                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">Courses</th>
-                                <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 dark:text-gray-300">Actions</th>
+                                {admin?.role !== 'tutor' && (
+                                    <th className="px-4 py-3 text-right text-sm font-medium text-gray-600 dark:text-gray-300">Actions</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -206,32 +208,34 @@ function AdminUsersPage() {
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => setCreditModal({ open: true, user: u })}
-                                            >
-                                                <Plus className="h-3 w-3 mr-1" />
-                                                Credits
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant={u.isMember ? "destructive" : "default"}
-                                                onClick={() => handleToggleMembership(u)}
-                                                disabled={actionLoading === u.email}
-                                            >
-                                                {actionLoading === u.email ? (
-                                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                                ) : u.isMember ? (
-                                                    'Remove'
-                                                ) : (
-                                                    'Make Member'
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </td>
+                                    {admin?.role !== 'tutor' && (
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => setCreditModal({ open: true, user: u })}
+                                                >
+                                                    <Plus className="h-3 w-3 mr-1" />
+                                                    Credits
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant={u.isMember ? "destructive" : "default"}
+                                                    onClick={() => handleToggleMembership(u)}
+                                                    disabled={actionLoading === u.email}
+                                                >
+                                                    {actionLoading === u.email ? (
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                    ) : u.isMember ? (
+                                                        'Remove'
+                                                    ) : (
+                                                        'Make Member'
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>

@@ -3,7 +3,7 @@ import { USER_TABLE, STUDY_MATERIAL_TABLE, CREDIT_TRANSACTION_TABLE } from "@/co
 import { eq, desc, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { addCredits, CREDIT_TYPES } from "@/lib/credits";
-import { requireAdminAuth } from "@/lib/adminApiAuth";
+import { requireAdminAuth, requireAdminOrAbove } from "@/lib/adminApiAuth";
 
 /**
  * GET /api/admin/users
@@ -70,8 +70,8 @@ export async function GET(req) {
  * Admin actions: adjust credits, toggle membership
  */
 export async function POST(req) {
-    // Verify admin session
-    const auth = await requireAdminAuth();
+    // Verify admin session - must be admin or super_admin
+    const auth = await requireAdminOrAbove();
     if (!auth.authenticated) return auth.error;
 
     try {
