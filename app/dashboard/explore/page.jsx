@@ -62,7 +62,8 @@ function ExplorePage() {
     if (searchTerm) {
       filtered = filtered.filter(c =>
         c.topic?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.courseType?.toLowerCase().includes(searchTerm.toLowerCase())
+        c.courseType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.creatorName?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -259,8 +260,10 @@ function ExplorePage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-slate-700">Created by</p>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <Mail className="w-3 h-3 text-slate-500 flex-shrink-0" />
-                          <p className="text-xs text-slate-600 truncate">{course.createdBy}</p>
+                          <User className="w-3 h-3 text-slate-500 flex-shrink-0" />
+                          <p className="text-xs text-slate-600 truncate">
+                            {course.creatorName || course.createdBy?.split('@')[0] || course.createdBy}
+                          </p>
                         </div>
                       </div>
                     </div>
