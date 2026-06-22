@@ -83,7 +83,7 @@ export default function TutorRequestsPage() {
           reviewedBy: admin?.email
         })
 
-        toast.success(`✅ Tutor approved! Credentials are available on their profile notification.`)
+        toast.success(`✅ Tutor approved! Credentials email sent to ${pendingApproval.userEmail} and available on their profile notification.`)
         setRequests(requests.filter(r => r.id !== pendingApproval.requestId))
         setShowPasswordVerify(false)
         setPendingApproval(null)
@@ -173,7 +173,7 @@ export default function TutorRequestsPage() {
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-xs text-blue-800">
-                  � <strong>What happens next:</strong> The tutor will see their login credentials (email & password) in the notification section of their profile. They can log in immediately using those credentials.
+                  💡 <strong>What happens next:</strong> The tutor will receive an automated email containing their login credentials and login URL, and will also see them in the notification section of their profile.
                 </p>
               </div>
             </div>

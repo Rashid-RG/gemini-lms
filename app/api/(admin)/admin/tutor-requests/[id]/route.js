@@ -199,8 +199,20 @@ export async function PATCH(req, { params }) {
             .where(eq(ADMIN_TABLE.email, tutorEmail))
         }
 
-        // Credentials are stored in database and shown on applicant's profile notification
-        // No email is sent - applicant will see credentials on their profile
+        // Send approval email containing credentials and login url
+        try {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+          const loginUrl = `${appUrl}/admin/login`
+          await emailService.sendHtmlEmail({
+            to: tutorEmail,
+            subject: '🎉 Congratulations! Your Tutor Application is Approved',
+            html: TutorApprovedEmail({ userName, tutorEmail, password, loginUrl })
+          })
+          console.log(`Approval email successfully sent to ${tutorEmail}`)
+        } catch (emailError) {
+          console.error('Failed to send approval email:', emailError)
+          // Don't fail the request if email fails
+        }
       } catch (adminError) {
         console.error('Error creating admin account:', adminError)
         // Even if admin account creation fails, the status is already updated
