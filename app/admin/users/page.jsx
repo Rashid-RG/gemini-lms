@@ -169,7 +169,7 @@ function AdminUsersPage() {
                                     <td className="px-4 py-3">
                                         <div>
                                             <p className="font-medium text-gray-900 dark:text-white">{u.name}</p>
-                                            <p className="text-sm text-gray-500">{u.email}</p>
+                                            {u.email && <p className="text-sm text-gray-500">{u.email}</p>}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-center">
