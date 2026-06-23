@@ -135,11 +135,11 @@ export async function GET(req) {
         const topCourses = await db
             .select({
                 topic: STUDY_MATERIAL_TABLE.topic,
-                students: STUDY_MATERIAL_TABLE.totalStudents,
-                rating: STUDY_MATERIAL_TABLE.averageRating
+                students: sql`coalesce(json_array_length(${STUDY_MATERIAL_TABLE.enrolledUsers}), 0)::int`.as('students'),
+                rating: sql`nullif(${STUDY_MATERIAL_TABLE.averageRating}, '0')::numeric::float`.as('rating')
             })
             .from(STUDY_MATERIAL_TABLE)
-            .orderBy(desc(STUDY_MATERIAL_TABLE.totalStudents))
+            .orderBy(desc(sql`coalesce(json_array_length(${STUDY_MATERIAL_TABLE.enrolledUsers}), 0)`))
             .limit(10);
 
         return NextResponse.json({
