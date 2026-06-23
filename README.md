@@ -19,7 +19,23 @@
   [![AI Core - Google Gemini](https://img.shields.io/badge/AI%20Core-Google%20Gemini-8E75C2?style=for-the-badge&logo=google-gemini&logoColor=white)](https://ai.google.dev/)
   [![Background Jobs - Inngest](https://img.shields.io/badge/Queue-Inngest-FF3E00?style=for-the-badge&logo=inngest&logoColor=white)](https://www.inngest.com/)
   [![Styling - Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+  [![License - Proprietary](https://img.shields.io/badge/License-Proprietary-6366F1?style=for-the-badge&logo=read-the-docs&logoColor=white)](./LICENSE)
 </div>
+
+<p align="center">
+  <sub>Designed & Engineered by <strong>M.S.F. Sajeefa</strong></sub>
+</p>
+
+<p align="center">
+  <a href="#-premium-saas-feature-suite">Features</a> •
+  <a href="#%EF%B8%8F-system-architecture">Architecture</a> •
+  <a href="#%EF%B8%8F-tech-stack--services">Tech Stack</a> •
+  <a href="#-installation--local-setup">Setup</a> •
+  <a href="https://gemini-lms.vercel.app/dashboard/upgrade">Pricing</a> •
+  <a href="https://gemini-lms.vercel.app/terms">Terms</a> •
+  <a href="https://gemini-lms.vercel.app/privacy">Privacy</a> •
+  <a href="https://gemini-lms.vercel.app/refund">Refund Policy</a>
+</p>
 
 ---
 
@@ -207,5 +223,32 @@ This guarantees maximum retention efficiency and dynamically minimizes the study
 
 ---
 
-## 📄 License
-This project is proprietary SaaS software. All rights reserved. For commercial license requests, contact [geminilmsadmin@gmail.com](mailto:geminilmsadmin@gmail.com).
+## 👤 Owner & Maintainer
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <strong>M.S.F. Sajeefa</strong><br />
+      <sub>Founder &amp; Lead Engineer, Gemini LMS</sub><br /><br />
+      <a href="mailto:geminilmsadmin@gmail.com">📧 geminilmsadmin@gmail.com</a>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 📄 License & Plans
+
+This project is **proprietary SaaS software**. All rights reserved by **M.S.F. Sajeefa**. Unauthorized copying, distribution, or reverse engineering is strictly prohibited — see the full [LICENSE](./LICENSE) for terms.
+
+| Plan | Intended For |
+|------|--------------|
+| 🆓 **Free** | Individual students — limited course-generation credits |
+| ✨ **Premium** | Power users — extended usage rights, standard support & updates |
+| 🏢 **Professional** | Institutions — multi-tenant hosting, custom branding, priority support |
+
+For commercial licensing, institutional deployments, or permission requests, contact [geminilmsadmin@gmail.com](mailto:geminilmsadmin@gmail.com).
+
+Payments are processed securely via **PayHere**. See our [Terms & Conditions](https://gemini-lms.vercel.app/terms), [Privacy Policy](https://gemini-lms.vercel.app/privacy), and [Refund Policy](https://gemini-lms.vercel.app/refund) for full details.
+
+<p align="center"><sub>© 2026 Gemini LMS — Owned and operated by M.S.F. Sajeefa. All rights reserved.</sub></p>
