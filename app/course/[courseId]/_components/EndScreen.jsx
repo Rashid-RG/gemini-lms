@@ -2,15 +2,35 @@ import { Button } from '@/components/ui/button'
 import { useRouter, useParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Award, CheckCircle } from 'lucide-react'
 
-function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers}) {
+function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers, chapterStartTime}) {
     const route = useRouter();
     const params = useParams();
     const { user } = useUser();
     const [marking, setMarking] = useState(false);
+    const [secondsRemaining, setSecondsRemaining] = useState(30);
+
+    useEffect(() => {
+        if (contentType !== 'chapter' || !chapterStartTime) {
+            setSecondsRemaining(0);
+            return;
+        }
+
+        const updateCountdown = () => {
+            const elapsed = Math.floor((Date.now() - chapterStartTime) / 1000);
+            const remaining = Math.max(0, 30 - elapsed);
+            setSecondsRemaining(remaining);
+        };
+
+        // Run immediately
+        updateCountdown();
+
+        const timer = setInterval(updateCountdown, 1000);
+        return () => clearInterval(timer);
+    }, [chapterStartTime, contentType]);
     
     const courseId = propCourseId || params?.courseId;
     
@@ -144,11 +164,12 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
                         <div className='flex gap-4 justify-center'>
                             <Button 
                                 onClick={markChapterComplete}
-                                disabled={marking || !user}
+                                disabled={marking || !user || (contentType === 'chapter' && secondsRemaining > 0)}
                                 className='bg-green-600 hover:bg-green-700 text-white'
                             >
                                 <CheckCircle className='w-4 h-4 mr-2' />
                                 {marking ? 'Marking...' : 
+                                    (contentType === 'chapter' && secondsRemaining > 0) ? `Read Content (${secondsRemaining}s)` :
                                     contentType === 'mcq' ? 'Mark MCQ Completed' :
                                     contentType === 'quiz' ? 'Mark Quiz Completed' : 
                                     'Mark Chapter Complete'

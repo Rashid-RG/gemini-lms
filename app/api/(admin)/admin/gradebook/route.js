@@ -141,10 +141,11 @@ export async function GET(req) {
       const profile = profileMap.get(normalizedEmail);
       const enrollment = enrollmentMap.get(normalizedEmail);
 
-      const parseScoreObj = (jsonStr) => {
+      const parseScoreObj = (val) => {
         try {
-          const obj = JSON.parse(jsonStr || "{}");
-          const vals = Object.values(obj).filter((v) => !isNaN(v));
+          if (!val) return { avg: 0, count: 0 };
+          const obj = typeof val === "string" ? JSON.parse(val || "{}") : val;
+          const vals = Object.values(obj).map(Number).filter((v) => !isNaN(v));
           return vals.length > 0
             ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, count: vals.length }
             : { avg: 0, count: 0 };

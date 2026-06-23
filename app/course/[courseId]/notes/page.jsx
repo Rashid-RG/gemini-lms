@@ -22,6 +22,7 @@ function ViewNotes() {
     const [stepCount,setStepCount]=useState(0)
     const [downloading,setDownloading]=useState(false)
     const [completedNotes, setCompletedNotes] = useState(new Set())
+    const [chapterStartTime, setChapterStartTime] = useState(Date.now());
     const noteRef=useRef(null);
     const route=useRouter();
     
@@ -30,6 +31,10 @@ function ViewNotes() {
             GetNotes();
         }
     },[courseId, user?.primaryEmailAddress?.emailAddress, currentChapterIndex])
+
+    useEffect(() => {
+        setChapterStartTime(Date.now());
+    }, [stepCount]);
 
     // Sync active course & chapter context for chatbot widget
     useEffect(() => {
@@ -191,6 +196,7 @@ function ViewNotes() {
                     courseId={courseId}
                     chapterIndex={currentChapterIndex}
                     onChapterComplete={handleChapterComplete}
+                    chapterStartTime={chapterStartTime}
                 />
 
                 {notes[stepCount] && (

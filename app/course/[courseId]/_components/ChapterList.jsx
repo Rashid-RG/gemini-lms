@@ -187,12 +187,17 @@ function ChapterList({course}) {
                             </div>
                         ) : (
                             <Button
-                                onClick={(e) => handleMarkComplete(e, index)}
-                                disabled={marking === index || !user}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentChapterIndex(index);
+                                    toast.info(`Chapter ${index + 1} selected! Open 'Notes/Chapters' below to read and complete.`, {
+                                        position: 'top-center'
+                                    });
+                                }}
                                 size="sm"
-                                className='bg-green-600 hover:bg-green-700 text-white text-xs'
+                                className='bg-blue-650 hover:bg-blue-700 text-white text-xs'
                             >
-                                {marking === index ? 'Marking...' : 'Mark Done'}
+                                Study Notes
                             </Button>
                         )}
                         {currentChapterIndex === index && !isLocked && (
