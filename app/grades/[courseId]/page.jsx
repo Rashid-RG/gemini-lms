@@ -135,7 +135,6 @@ export default function StudentCourseGradeDetailPage() {
     return [
       { name: 'Quiz', value: course.quizAverage || 0 },
       { name: 'Assignment', value: course.assignmentAverage || 0 },
-      { name: 'MCQ', value: course.mcqAverage || 0 },
     ];
   }, [course]);
 
@@ -157,7 +156,6 @@ export default function StudentCourseGradeDetailPage() {
         quizAverage: course.quizAverage,
         assignmentAverage: course.assignmentAverage,
         assignmentSubmitted: course.assignmentSubmitted,
-        mcqAverage: course.mcqAverage,
         finalGrade: course.finalGrade,
         gradeLabel: getGradeLabel(course.finalGrade),
         resultStatus: course.resultStatus,
@@ -174,7 +172,6 @@ export default function StudentCourseGradeDetailPage() {
       { key: 'quizAverage', header: 'Quiz Average %' },
       { key: 'assignmentAverage', header: 'Assignment Average %' },
       { key: 'assignmentSubmitted', header: 'Assignments Submitted' },
-      { key: 'mcqAverage', header: 'MCQ Average %' },
       { key: 'finalGrade', header: 'Final Grade %' },
       { key: 'gradeLabel', header: 'Grade' },
       { key: 'resultStatus', header: 'Pass / Fail' },
@@ -316,7 +313,7 @@ export default function StudentCourseGradeDetailPage() {
           </Card>
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Card>
             <CardHeader><CardTitle className="text-base">Quiz Performance</CardTitle></CardHeader>
             <CardContent>
@@ -329,13 +326,6 @@ export default function StudentCourseGradeDetailPage() {
             <CardContent>
               <p className="text-3xl font-bold text-slate-900">{course.assignmentAverage}%</p>
               <p className="mt-1 text-sm text-slate-500">{course.assignmentSubmitted || 0} graded submissions</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-base">MCQ Performance</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-slate-900">{course.mcqAverage}%</p>
-              <p className="mt-1 text-sm text-slate-500">Across {course.mcqCount} MCQ items</p>
             </CardContent>
           </Card>
         </div>

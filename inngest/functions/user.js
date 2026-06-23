@@ -57,7 +57,8 @@ export const CreateNewUser = inngest.createFunction(
                     .from(CREDIT_TRANSACTION_TABLE)
                     .where(and(
                         eq(CREDIT_TRANSACTION_TABLE.userEmail, email),
-                        eq(CREDIT_TRANSACTION_TABLE.type, 'initial_grant')
+                        eq(CREDIT_TRANSACTION_TABLE.type, 'bonus'),
+                        eq(CREDIT_TRANSACTION_TABLE.reason, 'Welcome bonus - new account')
                     ));
 
                 if (Number(existingTransactions[0]?.count || 0) === 0) {

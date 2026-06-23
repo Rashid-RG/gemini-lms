@@ -1,5 +1,5 @@
 import { db } from "@/configs/db";
-import { STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE, COURSE_ENROLLMENT_TABLE, STUDENT_PROGRESS_TABLE, USER_TABLE } from "@/configs/schema";
+import { STUDY_MATERIAL_TABLE, CHAPTER_NOTES_TABLE, STUDY_TYPE_CONTENT_TABLE, ADMIN_ACTIVITY_LOG_TABLE, COURSE_ENROLLMENT_TABLE, STUDENT_PROGRESS_TABLE, USER_TABLE, CONTENT_REVIEW_TABLE } from "@/configs/schema";
 import { eq, desc, sql, like, or, inArray, and, ilike } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth, requireAdminOrAbove } from "@/lib/adminApiAuth";
@@ -317,6 +317,14 @@ export async function DELETE(req) {
 
         await db.delete(STUDY_TYPE_CONTENT_TABLE)
             .where(eq(STUDY_TYPE_CONTENT_TABLE.courseId, courseId));
+
+        // Delete content reviews
+        try {
+            await db.delete(CONTENT_REVIEW_TABLE)
+                .where(eq(CONTENT_REVIEW_TABLE.courseId, courseId));
+        } catch (e) {
+            console.log('No content review items to delete or table not exists');
+        }
 
         // Delete the course
         const result = await db.delete(STUDY_MATERIAL_TABLE)

@@ -390,3 +390,59 @@ export const AssignmentSubmissionEmail = ({
     </EmailLayout>
   )
 }
+
+/**
+ * Course Pending Review Notification Email
+ */
+export const CoursePendingReviewEmail = ({
+  adminName = 'Admin',
+  courseTopic = 'New Course',
+  creatorEmail = 'user@example.com',
+  courseId = ''
+}) => {
+  return (
+    <EmailLayout preheader={`New Course outline generated and pending review: ${courseTopic}`}>
+      <div style={{ color: '#1f2937', lineHeight: '1.6' }}>
+        <p style={{ fontSize: '16px', margin: '0 0 15px 0' }}>
+          Hello <strong>{adminName}</strong>,
+        </p>
+
+        <p style={{ fontSize: '14px', margin: '0 0 15px 0' }}>
+          A new AI-generated course has been created by a student and is now in <strong>Pending Review</strong> status. Please review and approve the content layout and study materials so that the student can start learning.
+        </p>
+
+        <EmailSection title="Review Details" icon="⏳" backgroundColor="#fffbe6" borderColor="#ffe58f">
+          <table style={{ width: '100%', fontSize: '14px', color: '#1f2937' }}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '8px 0', fontWeight: '500' }}>Course Topic:</td>
+                <td style={{ padding: '8px 0', textAlign: 'right' }}>{courseTopic}</td>
+              </tr>
+              <tr style={{ borderTop: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '8px 0', fontWeight: '500' }}>Created By (User):</td>
+                <td style={{ padding: '8px 0', textAlign: 'right' }}>{creatorEmail}</td>
+              </tr>
+              <tr style={{ borderTop: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '8px 0', fontWeight: '500' }}>Course ID:</td>
+                <td style={{ padding: '8px 0', textAlign: 'right', fontFamily: 'monospace' }}>{courseId}</td>
+              </tr>
+            </tbody>
+          </table>
+        </EmailSection>
+
+        <div style={{ textAlign: 'center', margin: '25px 0' }}>
+          <EmailButton 
+            href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/dashboard`}
+            text="Go to Admin Dashboard"
+          />
+        </div>
+
+        <p style={{ fontSize: '14px', margin: '15px 0 0 0', color: '#6b7280' }}>
+          Thank you for keeping Gemini LMS high-quality!<br />
+          The Gemini LMS Team
+        </p>
+      </div>
+    </EmailLayout>
+  )
+}
+

@@ -177,7 +177,6 @@ export default function InstructorGradeBookPage() {
           <div style="margin-top: 22px; background: white; border-radius: 22px; padding: 22px; border: 1px solid #e2e8f0;">
             <h2 style="margin: 0 0 12px; font-size: 20px;">Performance Details</h2>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 14px;">
-              <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0;"><strong>MCQ Average:</strong> ${student.mcqAverage || 0}% (${student.mcqCount || 0} items)</div>
               <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0;"><strong>Status:</strong><div style="display: inline-block; margin-top: 8px; padding: 6px 12px; border-radius: 999px; color: white; background: ${statusTone}; font-size: 12px; font-weight: 700;">${student.status || 'In Progress'}</div></div>
               <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0;"><strong>Started:</strong> ${student.startedAt ? new Date(student.startedAt).toLocaleDateString() : 'Not available'}</div>
               <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0;"><strong>Last Activity:</strong> ${student.lastActivityAt ? new Date(student.lastActivityAt).toLocaleDateString() : 'Never'}</div>
@@ -441,7 +440,6 @@ export default function InstructorGradeBookPage() {
                           <th className="text-center py-3 px-4 font-semibold text-gray-700">Progress</th>
                           <th className="text-center py-3 px-4 font-semibold text-gray-700">Quiz</th>
                           <th className="text-center py-3 px-4 font-semibold text-gray-700">Assignment</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-700">MCQ</th>
                           <th className="text-center py-3 px-4 font-semibold text-gray-700">Final Grade</th>
                           <th className="text-center py-3 px-4 font-semibold text-gray-700">Status</th>
                           <th className="text-center py-3 px-4 font-semibold text-gray-700">Last Activity</th>
@@ -472,10 +470,6 @@ export default function InstructorGradeBookPage() {
                             <td className="py-3 px-4 text-center">
                               <span className="text-sm font-semibold">{student.assignmentAverage}%</span>
                               <p className="text-xs text-gray-500">({student.assignmentSubmitted}/{student.assignmentCount})</p>
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <span className="text-sm font-semibold">{student.mcqAverage}%</span>
-                              <p className="text-xs text-gray-500">({student.mcqCount})</p>
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center justify-center gap-2">

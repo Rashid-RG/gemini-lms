@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
-import { Award, Calendar, Trophy, ExternalLink } from 'lucide-react'
+import { Award, Calendar, Trophy, ExternalLink, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -55,6 +55,23 @@ function CertificatesPage() {
                         <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-white bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">My Certificates</h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">View, share, and verify your earned course completion certificates</p>
                     </div>
+                </div>
+            </div>
+
+            {/* Eligibility Criteria Alert Box */}
+            <div className="flex gap-4 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/40 dark:bg-indigo-950/10 text-slate-700 dark:text-slate-350 shadow-sm backdrop-blur-xl">
+                <Info className="h-6 w-6 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+                <div className="space-y-1">
+                    <h4 className="font-extrabold text-slate-900 dark:text-white text-sm">Certificate Eligibility Criteria</h4>
+                    <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                        To earn an official verified certificate for a course, you must meet the following criteria:
+                    </p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        <li><strong className="text-slate-800 dark:text-slate-300">100% Course Progress:</strong> Complete all chapters, study materials, and note activities in the course layout.</li>
+                        <li><strong className="text-slate-800 dark:text-slate-300">Graded Quizzes:</strong> Complete at least 1 quiz with a minimum average score of <span className="font-bold text-emerald-600 dark:text-emerald-400">45%</span>.</li>
+                        <li><strong className="text-slate-800 dark:text-slate-300">Graded Assignments (if applicable):</strong> Submit at least one assignment, and every graded assignment must score at least <span className="font-bold text-emerald-600 dark:text-emerald-400">45 points</span>.</li>
+                        <li><strong className="text-slate-800 dark:text-slate-300">Automatic Issue:</strong> Once met, go to your course page to generate and claim your certificate. It will then appear here permanently.</li>
+                    </ul>
                 </div>
             </div>
 

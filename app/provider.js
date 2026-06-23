@@ -1,5 +1,6 @@
 "use client"
 import { useUser } from '@clerk/nextjs'
+import { usePathname } from 'next/navigation';
 import axios from 'axios';
 import React, { useEffect, useRef, Suspense, lazy } from 'react'
 
@@ -12,6 +13,8 @@ const ChatBotWidget = lazy(() => import('@/components/ChatBotWidget').catch(err 
 function Provider({ children }) {
 
     const { user } = useUser();
+    const pathname = usePathname();
+    const isAdminPath = pathname?.startsWith('/admin');
     const checkedRef = useRef(false);
 
     useEffect(() => {
@@ -46,8 +49,8 @@ function Provider({ children }) {
     return (
         <div>
             {children}
-            {/* Lazy load ChatBotWidget only when user is authenticated */}
-            {user && (
+            {/* Lazy load ChatBotWidget only when user is authenticated and not on admin routes */}
+            {user && !isAdminPath && (
                 <Suspense fallback={null}>
                     <ChatBotWidget />
                 </Suspense>

@@ -1,7 +1,8 @@
 import { db } from "@/configs/db";
 import { inngest } from "../client";
-import { CHAPTER_NOTES_TABLE, STUDY_MATERIAL_TABLE, CONTENT_REVIEW_TABLE } from "@/configs/schema";
+import { CHAPTER_NOTES_TABLE, STUDY_MATERIAL_TABLE, CONTENT_REVIEW_TABLE, ADMIN_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
+import { emailService } from "@/lib/emailService";
 import { generateNotesAiModel } from "@/configs/AiModel";
 import { refundCourseCredits } from "@/lib/credits";
 import { handleAIError } from "./aiHelper";
@@ -201,6 +202,35 @@ FORMAT RULES (strictly follow):
                 } catch (reviewErr) {
                     console.error('Failed to create review items (non-fatal):', reviewErr.message);
                     return 'Review creation skipped';
+                }
+            });
+
+            await step.run('Notify Admins and Tutors by Email', async () => {
+                try {
+                    const adminsAndTutors = await db.select({
+                        email: ADMIN_TABLE.email,
+                        name: ADMIN_TABLE.name
+                    })
+                    .from(ADMIN_TABLE)
+                    .where(eq(ADMIN_TABLE.isActive, true));
+
+                    for (const recipient of adminsAndTutors) {
+                        try {
+                            await emailService.sendPendingReviewNotificationEmail(
+                                recipient.email,
+                                recipient.name,
+                                course?.topic || 'New Course',
+                                course?.createdBy || 'Student',
+                                course?.courseId
+                            );
+                        } catch (emailErr) {
+                            console.error(`Failed to send review email to ${recipient.email}:`, emailErr.message);
+                        }
+                    }
+                    return `Notified ${adminsAndTutors.length} admins and tutors`;
+                } catch (err) {
+                    console.error('Failed to notify admins/tutors:', err.message);
+                    return 'Notification failed';
                 }
             });
 

@@ -6,7 +6,7 @@ import TopicInput from './_components/TopicInput';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { useUser } from '@clerk/nextjs';
-import { Loader, Video, Globe, Lock, Tag } from 'lucide-react';
+import { Loader, Video, Globe, Lock, Tag, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -138,6 +138,13 @@ function Create() {
     <div className='flex flex-col items-center p-4 md:px-24 lg:px-36 mt-10 md:mt-20'>
         <h2 className='font-bold text-2xl md:text-4xl text-primary text-center'>Start Building Your Personal Study Material</h2>
         <p className='text-gray-500 text-sm md:text-lg text-center'>Fill All details in order to generate study material for your next project</p>
+
+        <div className="mt-6 w-full max-w-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-xl p-4 text-left flex items-start gap-3 shadow-sm">
+          <Info className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0 animate-pulse" />
+          <div className="text-xs text-indigo-950 dark:text-indigo-300 leading-relaxed">
+            <span className="font-bold text-indigo-900 dark:text-indigo-200">About AI Credits:</span> Each AI course generation request consumes <span className="font-bold text-indigo-700 dark:text-indigo-400">1 Credit</span>. Free accounts are given <span className="font-bold text-indigo-700 dark:text-indigo-400">5 welcome credits</span> automatically. If a generation fails or runs out of API quota, deleting the failed course from your dashboard will <span className="font-bold text-indigo-700 dark:text-indigo-400">instantly refund</span> your credit.
+          </div>
+        </div>
 
           <>
             <div className='mt-10 w-full max-w-xl'>

@@ -49,12 +49,10 @@ export async function GET(req) {
             };
         });
 
-        const isTutor = auth.admin.role === 'tutor';
         const usersWithStats = users.map(user => {
             const courses = courseCountMap[user.email] || { total: 0, ready: 0, generating: 0, failed: 0 };
             return {
                 ...user,
-                email: isTutor ? null : user.email,
                 courses
             };
         });

@@ -101,9 +101,9 @@ export async function GET(req) {
             
             // Payment statistics
             db.select({
-                totalRevenue: sql`coalesce(sum(cast(amount as numeric)), 0)`,
+                totalRevenue: sql`coalesce(sum(case when status = 'completed' then cast(amount as numeric) else 0 end), 0)`,
                 totalTransactions: sql`count(*)`,
-                completedPayments: sql`count(*) filter (where status = 'completed')`
+                completedPayments: sql`count(distinct ${PAYMENT_RECORD_TABLE.userEmail}) filter (where status = 'completed')`
             }).from(PAYMENT_RECORD_TABLE).catch(() => [{ totalRevenue: 0, totalTransactions: 0, completedPayments: 0 }]),
             
             // This month's revenue

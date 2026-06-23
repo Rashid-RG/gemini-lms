@@ -54,7 +54,7 @@ export async function GET(req) {
                 creatorName: USER_TABLE.name,
             })
             .from(CONTENT_REVIEW_TABLE)
-            .leftJoin(STUDY_MATERIAL_TABLE, eq(CONTENT_REVIEW_TABLE.courseId, STUDY_MATERIAL_TABLE.courseId))
+            .innerJoin(STUDY_MATERIAL_TABLE, eq(CONTENT_REVIEW_TABLE.courseId, STUDY_MATERIAL_TABLE.courseId))
             .leftJoin(USER_TABLE, eq(STUDY_MATERIAL_TABLE.createdBy, USER_TABLE.email))
             .where(whereClause)
             .orderBy(

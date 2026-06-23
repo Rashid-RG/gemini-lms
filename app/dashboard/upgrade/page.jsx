@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button'
 import React, { useState, useEffect, useRef, useContext } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { Sparkles, Zap, Loader2, CheckCircle, CreditCard, Receipt, Clock, RefreshCw, XCircle } from 'lucide-react'
+import { Sparkles, Zap, Loader2, CheckCircle, CreditCard, Receipt, Clock, RefreshCw, XCircle, Info, HelpCircle, Gift, Coins } from 'lucide-react'
 import axios from 'axios'
 import { CourseCountContext } from '@/app/_context/CourseCountContext'
 
@@ -382,6 +382,73 @@ function Upgrade() {
             <CheckCircle className="w-4 h-4 text-green-500" />
             24/7 Support
         </span>
+    </div>
+</div>
+
+{/* Help & Explanation: How System Credits Work */}
+<div className="mt-16 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-950 dark:to-indigo-950/20 border border-indigo-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+    <div className="flex items-center gap-3 mb-6">
+        <div className="p-2.5 bg-indigo-650 rounded-2xl text-white shadow-md shadow-indigo-200 dark:shadow-none">
+            <HelpCircle className="w-6 h-6" />
+        </div>
+        <div className="text-left">
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">How Credits & Subscriptions Work</h3>
+            <p className="text-xs text-gray-550 dark:text-gray-400 font-medium">All you need to know about our simple billing system</p>
+        </div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+        {/* Card 1 */}
+        <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-850 p-5 rounded-2xl shadow-xs flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 animate-pulse">
+                <Coins className="w-5 h-5" />
+            </div>
+            <div>
+                <h4 className="font-bold text-gray-800 dark:text-white text-sm">What is a System Credit?</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                    A credit represents <strong>1 full AI Course generation</strong>. When you create a course, the AI consumes 1 credit to draft outlines, write comprehensive study notes, generate flashcards, prepare interactive assignments, build quizzes, and fetch YouTube videos.
+                </p>
+            </div>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-850 p-5 rounded-2xl shadow-xs flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                <Gift className="w-5 h-5 animate-bounce" style={{ animationDuration: '3s' }} />
+            </div>
+            <div>
+                <h4 className="font-bold text-gray-800 dark:text-white text-sm">5 Free Welcome Credits</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                    Every newly registered student is instantly gifted <strong>5 welcome credits</strong>. This allows you to explore our course generation engine and create 5 deep-dive courses absolutely free.
+                </p>
+            </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-850 p-5 rounded-2xl shadow-xs flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <RefreshCw className="w-5 h-5 animate-spin" style={{ animationDuration: '8s' }} />
+            </div>
+            <div>
+                <h4 className="font-bold text-gray-800 dark:text-white text-sm">Zero Risk: Failed Course Refund</h4>
+                <p className="text-xs text-gray-550 dark:text-gray-400 mt-1.5 leading-relaxed">
+                    If AI generation is interrupted by rate limits or a server exception, deleting the failed course on your dashboard will <strong>automatically restore the 1 credit</strong> back to your balance. You only pay for successful generations!
+                </p>
+            </div>
+        </div>
+
+        {/* Card 4 */}
+        <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 p-5 rounded-2xl shadow-xs flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+                <h4 className="font-bold text-gray-800 dark:text-white text-sm">Credit Packs vs. Subscriptions</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-450 mt-1.5 leading-relaxed">
+                    <strong>Packs</strong> grant permanent, non-expiring credits for casual learning. <strong>Premium Subscriptions</strong> (Rs. 1,500/month) grant <strong>Unlimited generations</strong> (bypassing credit limits entirely) plus Priority AI and Certificate downloads.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 

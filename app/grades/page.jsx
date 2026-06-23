@@ -224,7 +224,6 @@ export default function StudentGradeBookPage() {
   const gradesByType = [
     { name: 'Quiz Avg', value: Math.round(filteredCourses.reduce((sum, course) => sum + course.quizAverage, 0) / (filteredCourses.length || 1)) },
     { name: 'Assignment Avg', value: Math.round(filteredCourses.reduce((sum, course) => sum + course.assignmentAverage, 0) / (filteredCourses.length || 1)) },
-    { name: 'MCQ Avg', value: Math.round(filteredCourses.reduce((sum, course) => sum + course.mcqAverage, 0) / (filteredCourses.length || 1)) },
   ];
 
   const trendHistory = (trendData?.history || []).map((entry, index) => ({
@@ -247,8 +246,6 @@ export default function StudentGradeBookPage() {
       assignmentAverage: course.assignmentAverage,
       assignmentCount: course.assignmentCount,
       assignmentSubmitted: course.assignmentSubmitted,
-      mcqAverage: course.mcqAverage,
-      mcqCount: course.mcqCount,
       finalGrade: course.finalGrade,
       gradeLetter: getGradeLabel(course.finalGrade),
       resultStatus: course.resultStatus,
@@ -270,8 +267,6 @@ export default function StudentGradeBookPage() {
       { key: 'assignmentAverage', header: 'Assignment Average %' },
       { key: 'assignmentCount', header: 'Assignment Count' },
       { key: 'assignmentSubmitted', header: 'Assignments Submitted' },
-      { key: 'mcqAverage', header: 'MCQ Average %' },
-      { key: 'mcqCount', header: 'MCQ Count' },
       { key: 'finalGrade', header: 'Final Grade %' },
       { key: 'gradeLetter', header: 'Grade Letter' },
       { key: 'resultStatus', header: 'Pass / Fail' },
@@ -655,7 +650,6 @@ export default function StudentGradeBookPage() {
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">Progress</th>
                       <th className="text-center py-3 px-4 font-semibold text-gray-700">Quiz</th>
                       <th className="text-center py-3 px-4 font-semibold text-gray-700">Assignment</th>
-                      <th className="text-center py-3 px-4 font-semibold text-gray-700">MCQ</th>
                       <th className="text-center py-3 px-4 font-semibold text-gray-700">Final Grade</th>
                       <th className="text-center py-3 px-4 font-semibold text-gray-700">Pass / Fail</th>
                       <th className="text-center py-3 px-4 font-semibold text-gray-700">Rank</th>
@@ -685,10 +679,6 @@ export default function StudentGradeBookPage() {
                         <td className="py-3 px-4 text-center">
                           <span className="text-sm font-semibold">{course.assignmentAverage}%</span>
                           <p className="text-xs text-gray-500">({course.assignmentCount})</p>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="text-sm font-semibold">{course.mcqAverage}%</span>
-                          <p className="text-xs text-gray-500">({course.mcqCount})</p>
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center gap-2">
@@ -860,7 +850,7 @@ export default function StudentGradeBookPage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
                       <p className="text-slate-500">Quiz Average</p>
                       <p className="mt-1 text-lg font-semibold text-slate-900">{course.quizAverage}%</p>
@@ -868,10 +858,6 @@ export default function StudentGradeBookPage() {
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
                       <p className="text-slate-500">Assignment Average</p>
                       <p className="mt-1 text-lg font-semibold text-slate-900">{course.assignmentAverage}%</p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                      <p className="text-slate-500">MCQ Average</p>
-                      <p className="mt-1 text-lg font-semibold text-slate-900">{course.mcqAverage}%</p>
                     </div>
                   </div>
 
