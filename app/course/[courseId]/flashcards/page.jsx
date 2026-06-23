@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useChapter } from '../_context/ChapterContext'
 import { toast } from 'sonner'
 import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-react'
+import { scheduleCard } from '@/lib/spacedRepetition'
 
 import {
     Carousel,
@@ -192,36 +193,11 @@ function Flashcards() {
         const cardId = `${currentIndex}`;
         const lastSchedule = currentSchedules[cardId] || { repetitions: 0, interval: 1, easeFactor: 2.5 };
 
-        let repetitions = lastSchedule.repetitions;
-        let interval = lastSchedule.interval;
-        let easeFactor = lastSchedule.easeFactor;
+        // Spaced-repetition scheduling lives in lib/spacedRepetition.js (pure + unit-tested).
+        const nextSchedule = scheduleCard(lastSchedule, score);
+        const { interval } = nextSchedule;
 
-        if (score === 1) { // Again
-            repetitions = 0;
-            interval = 1; // 1 day
-        } else {
-            if (repetitions === 0) {
-                interval = 1;
-            } else if (repetitions === 1) {
-                interval = 3; // 3 days
-            } else {
-                interval = Math.round(interval * easeFactor);
-            }
-            repetitions += 1;
-            // SM-2 Ease Factor adjustments
-            easeFactor = Math.max(1.3, easeFactor + (0.1 - (5 - score) * (0.08 + (5 - score) * 0.02)));
-        }
-
-        const nextReviewDate = new Date();
-        nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-
-        currentSchedules[cardId] = {
-            repetitions,
-            interval,
-            easeFactor,
-            nextReviewDate: nextReviewDate.toISOString(),
-            lastRatedScore: score
-        };
+        currentSchedules[cardId] = nextSchedule;
 
         setSchedules(currentSchedules);
         localStorage.setItem(key, JSON.stringify(currentSchedules));
