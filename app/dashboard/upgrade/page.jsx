@@ -20,6 +20,24 @@ const formatDate = (dateStr) => {
     }
 };
 
+// Helper to determine if a subscription has expired (30 days for monthly, 365 days for yearly)
+const isSubscriptionExpired = (payment) => {
+    if (!payment?.createdAt) return true;
+    try {
+        const createdDate = new Date(payment.createdAt);
+        const now = new Date();
+        const diffTime = now - createdDate;
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+        
+        const isYearly = payment.plan?.toLowerCase().includes('yearly');
+        const durationDays = isYearly ? 365 : 30;
+        
+        return diffDays > durationDays;
+    } catch {
+        return true;
+    }
+};
+
 function Upgrade() {
     const { user, isLoaded } = useUser()
     const { isMember } = useContext(CourseCountContext)
@@ -509,21 +527,34 @@ function Upgrade() {
                                 {payment.creditsAdded > 0 ? `+${payment.creditsAdded}` : '—'}
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                    payment.status === 'completed' || payment.status === 'success'
-                                        ? 'bg-green-50 text-green-700 border border-green-100'
-                                        : payment.status === 'pending'
-                                        ? 'bg-yellow-50 text-yellow-700 border border-yellow-100'
-                                        : payment.status === 'refunded'
-                                        ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                                        : 'bg-red-50 text-red-700 border border-red-100'
-                                }`}>
-                                    {(payment.status === 'completed' || payment.status === 'success') && <CheckCircle className="w-3.5 h-3.5" />}
-                                    {payment.status === 'pending' && <Clock className="w-3.5 h-3.5 animate-pulse" />}
-                                    {payment.status === 'refunded' && <RefreshCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '4s' }} />}
-                                    {payment.status === 'failed' && <XCircle className="w-3.5 h-3.5" />}
-                                    <span className="capitalize">{payment.status || 'completed'}</span>
-                                </span>
+                                <div className="flex flex-col items-center gap-1.5 justify-center">
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                        payment.status === 'completed' || payment.status === 'success'
+                                            ? 'bg-green-50 text-green-700 border border-green-100'
+                                            : payment.status === 'pending'
+                                            ? 'bg-yellow-50 text-yellow-700 border border-yellow-100'
+                                            : payment.status === 'refunded'
+                                            ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                                            : 'bg-red-50 text-red-700 border border-red-100'
+                                    }`}>
+                                        {(payment.status === 'completed' || payment.status === 'success') && <CheckCircle className="w-3.5 h-3.5" />}
+                                        {payment.status === 'pending' && <Clock className="w-3.5 h-3.5 animate-pulse" />}
+                                        {payment.status === 'refunded' && <RefreshCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '4s' }} />}
+                                        {payment.status === 'failed' && <XCircle className="w-3.5 h-3.5" />}
+                                        <span className="capitalize">{payment.status || 'completed'}</span>
+                                    </span>
+                                    {payment.planType === 'subscription' && (payment.status === 'completed' || payment.status === 'success') && (
+                                        isSubscriptionExpired(payment) ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wide">
+                                                Expired
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wide animate-pulse">
+                                                Active
+                                            </span>
+                                        )
+                                    )}
+                                </div>
                             </td>
                         </tr>
                     ))}

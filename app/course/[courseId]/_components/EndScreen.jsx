@@ -6,31 +6,11 @@ import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Award, CheckCircle } from 'lucide-react'
 
-function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers, chapterStartTime}) {
+function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers, chapterStartTime, secondsRemaining = 0}) {
     const route = useRouter();
     const params = useParams();
     const { user } = useUser();
     const [marking, setMarking] = useState(false);
-    const [secondsRemaining, setSecondsRemaining] = useState(30);
-
-    useEffect(() => {
-        if (contentType !== 'chapter' || !chapterStartTime) {
-            setSecondsRemaining(0);
-            return;
-        }
-
-        const updateCountdown = () => {
-            const elapsed = Math.floor((Date.now() - chapterStartTime) / 1000);
-            const remaining = Math.max(0, 30 - elapsed);
-            setSecondsRemaining(remaining);
-        };
-
-        // Run immediately
-        updateCountdown();
-
-        const timer = setInterval(updateCountdown, 1000);
-        return () => clearInterval(timer);
-    }, [chapterStartTime, contentType]);
     
     const courseId = propCourseId || params?.courseId;
     

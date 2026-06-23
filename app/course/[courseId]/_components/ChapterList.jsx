@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useChapter } from '../_context/ChapterContext'
 import { useUser } from '@clerk/nextjs'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -19,6 +19,7 @@ function ChapterList({course}) {
     const { currentChapterIndex, setCurrentChapterIndex } = useChapter()
     const { user } = useUser()
     const { courseId } = useParams()
+    const router = useRouter()
     const [completedChapters, setCompletedChapters] = useState([])
     const [marking, setMarking] = useState(null)
     const retryCountRef = React.useRef(0)
@@ -190,9 +191,10 @@ function ChapterList({course}) {
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setCurrentChapterIndex(index);
-                                    toast.info(`Chapter ${index + 1} selected! Open 'Notes/Chapters' below to read and complete.`, {
+                                    toast.success(`Opening Chapter ${index + 1} study session...`, {
                                         position: 'top-center'
                                     });
+                                    router.push(`/course/${courseId}/notes`);
                                 }}
                                 size="sm"
                                 className='bg-blue-650 hover:bg-blue-700 text-white text-xs'

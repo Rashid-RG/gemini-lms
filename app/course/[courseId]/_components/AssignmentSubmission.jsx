@@ -646,6 +646,8 @@ function AssignmentSubmission({ assignmentId, courseId, studentEmail }) {
     const [reviewReason, setReviewReason] = useState('')
     const [requestingReview, setRequestingReview] = useState(false)
     const [showHistorySubmission, setShowHistorySubmission] = useState(null)
+    const [unlockReasonInput, setUnlockReasonInput] = useState('')
+    const [sendingUnlockRequest, setSendingUnlockRequest] = useState(false)
     
     // Auto-save states
     const [autoSaveStatus, setAutoSaveStatus] = useState('idle') // idle, saving, saved, unsaved
@@ -901,6 +903,33 @@ function AssignmentSubmission({ assignmentId, courseId, studentEmail }) {
         }
     }
 
+    const handleRequestUnlock = async () => {
+        if (!unlockReasonInput.trim()) {
+            toast.error('Please provide a reason for the extension request')
+            return
+        }
+
+        setSendingUnlockRequest(true)
+        try {
+            await axios.post('/api/assignment-unlock', {
+                assignmentId,
+                courseId,
+                studentEmail,
+                reason: unlockReasonInput
+            })
+            
+            toast.success('Extension request submitted successfully! Awaiting tutor/admin approval.')
+            setUnlockReasonInput('')
+            // Refresh submission status
+            await fetchSubmission()
+        } catch (err) {
+            console.error('Error requesting assignment unlock:', err)
+            toast.error(err.response?.data?.error || 'Failed to submit extension request')
+        } finally {
+            setSendingUnlockRequest(false)
+        }
+    }
+
     if (loading) {
         return (
             <div className="w-full space-y-4 animate-pulse">
@@ -915,7 +944,14 @@ function AssignmentSubmission({ assignmentId, courseId, studentEmail }) {
     const isPendingReview = submission?.status === 'PendingReview' || submission?.status === 'ReviewRequested'
     const hasRequestedReview = submission?.reviewRequested === true || submission?.status === 'ReviewRequested'
     const isSubmitted = submission?.status === 'Submitted'
-    const shouldShowForm = (!isGraded && !isPendingReview) || isRevising
+    
+    // Evaluate if the assignment is overdue and locked
+    const isOverdue = assignment?.dueDate && new Date() > new Date(assignment.dueDate)
+    const isUnlocked = submission?.status === 'Unlocked'
+    const isSubmittedOrGraded = submission && ['Submitted', 'Graded', 'Feedback', 'PendingReview', 'ReviewRequested', 'ManuallyGraded'].includes(submission.status)
+    const isLocked = isOverdue && !isUnlocked && !isSubmittedOrGraded
+
+    const shouldShowForm = ((!isGraded && !isPendingReview) || isRevising) && !isLocked
 
     return (
         <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -1525,6 +1561,150 @@ function AssignmentSubmission({ assignmentId, courseId, studentEmail }) {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* Lockout Screen */}
+                    {isLocked && (
+                        <div className="w-full space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Total Points Card */}
+                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 shadow-lg text-white">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs uppercase font-bold tracking-wider mb-1 opacity-90">Total Points</p>
+                                            <p className="text-4xl font-black">{assignment?.totalPoints || 100}</p>
+                                        </div>
+                                        <Award className="w-12 h-12 opacity-30" />
+                                    </div>
+                                </div>
+
+                                {/* Quick Info Card */}
+                                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                                    <p className="text-xs uppercase font-bold tracking-wider text-slate-500 mb-3">Assignment Info</p>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                            <FileText className="w-4 h-4 text-slate-400" />
+                                            <span>{assignment?.title || 'Assignment'}</span>
+                                        </div>
+                                        {assignment?.dueDate && (
+                                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                <Clock className="w-4 h-4 text-slate-400" />
+                                                <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Lock Banner / Request Form */}
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+                                {submission?.status === 'UnlockRequested' ? (
+                                    <div className="p-8 text-center space-y-4">
+                                        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-blue-600 animate-pulse">
+                                            <Clock className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900">Unlock Request Pending</h3>
+                                            <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">
+                                                You have requested to unlock this assignment. The request is currently awaiting approval from your tutor or administrator.
+                                            </p>
+                                        </div>
+                                        {submission.reviewReason && (
+                                            <div className="bg-slate-50 p-4 rounded-xl text-left border border-slate-200 max-w-md mx-auto">
+                                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Your Request Reason</p>
+                                                <p className="text-sm text-slate-700 italic">"{submission.reviewReason}"</p>
+                                            </div>
+                                        )}
+                                        <Button
+                                            onClick={() => {
+                                                toast.loading('Refreshing...')
+                                                fetchSubmission().then(() => {
+                                                    toast.dismiss()
+                                                    toast.success('Status updated!')
+                                                })
+                                            }}
+                                            variant="outline"
+                                            className="mt-2"
+                                        >
+                                            <RefreshCw className="w-4 h-4 mr-2" />
+                                            Check Status
+                                        </Button>
+                                    </div>
+                                ) : submission?.status === 'UnlockDenied' ? (
+                                    <div className="p-8 text-center space-y-4">
+                                        <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-600">
+                                            <XCircle className="w-8 h-8" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900">Unlock Request Denied</h3>
+                                            <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">
+                                                Your request to unlock this assignment has been denied by the instructor. You are no longer able to submit work for this assignment.
+                                            </p>
+                                        </div>
+                                        {submission.instructorNotes && (
+                                            <div className="bg-rose-50/50 p-4 rounded-xl text-left border border-rose-100 max-w-md mx-auto">
+                                                <p className="text-xs font-bold text-rose-600 uppercase tracking-wider mb-1">Instructor Notes</p>
+                                                <p className="text-sm text-rose-700">"{submission.instructorNotes}"</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div className="bg-gradient-to-r from-amber-500 to-orange-600 px-6 sm:px-8 py-6 text-white">
+                                            <div className="flex items-center gap-3">
+                                                <AlertTriangle className="w-6 h-6" />
+                                                <div>
+                                                    <h2 className="text-2xl font-bold">Assignment Locked</h2>
+                                                    <p className="text-amber-100 text-sm mt-0.5">The due date for this assignment has passed and it is now locked.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="p-6 sm:p-8 space-y-6">
+                                            <p className="text-slate-600 text-sm">
+                                                If you need to submit this assignment, you must request an extension from your tutor or administrator. 
+                                                Please write a brief justification below explaining why you need the extension.
+                                            </p>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-semibold text-slate-800">Justification for Extension</label>
+                                                <Textarea
+                                                    placeholder="Example: I was unable to complete the assignment due to medical reasons. I have a doctor's note..."
+                                                    value={unlockReasonInput}
+                                                    onChange={(e) => setUnlockReasonInput(e.target.value)}
+                                                    className="min-h-[120px]"
+                                                    disabled={sendingUnlockRequest}
+                                                />
+                                            </div>
+                                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                                                <Button
+                                                    onClick={() => router.back()}
+                                                    variant="outline"
+                                                    disabled={sendingUnlockRequest}
+                                                >
+                                                    Go Back
+                                                </Button>
+                                                <Button
+                                                    onClick={handleRequestUnlock}
+                                                    disabled={sendingUnlockRequest || !unlockReasonInput.trim()}
+                                                    className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-md active:scale-[0.98] transition-all"
+                                                >
+                                                    {sendingUnlockRequest ? (
+                                                        <>
+                                                            <Loader className="w-4 h-4 mr-2 animate-spin" />
+                                                            Sending Request...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Send className="w-4 h-4 mr-2" />
+                                                            Request Extension
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 

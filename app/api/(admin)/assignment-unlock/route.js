@@ -24,14 +24,38 @@ export async function POST(req) {
     if (authEmail !== studentEmail.trim().toLowerCase()) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    // Mark submission as unlock requested
-    const result = await db.update(ASSIGNMENT_SUBMISSIONS_TABLE)
-      .set({ status: "UnlockRequested", unlockReason: reason || "" })
+    // Check if submission record already exists
+    const existing = await db.select().from(ASSIGNMENT_SUBMISSIONS_TABLE)
       .where(and(
         eq(ASSIGNMENT_SUBMISSIONS_TABLE.assignmentId, assignmentId),
         eq(ASSIGNMENT_SUBMISSIONS_TABLE.studentEmail, studentEmail)
-      ))
-      .returning();
+      ));
+
+    let result;
+    if (existing.length > 0) {
+      result = await db.update(ASSIGNMENT_SUBMISSIONS_TABLE)
+        .set({ 
+          status: "UnlockRequested", 
+          reviewReason: reason || "" 
+        })
+        .where(and(
+          eq(ASSIGNMENT_SUBMISSIONS_TABLE.assignmentId, assignmentId),
+          eq(ASSIGNMENT_SUBMISSIONS_TABLE.studentEmail, studentEmail)
+        ))
+        .returning();
+    } else {
+      result = await db.insert(ASSIGNMENT_SUBMISSIONS_TABLE)
+        .values({
+          assignmentId,
+          courseId,
+          studentEmail,
+          submission: "", // placeholder required text submission
+          submissionType: "text",
+          status: "UnlockRequested",
+          reviewReason: reason || ""
+        })
+        .returning();
+    }
     return NextResponse.json({ result: result[0], message: "Unlock request submitted. Awaiting admin approval." });
   } catch (err) {
     return NextResponse.json({ error: "Failed to submit unlock request", details: err.message }, { status: 500 });

@@ -23,6 +23,7 @@ function ViewNotes() {
     const [downloading,setDownloading]=useState(false)
     const [completedNotes, setCompletedNotes] = useState(new Set())
     const [chapterStartTime, setChapterStartTime] = useState(Date.now());
+    const [secondsRemaining, setSecondsRemaining] = useState(30);
     const noteRef=useRef(null);
     const route=useRouter();
     
@@ -35,6 +36,18 @@ function ViewNotes() {
     useEffect(() => {
         setChapterStartTime(Date.now());
     }, [stepCount]);
+
+    useEffect(() => {
+        const updateCountdown = () => {
+            const elapsed = Math.floor((Date.now() - chapterStartTime) / 1000);
+            const remaining = Math.max(0, 30 - elapsed);
+            setSecondsRemaining(remaining);
+        };
+
+        updateCountdown();
+        const timer = setInterval(updateCountdown, 1000);
+        return () => clearInterval(timer);
+    }, [chapterStartTime]);
 
     // Sync active course & chapter context for chatbot widget
     useEffect(() => {
@@ -170,9 +183,20 @@ function ViewNotes() {
         />
 
         <div className='mt-4 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-100/80'>
-            <div>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
                 {notes[stepCount] && (
                     <VoiceReader htmlContent={notes[stepCount]?.notes} />
+                )}
+                {stepCount < notes.length && (
+                    secondsRemaining > 0 ? (
+                        <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/30 text-xs font-semibold">
+                            <span className="animate-pulse">📖</span> Reading verification: {secondsRemaining}s remaining
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-900/30 text-xs font-semibold">
+                            <span>✓</span> Ready to complete chapter
+                        </div>
+                    )
                 )}
             </div>
             <div className='flex items-center gap-3 self-end md:self-auto'>
@@ -197,6 +221,7 @@ function ViewNotes() {
                     chapterIndex={currentChapterIndex}
                     onChapterComplete={handleChapterComplete}
                     chapterStartTime={chapterStartTime}
+                    secondsRemaining={secondsRemaining}
                 />
 
                 {notes[stepCount] && (

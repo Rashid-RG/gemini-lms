@@ -198,7 +198,7 @@ export default function AssignmentUnlockAdmin() {
                         {req.studentEmail}
                       </td>
                       <td className="px-5 py-4 text-sm text-slate-600 font-medium">
-                        {req.unlockReason || <span className="text-slate-400 font-normal italic">No reason provided</span>}
+                        {req.reviewReason || req.unlockReason || <span className="text-slate-400 font-normal italic">No reason provided</span>}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex justify-end gap-2">

@@ -163,9 +163,6 @@ export async function POST(req) {
     }
 
 
-    // Due date check temporarily disabled for development
-    // TODO: Re-enable due date enforcement in production
-    /*
     // Check assignment due date (optional - allow submission if no due date set)
     const assignment = await db.select().from(COURSE_ASSIGNMENTS_TABLE)
       .where(eq(COURSE_ASSIGNMENTS_TABLE.assignmentId, assignmentId));
@@ -188,7 +185,6 @@ export async function POST(req) {
         }
       }
     }
-    */
 
     // ...existing code for submission logic...
     // Check if submission already exists
