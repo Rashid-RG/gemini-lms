@@ -36,25 +36,33 @@ function TypewriterText({ text, speed = 40, delay = 0, className = "" }) {
   return <span className={className}>{displayedText}</span>;
 }
 
-// Cinematic browser-chrome frame for showcasing real product screenshots
-function BrowserFrame({ src, alt, className = "" }) {
+// Cinematic browser-chrome frame for premium stylized product mockups
+function BrowserFrame({ children, label = "gemini-lms.vercel.app", glow = "indigo", className = "" }) {
+  const glowColor = {
+    indigo: "rgba(99,102,241,0.35)",
+    purple: "rgba(168,85,247,0.35)",
+    emerald: "rgba(16,185,129,0.3)",
+    pink: "rgba(236,72,153,0.3)",
+    cyan: "rgba(34,211,238,0.3)",
+  }[glow] || "rgba(99,102,241,0.35)";
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.94, y: 16 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.7, ease: "easeOut" }}
-      className={`relative rounded-2xl overflow-hidden border border-white/10 bg-slate-900 shadow-2xl ${className}`}
-      style={{ boxShadow: "0 25px 60px -15px rgba(99,102,241,0.35)" }}
+      className={`relative rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-b from-slate-900 to-slate-950 shadow-2xl ${className}`}
+      style={{ boxShadow: `0 25px 60px -15px ${glowColor}` }}
     >
-      <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-850 border-b border-white/5">
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-850/80 border-b border-white/5 backdrop-blur-sm">
         <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
         <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
         <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-        <span className="ml-2 text-[9px] font-mono text-slate-500 truncate">gemini-lms.vercel.app</span>
+        <span className="ml-2 text-[9px] font-mono text-slate-500 truncate">{label}</span>
       </div>
-      <div className="relative w-full aspect-[16/10]">
-        <Image src={src} alt={alt} fill className="object-cover object-top" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
+      <div className="relative p-5 min-h-[230px] flex flex-col">
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-[60px] pointer-events-none" style={{ background: glowColor }} />
+        {children}
       </div>
     </motion.div>
   );
@@ -589,15 +597,15 @@ export default function TrailerPage() {
             >
               <div className="absolute w-[280px] h-[280px] bg-indigo-500/15 rounded-full blur-[70px] pointer-events-none animate-pulse" />
 
-              {/* Cinematic blurred backdrop of the real dashboard */}
+              {/* Cinematic ambient glow backdrop */}
               <motion.div
                 initial={{ opacity: 0, scale: 1.08 }}
-                animate={{ opacity: 0.25, scale: 1 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1.5 }}
                 className="absolute inset-0 -z-10 rounded-3xl overflow-hidden hidden sm:block"
               >
-                <Image src="/trailer/dashboard-real.png" alt="" fill className="object-cover blur-sm" />
-                <div className="absolute inset-0 bg-black/70" />
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/40 via-slate-950 to-purple-950/30" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(99,102,241,0.18),transparent_60%)]" />
               </motion.div>
 
               <motion.div
@@ -640,15 +648,32 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: AI study material generator */}
-              <div className="relative">
+              {/* Premium stylized mockup: AI topic scanner */}
+              <BrowserFrame label="gemini-lms.vercel.app/create" glow="indigo">
                 <motion.div
                   animate={{ top: ["0%", "100%", "0%"] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_#6366f1] z-20 pointer-events-none"
                 />
-                <BrowserFrame src="/trailer/topic-input-real.png" alt="Gemini LMS AI study material generator" />
-              </div>
+                <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-4">
+                  <FileText className="w-5 h-5 text-indigo-400 animate-bounce" />
+                  <span className="text-xs font-semibold text-slate-300">ethical_hacking.pdf</span>
+                </div>
+                <div className="space-y-2 font-mono text-[10px] text-slate-400 text-left">
+                  <div className="flex justify-between items-center bg-white/[0.03] p-2.5 rounded-lg border border-white/5">
+                    <span>⚡ Parsing Document</span>
+                    <span className="text-green-400">Done</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white/[0.03] p-2.5 rounded-lg border border-white/5">
+                    <span>📚 Mapping Chapters</span>
+                    <span className="text-green-400">Done</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white/[0.03] p-2.5 rounded-lg border border-white/5">
+                    <span>📝 Study Suite Creation</span>
+                    <span className="text-indigo-400 animate-pulse">Processing...</span>
+                  </div>
+                </div>
+              </BrowserFrame>
             </motion.div>
           )}
 
@@ -675,8 +700,26 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: AI-generated structured notes */}
-              <BrowserFrame src="/trailer/notes-real.png" alt="Gemini LMS AI-generated study notes" />
+              {/* Premium stylized mockup: AI-generated notes */}
+              <BrowserFrame label="gemini-lms.vercel.app/notes" glow="purple">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
+                  <span className="text-[10px] font-bold text-slate-300">Notes: Network Encryption</span>
+                  <span className="text-[8px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-mono">Autoscroll</span>
+                </div>
+                <motion.div
+                  animate={{ y: [0, -60, 0] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                  className="space-y-3 pr-2 overflow-hidden flex-1"
+                >
+                  <h4 className="text-xs font-bold text-slate-200">Asymmetric Cryptography</h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Uses pairs of keys: public keys which may be disseminated widely, and private keys which are known only to the owner...
+                  </p>
+                  <div className="bg-white/[0.03] p-2.5 rounded-lg border border-white/5 text-[10px] text-indigo-400 font-mono">
+                    Public Key (Encrypt) → Private Key (Decrypt)
+                  </div>
+                </motion.div>
+              </BrowserFrame>
             </motion.div>
           )}
 
@@ -703,8 +746,23 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: spaced-repetition flashcard deck */}
-              <BrowserFrame src="/trailer/flashcard-real.png" alt="Gemini LMS flashcard deck with spaced repetition" className="max-w-[420px] mx-auto" />
+              {/* Premium stylized mockup: 3D-flip flashcard deck */}
+              <div className="flex justify-center">
+                <motion.div
+                  animate={{ rotateY: [0, 180, 180, 0, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  className="w-full max-w-[280px] h-[180px] bg-gradient-to-tr from-indigo-950/70 via-slate-900 to-sky-950/40 border border-sky-500/20 rounded-2xl p-5 flex flex-col justify-between shadow-2xl"
+                  style={{ transformStyle: "preserve-3d", boxShadow: "0 25px 60px -15px rgba(56,189,248,0.3)" }}
+                >
+                  <div className="text-left">
+                    <span className="text-[8px] font-bold text-slate-500 tracking-widest uppercase">Card 03</span>
+                    <h3 className="text-xs font-bold text-white mt-1.5 leading-relaxed">What does the acronym HTTP stand for?</h3>
+                  </div>
+                  <div className="text-[10px] text-sky-400 text-center font-bold">
+                    Hypertext Transfer Protocol
+                  </div>
+                </motion.div>
+              </div>
             </motion.div>
           )}
 
@@ -731,8 +789,24 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: AI tutor / support chat assistant */}
-              <BrowserFrame src="/trailer/chat-widget-real.png" alt="Gemini LMS AI tutor chat assistant" />
+              {/* Premium stylized mockup: AI voice tutor chat */}
+              <BrowserFrame label="gemini-lms.vercel.app/tutor" glow="emerald">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
+                  <span className="text-xs text-slate-300">Voice Session</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="text-[9px] text-emerald-400">Listening</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="bg-white/[0.03] p-2.5 rounded-lg border border-white/5 text-xs text-slate-300 font-medium">
+                    <TypewriterText text="Explain SQL Injection." speed={60} delay={500} />
+                  </div>
+                  <div className="bg-emerald-950/20 border border-emerald-500/10 p-2.5 rounded-lg text-[11px] text-slate-400 leading-relaxed min-h-[50px]">
+                    <TypewriterText text="SQL Injection is a code injection technique where malicious SQL statements are inserted into inputs to execute unintended query commands." speed={30} delay={2000} />
+                  </div>
+                </div>
+              </BrowserFrame>
             </motion.div>
           )}
 
@@ -759,15 +833,24 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: adaptive quiz with instant feedback */}
-              <div className="relative">
+              {/* Premium stylized mockup: graded assessment */}
+              <BrowserFrame label="gemini-lms.vercel.app/quiz" glow="emerald">
                 <motion.div
                   animate={{ left: ["-100%", "200%"] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute top-0 bottom-0 w-2 bg-gradient-to-r from-transparent via-green-400/30 to-transparent skew-x-12 z-20 pointer-events-none"
                 />
-                <BrowserFrame src="/trailer/quiz-real.png" alt="Gemini LMS adaptive quiz with instant feedback" />
-              </div>
+                <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full border-4 border-green-500 bg-green-500/10 flex flex-col items-center justify-center">
+                    <span className="text-xl font-black text-green-400">92%</span>
+                    <span className="text-[6px] text-slate-500 font-bold uppercase">GRADE A</span>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-slate-200">Exam Graded Successfully</h4>
+                    <p className="text-[9px] text-slate-450">Gemini checked: 18 correct / 2 incorrect.</p>
+                  </div>
+                </div>
+              </BrowserFrame>
             </motion.div>
           )}
 
@@ -794,8 +877,26 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: multi-language coding playground */}
-              <BrowserFrame src="/trailer/playground-real.png" alt="Gemini LMS multi-language coding playground" />
+              {/* Premium stylized mockup: multi-language code playground */}
+              <BrowserFrame label="gemini-lms.vercel.app/playground" glow="pink">
+                <div className="flex items-center gap-1 border-b border-white/5 pb-2 mb-3">
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-[9px] text-slate-500 ml-2 font-mono">script.py</span>
+                </div>
+                <div className="text-indigo-400 space-y-1 min-h-[40px] font-mono text-xs">
+                  <p className="text-indigo-300">
+                    <TypewriterText text="def sum(a, b): return a + b" speed={50} delay={500} />
+                  </p>
+                  <p className="text-indigo-300">
+                    <TypewriterText text="print(sum(10, 20))" speed={50} delay={2000} />
+                  </p>
+                </div>
+                <div className="bg-white/[0.03] border border-white/5 p-2 rounded-lg text-[9px] text-slate-450 font-mono mt-2">
+                  <TypewriterText text="Output: 30" speed={20} delay={3250} />
+                </div>
+              </BrowserFrame>
             </motion.div>
           )}
 
@@ -822,8 +923,23 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: per-course discussion board */}
-              <BrowserFrame src="/trailer/discussion-real.png" alt="Gemini LMS course discussion board" />
+              {/* Premium stylized mockup: course discussion board */}
+              <BrowserFrame label="gemini-lms.vercel.app/discussions" glow="pink">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
+                  <span className="text-xs text-slate-300">Study Hub</span>
+                  <span className="text-[8px] bg-pink-500/10 text-pink-400 px-2 py-0.5 rounded uppercase">Connected</span>
+                </div>
+                <div className="space-y-3">
+                  <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="border-l-2 border-pink-500 pl-3">
+                    <span className="text-[9px] text-slate-500">alex_coder</span>
+                    <p className="text-[11px] text-slate-300">"Anyone solved chapter 2 coding challenge? I'm stuck on recursion."</p>
+                  </motion.div>
+                  <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 2 }} className="border-l-2 border-indigo-500 pl-3">
+                    <span className="text-[9px] text-slate-500">sophia_admin</span>
+                    <p className="text-[11px] text-slate-300">"Check custom notes inside chapter 2 files! I uploaded a guide."</p>
+                  </motion.div>
+                </div>
+              </BrowserFrame>
             </motion.div>
           )}
 
@@ -850,8 +966,22 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Real product screenshot: instructor gradebook analytics */}
-              <BrowserFrame src="/trailer/admin-chart-real.png" alt="Gemini LMS instructor gradebook analytics" />
+              {/* Premium stylized mockup: instructor/admin analytics */}
+              <BrowserFrame label="gemini-lms.vercel.app/admin" glow="cyan">
+                <span className="text-[9px] text-slate-450 uppercase font-mono tracking-wider mb-3">System Activity</span>
+                <div className="grid grid-cols-2 gap-3 font-mono mt-3">
+                  <div className="bg-white/[0.03] p-3 rounded-xl border border-white/5">
+                    <div className="text-[8px] text-slate-500">Active Learners</div>
+                    <div className="text-base font-bold text-cyan-400">
+                      <span>1,240</span>
+                    </div>
+                  </div>
+                  <div className="bg-white/[0.03] p-3 rounded-xl border border-white/5">
+                    <div className="text-[8px] text-slate-500">Completion Rate</div>
+                    <div className="text-base font-bold text-indigo-400">89.4%</div>
+                  </div>
+                </div>
+              </BrowserFrame>
             </motion.div>
           )}
 
@@ -935,16 +1065,6 @@ export default function TrailerPage() {
                 <span className="text-[8px] font-mono tracking-widest px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400">GEMINI AI</span>
                 <span className="text-[8px] font-mono tracking-widest px-2 py-0.5 rounded bg-pink-500/10 border border-pink-500/20 text-pink-400">DRIZZLE ORM</span>
                 <span className="text-[8px] font-mono tracking-widest px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">NEON DATABASE</span>
-              </motion.div>
-
-              {/* Real certificate proof, floating in for social proof */}
-              <motion.div
-                initial={{ opacity: 0, y: 20, rotate: -4 }}
-                animate={{ opacity: 0.9, y: 0, rotate: -4 }}
-                transition={{ delay: 2.1, duration: 0.8 }}
-                className="hidden md:block absolute -right-6 bottom-6 w-40 rounded-lg overflow-hidden border border-white/10 shadow-2xl shadow-indigo-500/30"
-              >
-                <Image src="/trailer/certificate-real.png" alt="Gemini LMS verified certificate" width={320} height={240} className="object-cover" />
               </motion.div>
 
               {/* Call-to-action */}
