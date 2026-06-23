@@ -158,6 +158,19 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <footer className="relative z-10 border-t border-slate-200/70 bg-white/60 backdrop-blur-sm">
+        <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-slate-500 font-medium text-center sm:text-left">
+            &copy; {new Date().getFullYear()} Gemini LMS. Owned and operated by M.S.F. Sajeefa. All rights reserved.
+          </p>
+          <div className="flex items-center gap-5 text-xs font-semibold text-slate-500">
+            <a href="/terms" className="hover:text-indigo-600 transition-colors">Terms & Conditions</a>
+            <a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy Policy</a>
+            <a href="/refund" className="hover:text-indigo-600 transition-colors">Refund Policy</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

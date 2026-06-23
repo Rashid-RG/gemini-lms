@@ -2,7 +2,7 @@
 import { CourseCountContext } from '@/app/_context/CourseCountContext'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { LayoutDashboard, Shield, UserCircle, TrendingUp, Award, Compass, Trophy, LifeBuoy, ShieldCheck, ClipboardCheck, ClipboardList, Users, Settings, CreditCard, BarChart3, Mail, BookOpen, Megaphone, History, GraduationCap, Code, ChevronLeft, HelpCircle, Database } from 'lucide-react'
+import { LayoutDashboard, Shield, UserCircle, TrendingUp, Award, Compass, Trophy, LifeBuoy, ShieldCheck, ClipboardCheck, ClipboardList, Users, Settings, CreditCard, BarChart3, Mail, BookOpen, Megaphone, History, GraduationCap, Code, ChevronLeft, HelpCircle, Database, FileText } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -73,6 +73,11 @@ function SideBar({ onNavigate, onCollapseToggle }) {
             name:'How to Use',
             icon:HelpCircle,
             path:'/dashboard/guide'
+        },
+        {
+            name:'Legal & Policies',
+            icon:FileText,
+            path:'/dashboard/legal'
         },
         ...(isAdmin ? [
             {
