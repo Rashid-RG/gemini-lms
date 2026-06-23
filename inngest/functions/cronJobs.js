@@ -22,7 +22,7 @@ import {
 } from "@/configs/schema";
 import zlib from "zlib";
 import crypto from "crypto";
-import { eq, and, lt, sql } from "drizzle-orm";
+import { eq, and, lt, sql, desc } from "drizzle-orm";
 import { emailService } from "@/lib/emailService";
 import { getMasterySummary } from "@/lib/adaptiveDifficulty";
 import { buildReminderEmailHTML } from "@/lib/reminderEmail";
@@ -356,3 +356,220 @@ export const SystemBackupCron = inngest.createFunction(
         return result;
     }
 );
+
+export const CheckSubAndCreditLimits = inngest.createFunction(
+    { id: 'check-sub-and-credit-limits' },
+    { cron: '0 8 * * *' }, // Run daily at 8:00 AM
+    async ({ step }) => {
+        if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+            console.error('CheckSubAndCreditLimits: SMTP credentials missing; skipping run');
+            throw new Error('SMTP credentials not configured');
+        }
+
+        const stats = await step.run('Process low credits and expiring subscriptions', async () => {
+            let lowCreditsEmailed = 0;
+            let subExpiringEmailed = 0;
+            const errors = [];
+
+            // 1. Process Low Credits warnings for free users (isMember = false, credits <= 1)
+            try {
+                const freeUsersWithLowCredits = await db
+                    .select()
+                    .from(USER_TABLE)
+                    .where(
+                        and(
+                            eq(USER_TABLE.isMember, false),
+                            sql`${USER_TABLE.credits} <= 1`
+                        )
+                    );
+
+                for (const user of freeUsersWithLowCredits) {
+                    try {
+                        const email = user.email.trim().toLowerCase();
+                        
+                        // Get latest course creation transaction
+                        const lastCourseCreation = await db
+                            .select()
+                            .from(CREDIT_TRANSACTION_TABLE)
+                            .where(
+                                and(
+                                    eq(CREDIT_TRANSACTION_TABLE.userEmail, email),
+                                    eq(CREDIT_TRANSACTION_TABLE.type, 'course_creation')
+                                )
+                            )
+                            .orderBy(desc(CREDIT_TRANSACTION_TABLE.createdAt))
+                            .limit(1);
+
+                        if (lastCourseCreation.length > 0) {
+                            // Check if a warning was already sent after this latest course creation
+                            const lastWarning = await db
+                                .select()
+                                .from(CREDIT_TRANSACTION_TABLE)
+                                .where(
+                                    and(
+                                        eq(CREDIT_TRANSACTION_TABLE.userEmail, email),
+                                        eq(CREDIT_TRANSACTION_TABLE.type, 'low_credits_warning'),
+                                        sql`${CREDIT_TRANSACTION_TABLE.createdAt} > ${lastCourseCreation[0].createdAt}`
+                                    )
+                                )
+                                .limit(1);
+
+                            if (lastWarning.length === 0) {
+                                // No warning sent since last credit deduction! Send it now.
+                                await emailService.sendLowCreditsWarning(
+                                    user.email,
+                                    user.name || 'Learner',
+                                    user.credits ?? 0
+                                );
+
+                                // Log the warning in credit transaction table
+                                await db.insert(CREDIT_TRANSACTION_TABLE).values({
+                                    userEmail: email,
+                                    amount: 0,
+                                    type: 'low_credits_warning',
+                                    reason: 'Low credits warning email sent',
+                                    balanceBefore: user.credits ?? 0,
+                                    balanceAfter: user.credits ?? 0,
+                                    createdBy: 'system'
+                                });
+
+                                lowCreditsEmailed++;
+                            }
+                        } else {
+                            // If they have no transactions at all but credits <= 1
+                            // check if warned in last 30 days
+                            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                            const recentWarning = await db
+                                .select()
+                                .from(CREDIT_TRANSACTION_TABLE)
+                                .where(
+                                    and(
+                                        eq(CREDIT_TRANSACTION_TABLE.userEmail, email),
+                                        eq(CREDIT_TRANSACTION_TABLE.type, 'low_credits_warning'),
+                                        sql`${CREDIT_TRANSACTION_TABLE.createdAt} > ${thirtyDaysAgo}`
+                                    )
+                                )
+                                .limit(1);
+
+                            if (recentWarning.length === 0) {
+                                await emailService.sendLowCreditsWarning(
+                                    user.email,
+                                    user.name || 'Learner',
+                                    user.credits ?? 0
+                                );
+
+                                await db.insert(CREDIT_TRANSACTION_TABLE).values({
+                                    userEmail: email,
+                                    amount: 0,
+                                    type: 'low_credits_warning',
+                                    reason: 'Low credits warning email sent (no previous course creation tx)',
+                                    balanceBefore: user.credits ?? 0,
+                                    balanceAfter: user.credits ?? 0,
+                                    createdBy: 'system'
+                                });
+
+                                lowCreditsEmailed++;
+                            }
+                        }
+                    } catch (userErr) {
+                        console.error(`Error processing low credits warning for user ${user.email}:`, userErr);
+                        errors.push({ email: user.email, type: 'low_credits', error: userErr.message });
+                    }
+                }
+            } catch (err) {
+                console.error("Error in low credits warnings scan:", err);
+                errors.push({ type: 'low_credits_scan', error: err.message });
+            }
+
+            // 2. Process expiring subscriptions (isMember = true)
+            try {
+                const premiumUsers = await db
+                    .select()
+                    .from(USER_TABLE)
+                    .where(eq(USER_TABLE.isMember, true));
+
+                const now = new Date();
+                const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+
+                for (const user of premiumUsers) {
+                    try {
+                        const email = user.email.trim().toLowerCase();
+
+                        // Get latest active/completed subscription payment
+                        const latestSub = await db
+                            .select()
+                            .from(PAYMENT_RECORD_TABLE)
+                            .where(
+                                and(
+                                    eq(PAYMENT_RECORD_TABLE.userEmail, email),
+                                    eq(PAYMENT_RECORD_TABLE.status, 'completed'),
+                                    eq(PAYMENT_RECORD_TABLE.planType, 'subscription')
+                                )
+                            )
+                            .orderBy(desc(PAYMENT_RECORD_TABLE.createdAt))
+                            .limit(1);
+
+                        if (latestSub.length > 0) {
+                            const sub = latestSub[0];
+                            const createdAt = new Date(sub.createdAt);
+                            const durationDays = sub.plan === 'premium_yearly' ? 365 : 30;
+                            const expirationDate = new Date(createdAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+                            // We want to notify if expiration is within the next 3 days (and in the future)
+                            if (expirationDate > now && expirationDate <= threeDaysFromNow) {
+                                // Check if we already warned them for this specific subscription
+                                const lastWarning = await db
+                                    .select()
+                                    .from(CREDIT_TRANSACTION_TABLE)
+                                    .where(
+                                        and(
+                                            eq(CREDIT_TRANSACTION_TABLE.userEmail, email),
+                                            eq(CREDIT_TRANSACTION_TABLE.type, 'sub_expiry_warning'),
+                                            sql`${CREDIT_TRANSACTION_TABLE.createdAt} > ${sub.createdAt}`
+                                        )
+                                    )
+                                    .limit(1);
+
+                                if (lastWarning.length === 0) {
+                                    await emailService.sendSubscriptionExpiringSoon(
+                                        user.email,
+                                        user.name || 'Learner',
+                                        expirationDate
+                                    );
+
+                                    // Log warning in credit transaction table to prevent double-emailing
+                                    await db.insert(CREDIT_TRANSACTION_TABLE).values({
+                                        userEmail: email,
+                                        amount: 0,
+                                        type: 'sub_expiry_warning',
+                                        reason: `Subscription expiring soon warning sent. Expiry: ${expirationDate.toISOString()}`,
+                                        balanceBefore: user.credits ?? 0,
+                                        balanceAfter: user.credits ?? 0,
+                                        createdBy: 'system'
+                                    });
+
+                                    subExpiringEmailed++;
+                                }
+                            }
+                        }
+                    } catch (userErr) {
+                        console.error(`Error processing subscription expiry warning for user ${user.email}:`, userErr);
+                        errors.push({ email: user.email, type: 'sub_expiry', error: userErr.message });
+                    }
+                }
+            } catch (err) {
+                console.error("Error in subscription expiry warnings scan:", err);
+                errors.push({ type: 'sub_expiry_scan', error: err.message });
+            }
+
+            return {
+                lowCreditsEmailed,
+                subExpiringEmailed,
+                errors
+            };
+        });
+
+        return stats;
+    }
+);
+

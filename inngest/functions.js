@@ -5,4 +5,4 @@ export { helloWorld, CreateNewUser } from "./functions/user";
 export { GenerateNotes, FetchYouTubeVideos } from "./functions/course";
 export { GenerateStudyTypeContent } from "./functions/studyType";
 export { GradeAssignment, GenerateAssignments } from "./functions/assignment";
-export { SendWeeklyProgressReminders, CleanupStaleCourses, SystemHealthCheck, SystemBackupCron } from "./functions/cronJobs";
+export { SendWeeklyProgressReminders, CleanupStaleCourses, SystemHealthCheck, SystemBackupCron, CheckSubAndCreditLimits } from "./functions/cronJobs";

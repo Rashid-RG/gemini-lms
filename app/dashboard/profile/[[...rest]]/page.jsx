@@ -228,14 +228,6 @@ function Profile() {
           <label className="block text-sm font-medium text-slate-700 mb-1">Emergency Contact Phone</label>
           <input name="emergencyContactPhone" value={studentDetails.emergencyContactPhone} onChange={handleDetailChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Guardian Email</label>
-          <input name="guardianEmail" value={studentDetails.guardianEmail} onChange={handleDetailChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Guardian Relationship</label>
-          <input name="guardianRelationship" value={studentDetails.guardianRelationship} onChange={handleDetailChange} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="Parent, Mother, Father, Guardian..." />
-        </div>
       </div>
     </div>
   )

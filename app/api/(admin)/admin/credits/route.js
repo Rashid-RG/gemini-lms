@@ -1,6 +1,6 @@
 import { db } from "@/configs/db";
 import { USER_TABLE, CREDIT_TRANSACTION_TABLE } from "@/configs/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
 
@@ -32,7 +32,11 @@ export async function GET(req) {
             const transactions = await db
                 .select()
                 .from(CREDIT_TRANSACTION_TABLE)
-                .where(eq(CREDIT_TRANSACTION_TABLE.userEmail, email))
+                .where(and(
+                    eq(CREDIT_TRANSACTION_TABLE.userEmail, email),
+                    ne(CREDIT_TRANSACTION_TABLE.type, 'low_credits_warning'),
+                    ne(CREDIT_TRANSACTION_TABLE.type, 'sub_expiry_warning')
+                ))
                 .orderBy(desc(CREDIT_TRANSACTION_TABLE.createdAt))
                 .limit(50);
 
