@@ -63,10 +63,11 @@ export async function GET(req) {
     const student = progress[0];
 
     // Parse scores from JSON
-    const parseScores = (jsonStr) => {
+    const parseScores = (val) => {
       try {
-        const obj = JSON.parse(jsonStr || "{}");
-        const values = Object.values(obj).filter((v) => !isNaN(v));
+        if (!val) return 0;
+        const obj = typeof val === "string" ? JSON.parse(val || "{}") : val;
+        const values = Object.values(obj).map(Number).filter((v) => !isNaN(v));
         return values.length > 0
           ? values.reduce((a, b) => a + b, 0) / values.length
           : 0;
@@ -224,17 +225,26 @@ export async function POST(req) {
     for (const student of allStudents) {
       // Call GET logic for each student (simplified)
       try {
-        const quizAvg = JSON.parse(student.quizScores || "{}");
+        const parseScoreHelper = (val) => {
+          try {
+            if (!val) return {};
+            return typeof val === "string" ? JSON.parse(val || "{}") : val;
+          } catch {
+            return {};
+          }
+        };
+
+        const quizAvg = parseScoreHelper(student.quizScores);
         const qAvg =
           Object.values(quizAvg).length > 0
-            ? Object.values(quizAvg).reduce((a, b) => a + b, 0) /
+            ? Object.values(quizAvg).map(Number).filter(v => !isNaN(v)).reduce((a, b) => a + b, 0) /
               Object.values(quizAvg).length
             : 0;
 
-        const assignmentAvg = JSON.parse(student.assignmentScores || "{}");
+        const assignmentAvg = parseScoreHelper(student.assignmentScores);
         const aAvg =
           Object.values(assignmentAvg).length > 0
-            ? Object.values(assignmentAvg).reduce((a, b) => a + b, 0) /
+            ? Object.values(assignmentAvg).map(Number).filter(v => !isNaN(v)).reduce((a, b) => a + b, 0) /
               Object.values(assignmentAvg).length
             : 0;
 
