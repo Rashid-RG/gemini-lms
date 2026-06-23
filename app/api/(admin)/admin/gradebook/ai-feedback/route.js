@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
 import { AssignmentGradingAiModel } from "@/configs/AiModel";
 
-function buildPrompt({ courseName, studentName, studentEmail, progressPercentage, quizAverage, assignmentAverage, mcqAverage, finalGrade, riskLevel, status, feedbackCount }) {
+function buildPrompt({ courseName, studentName, studentEmail, progressPercentage, quizAverage, assignmentAverage, finalGrade, riskLevel, status, feedbackCount }) {
   return `You are an academic reviewer writing supportive, specific feedback for a student.
 
 Return strict JSON with this exact shape:
@@ -29,7 +29,6 @@ Student context:
 - Progress: ${progressPercentage || 0}%
 - Quiz average: ${Math.round(quizAverage || 0)}%
 - Assignment average: ${Math.round(assignmentAverage || 0)}%
-- MCQ average: ${Math.round(mcqAverage || 0)}%
 - Final grade: ${finalGrade || 0}%
 - Risk level: ${riskLevel}
 - Existing feedback count: ${feedbackCount || 0}
@@ -50,7 +49,6 @@ export async function POST(req) {
       progressPercentage,
       quizAverage,
       assignmentAverage,
-      mcqAverage,
       finalGrade,
       riskLevel,
       status,
@@ -68,7 +66,6 @@ export async function POST(req) {
       progressPercentage,
       quizAverage,
       assignmentAverage,
-      mcqAverage,
       finalGrade,
       riskLevel,
       status,

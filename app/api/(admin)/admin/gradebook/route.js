@@ -154,7 +154,6 @@ export async function GET(req) {
       };
 
       const quiz = parseScoreObj(progress.quizScores);
-      const mcq = parseScoreObj(progress.mcqScores);
 
       // Assignment average from submissions
       const studentSubs = submissions.filter(
@@ -167,7 +166,7 @@ export async function GET(req) {
       const assignmentCount = studentSubs.length || parseScoreObj(progress.assignmentScores).count;
 
       const finalGrade = Math.round(
-        quiz.avg * 0.3 + assignmentAvg * 0.4 + mcq.avg * 0.3
+        quiz.avg * 0.5 + assignmentAvg * 0.5
       );
 
       return {
@@ -194,8 +193,6 @@ export async function GET(req) {
         assignmentAverage: assignmentAvg,
         assignmentCount,
         assignmentSubmitted: studentSubs.length,
-        mcqAverage: mcq.avg,
-        mcqCount: mcq.count,
         finalGrade,
         startedAt: progress.startedAt,
         completedAt: progress.completedAt,

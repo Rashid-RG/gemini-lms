@@ -159,12 +159,12 @@ export async function POST(req) {
       );
     }
 
-    const { quizAvg = 0, assignmentAvg = 0, mcqAvg = 0 } =
+    const { quizAvg = 0, assignmentAvg = 0 } =
       currentAssessmentAverages || {};
 
     // Calculate predicted final grade using weighted average
     const predictedFinalGrade = Math.round(
-      quizAvg * 0.3 + assignmentAvg * 0.4 + mcqAvg * 0.3
+      quizAvg * 0.5 + assignmentAvg * 0.5
     );
 
     // Determine risk level
@@ -203,7 +203,6 @@ export async function POST(req) {
     const scores = [
       { type: "Quiz", score: quizAvg },
       { type: "Assignment", score: assignmentAvg },
-      { type: "MCQ", score: mcqAvg },
     ];
     const weakAreas = scores
       .filter((s) => s.score < predictedFinalGrade)
@@ -219,7 +218,6 @@ export async function POST(req) {
         currentScores: {
           quizAvg: Math.round(quizAvg),
           assignmentAvg: Math.round(assignmentAvg),
-          mcqAvg: Math.round(mcqAvg),
         },
         predictedFinalGrade,
         riskLevel,

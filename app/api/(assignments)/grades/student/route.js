@@ -61,16 +61,13 @@ function getAverageFromScores(scoresObject) {
 function calculateWeightedGrade(progress) {
   const quiz = getAverageFromScores(parseScoreObject(progress?.quizScores));
   const assignment = getAverageFromScores(parseScoreObject(progress?.assignmentScores));
-  const mcq = getAverageFromScores(parseScoreObject(progress?.mcqScores));
 
   return {
     quizAverage: quiz.average,
     quizCount: quiz.scores.length,
     assignmentAverage: assignment.average,
     assignmentCount: assignment.scores.length,
-    mcqAverage: mcq.average,
-    mcqCount: mcq.scores.length,
-    finalGrade: Math.round((quiz.average * 0.30) + (assignment.average * 0.40) + (mcq.average * 0.30)),
+    finalGrade: Math.round((quiz.average * 0.50) + (assignment.average * 0.50)),
   };
 }
 
@@ -202,8 +199,6 @@ export async function GET(req) {
           quizCount: gradeBreakdown.quizCount,
           assignmentAverage: gradeBreakdown.assignmentAverage,
           assignmentCount: gradeBreakdown.assignmentCount,
-          mcqAverage: gradeBreakdown.mcqAverage,
-          mcqCount: gradeBreakdown.mcqCount,
           finalGrade: gradeBreakdown.finalGrade,
           finalScore: progress.finalScore || gradeBreakdown.finalGrade,
           resultStatus: gradeBreakdown.finalGrade >= 35 ? "Passed" : "Failed",

@@ -311,7 +311,6 @@ export default function AdminGradeBookPage() {
         progressPercentage: student.progressPercentage,
         quizAverage: student.quizAverage,
         assignmentAverage: student.assignmentAverage,
-        mcqAverage: student.mcqAverage,
         finalGrade: student.finalGrade,
         riskLevel,
         status: student.status,
@@ -371,8 +370,6 @@ export default function AdminGradeBookPage() {
         assignmentAverage: Math.round(student.assignmentAverage || 0),
         assignmentCount: student.assignmentCount || 0,
         assignmentSubmitted: student.assignmentSubmitted || 0,
-        mcqAverage: Math.round(student.mcqAverage || 0),
-        mcqCount: student.mcqCount || 0,
         finalGrade: student.finalGrade || 0,
         gradeLetter: getGradeLabel(student.finalGrade || 0),
         riskLevel: getRiskLevel(student.finalGrade || 0),
@@ -401,8 +398,6 @@ export default function AdminGradeBookPage() {
         { key: 'assignmentAverage', header: 'Assignment Average %' },
         { key: 'assignmentCount', header: 'Assignment Count' },
         { key: 'assignmentSubmitted', header: 'Assignments Submitted' },
-        { key: 'mcqAverage', header: 'MCQ Average %' },
-        { key: 'mcqCount', header: 'MCQ Count' },
         { key: 'finalGrade', header: 'Final Grade %' },
         { key: 'gradeLetter', header: 'Grade Letter' },
         { key: 'riskLevel', header: 'Risk Level' },
@@ -475,7 +470,6 @@ export default function AdminGradeBookPage() {
           <td>${student.progressPercentage || 0}%</td>
           <td>${Math.round(student.quizAverage || 0)}%</td>
           <td>${Math.round(student.assignmentAverage || 0)}%</td>
-          <td>${Math.round(student.mcqAverage || 0)}%</td>
           <td>
             <span class="grade-chip">${grade} (${score}%)</span>
           </td>
@@ -550,7 +544,6 @@ export default function AdminGradeBookPage() {
                     <th>Progress</th>
                     <th>Quiz</th>
                     <th>Assignment</th>
-                    <th>MCQ</th>
                     <th>Grade</th>
                     <th>Performance Note</th>
                   </tr>
@@ -624,7 +617,6 @@ export default function AdminGradeBookPage() {
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 14px;">
               <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e5e7eb;"><strong>Quiz Average:</strong> ${Math.round(student.quizAverage || 0)}% (${student.quizCount || 0} taken)</div>
               <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e5e7eb;"><strong>Assignment Average:</strong> ${Math.round(student.assignmentAverage || 0)}% (${student.assignmentSubmitted || 0}/${student.assignmentCount || 0} submitted)</div>
-              <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e5e7eb;"><strong>MCQ Average:</strong> ${Math.round(student.mcqAverage || 0)}% (${student.mcqCount || 0} taken)</div>
               <div style="padding: 12px 14px; border-radius: 16px; background: #f8fafc; border: 1px solid #e5e7eb;"><strong>Certificate:</strong> ${student.certificateIssued ? 'Issued' : 'Not issued'}</div>
             </div>
           </div>
@@ -955,7 +947,6 @@ export default function AdminGradeBookPage() {
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Progress</th>
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Quiz</th>
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Assignment</th>
-                        <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">MCQ</th>
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Final Grade</th>
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Risk</th>
                         <th className="px-3 py-2.5"></th>
@@ -964,7 +955,7 @@ export default function AdminGradeBookPage() {
                     <tbody>
                       {filteredStudents.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="text-center py-8 text-gray-400">No students found</td>
+                          <td colSpan={7} className="text-center py-8 text-gray-400">No students found</td>
                         </tr>
                       ) : (
                         filteredStudents.map((student, idx) => {
@@ -991,7 +982,6 @@ export default function AdminGradeBookPage() {
                                 </td>
                                 <td className="px-3 py-3 text-center text-xs text-gray-600 dark:text-gray-300">{student.quizAverage ? `${Math.round(student.quizAverage)}%` : '–'}</td>
                                 <td className="px-3 py-3 text-center text-xs text-gray-600 dark:text-gray-300">{student.assignmentAverage ? `${Math.round(student.assignmentAverage)}%` : '–'}</td>
-                                <td className="px-3 py-3 text-center text-xs text-gray-600 dark:text-gray-300">{student.mcqAverage ? `${Math.round(student.mcqAverage)}%` : '–'}</td>
                                 <td className="px-3 py-3 text-center">
                                   <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${getGradeColor(score)}`}>
                                     {getGradeLabel(score)} ({score}%)
@@ -1059,7 +1049,6 @@ export default function AdminGradeBookPage() {
                 <div className="space-y-1 text-gray-700 dark:text-gray-300">
                   <p>Quiz: {activeStudent.quizAverage ? Math.round(activeStudent.quizAverage) : 0}% ({activeStudent.quizCount || 0} taken)</p>
                   <p>Assignment: {activeStudent.assignmentAverage ? Math.round(activeStudent.assignmentAverage) : 0}% ({activeStudent.assignmentCount || 0} submitted)</p>
-                  <p>MCQ: {activeStudent.mcqAverage ? Math.round(activeStudent.mcqAverage) : 0}% ({activeStudent.mcqCount || 0} taken)</p>
                   <p>Final Grade: {getGradeLabel(activeStudentScore)} ({activeStudentScore}%)</p>
                 </div>
               </div>

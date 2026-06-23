@@ -46,20 +46,13 @@ export async function GET(req) {
               ? Object.values(JSON.parse(grade.assignmentScores || "{}")).reduce((a, b) => a + b, 0) /
                 Object.keys(JSON.parse(grade.assignmentScores || "{}")).length
               : 0,
-            mcqAverage: grade.mcqScores
-              ? Object.values(JSON.parse(grade.mcqScores || "{}")).reduce((a, b) => a + b, 0) /
-                Object.keys(JSON.parse(grade.mcqScores || "{}")).length
-              : 0,
             finalGrade: Math.round(
               (Object.values(JSON.parse(grade.quizScores || "{}")).reduce((a, b) => a + b, 0) /
                 Object.keys(JSON.parse(grade.quizScores || "{}")).length *
-                0.3 +
+                0.5 +
                 Object.values(JSON.parse(grade.assignmentScores || "{}")).reduce((a, b) => a + b, 0) /
                   Object.keys(JSON.parse(grade.assignmentScores || "{}")).length *
-                  0.4 +
-                Object.values(JSON.parse(grade.mcqScores || "{}")).reduce((a, b) => a + b, 0) /
-                  Object.keys(JSON.parse(grade.mcqScores || "{}")).length *
-                  0.3) || 0
+                  0.5) || 0
             ),
             status: grade.status,
             startedAt: grade.startedAt,
@@ -120,7 +113,6 @@ function generateStudentCSV(data, email) {
     "Progress %",
     "Quiz Avg",
     "Assignment Avg",
-    "MCQ Avg",
     "Final Grade",
     "Status",
     "Started",
@@ -131,7 +123,6 @@ function generateStudentCSV(data, email) {
     course.progress,
     course.quizAverage.toFixed(2),
     course.assignmentAverage.toFixed(2),
-    course.mcqAverage.toFixed(2),
     course.finalGrade,
     course.status,
     course.startedAt?.toISOString().split("T")[0] || "",
@@ -152,7 +143,6 @@ function generateInstructorCSV(data, courseName) {
     "Progress %",
     "Quiz Avg",
     "Assignment Avg",
-    "MCQ Avg",
     "Final Grade",
     "Status",
     "Started",
@@ -168,18 +158,13 @@ function generateInstructorCSV(data, courseName) {
       ? Object.values(JSON.parse(student.assignmentScores || "{}")).reduce((a, b) => a + b, 0) /
         Object.keys(JSON.parse(student.assignmentScores || "{}")).length
       : 0;
-    const mcqAvg = student.mcqScores
-      ? Object.values(JSON.parse(student.mcqScores || "{}")).reduce((a, b) => a + b, 0) /
-        Object.keys(JSON.parse(student.mcqScores || "{}")).length
-      : 0;
-    const finalGrade = Math.round(quizAvg * 0.3 + assignAvg * 0.4 + mcqAvg * 0.3);
+    const finalGrade = Math.round(quizAvg * 0.5 + assignAvg * 0.5);
 
     return [
       student.studentEmail,
       student.progressPercentage,
       quizAvg.toFixed(2),
       assignAvg.toFixed(2),
-      mcqAvg.toFixed(2),
       finalGrade,
       student.status,
       student.startedAt?.toISOString().split("T")[0] || "",

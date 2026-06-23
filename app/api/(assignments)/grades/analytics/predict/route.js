@@ -77,11 +77,10 @@ export async function GET(req) {
 
     const quizAvg = parseScores(student.quizScores);
     const assignmentAvg = parseScores(student.assignmentScores);
-    const mcqAvg = parseScores(student.mcqScores);
 
     // Calculate predicted final grade
     const predictedFinalGrade = Math.round(
-      quizAvg * 0.3 + assignmentAvg * 0.4 + mcqAvg * 0.3
+      quizAvg * 0.5 + assignmentAvg * 0.5
     );
 
     // Determine grade letter
@@ -115,9 +114,8 @@ export async function GET(req) {
     const scores = [
       { type: "Quiz", score: quizAvg },
       { type: "Assignment", score: assignmentAvg },
-      { type: "MCQ", score: mcqAvg },
     ];
-    const avgScore = (quizAvg + assignmentAvg + mcqAvg) / 3;
+    const avgScore = (quizAvg + assignmentAvg) / 2;
     const weakAreas = scores
       .filter((s) => s.score < avgScore)
       .map((s) => s.type);
@@ -131,7 +129,6 @@ export async function GET(req) {
       recommendations.push("Critical support needed - consider tutoring");
       if (weakAreas.includes("Quiz")) recommendations.push("Focus on quiz preparation");
       if (weakAreas.includes("Assignment")) recommendations.push("Complete more practice assignments");
-      if (weakAreas.includes("MCQ")) recommendations.push("Review MCQ strategy");
     } else if (predictedFinalGrade < 75) {
       if (weakAreas.length > 0) {
         recommendations.push(`Focus on improving ${weakAreas.join(" and ")}`);
@@ -154,7 +151,6 @@ export async function GET(req) {
       currentScores: {
         quizAvg: Math.round(quizAvg),
         assignmentAvg: Math.round(assignmentAvg),
-        mcqAvg: Math.round(mcqAvg),
       },
       strengths,
       weakAreas,
@@ -242,14 +238,7 @@ export async function POST(req) {
               Object.values(assignmentAvg).length
             : 0;
 
-        const mcqAvg = JSON.parse(student.mcqScores || "{}");
-        const mAvg =
-          Object.values(mcqAvg).length > 0
-            ? Object.values(mcqAvg).reduce((a, b) => a + b, 0) /
-              Object.values(mcqAvg).length
-            : 0;
-
-        const predictedScore = Math.round(qAvg * 0.3 + aAvg * 0.4 + mAvg * 0.3);
+        const predictedScore = Math.round(qAvg * 0.5 + aAvg * 0.5);
 
         await db.insert(PREDICTIVE_ANALYTICS_TABLE).values({
           courseId,

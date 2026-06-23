@@ -109,11 +109,7 @@ export async function GET(req) {
         const assignmentScoresObj = typeof progress.assignmentScores === 'string' 
           ? JSON.parse(progress.assignmentScores || '{}') 
           : (progress.assignmentScores || {});
-        const mcqScoresObj = typeof progress.mcqScores === 'string' 
-          ? JSON.parse(progress.mcqScores || '{}') 
-          : (progress.mcqScores || {});
-
-        // Calculate averages
+         // Calculate averages
         const quizScoresArray = Object.values(quizScoresObj).filter(v => typeof v === 'number');
         const quizAverage = quizScoresArray.length > 0
           ? Math.round(quizScoresArray.reduce((a, b) => a + b, 0) / quizScoresArray.length)
@@ -124,14 +120,9 @@ export async function GET(req) {
           ? Math.round(assignmentScoresArray.reduce((a, b) => a + b, 0) / assignmentScoresArray.length)
           : 0;
 
-        const mcqScoresArray = Object.values(mcqScoresObj).filter(v => typeof v === 'number');
-        const mcqAverage = mcqScoresArray.length > 0
-          ? Math.round(mcqScoresArray.reduce((a, b) => a + b, 0) / mcqScoresArray.length)
-          : 0;
-
         // Weighted grade
         const weightedGrade = Math.round(
-          (quizAverage * 0.30) + (assignmentAverage * 0.40) + (mcqAverage * 0.30)
+          (quizAverage * 0.50) + (assignmentAverage * 0.50)
         );
 
         // Count submissions
@@ -146,8 +137,6 @@ export async function GET(req) {
           assignmentAverage,
           assignmentCount: assignmentScoresArray.length,
           assignmentSubmitted: submittedCount,
-          mcqAverage,
-          mcqCount: mcqScoresArray.length,
           finalGrade: weightedGrade,
           startedAt: progress.startedAt,
           completedAt: progress.completedAt,
