@@ -36,6 +36,30 @@ function TypewriterText({ text, speed = 40, delay = 0, className = "" }) {
   return <span className={className}>{displayedText}</span>;
 }
 
+// Cinematic browser-chrome frame for showcasing real product screenshots
+function BrowserFrame({ src, alt, className = "" }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.94, y: 16 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className={`relative rounded-2xl overflow-hidden border border-white/10 bg-slate-900 shadow-2xl ${className}`}
+      style={{ boxShadow: "0 25px 60px -15px rgba(99,102,241,0.35)" }}
+    >
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-slate-850 border-b border-white/5">
+        <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+        <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+        <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+        <span className="ml-2 text-[9px] font-mono text-slate-500 truncate">gemini-lms.vercel.app</span>
+      </div>
+      <div className="relative w-full aspect-[16/10]">
+        <Image src={src} alt={alt} fill className="object-cover object-top" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
+      </div>
+    </motion.div>
+  );
+}
+
 export default function TrailerPage() {
   const router = useRouter();
   const [hasStarted, setHasStarted] = useState(false); // To prompt user interaction for audio bypass
@@ -43,17 +67,22 @@ export default function TrailerPage() {
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0); // in seconds
   const [mounted, setMounted] = useState(false);
-  const audioRef = useRef(null);
   const totalDuration = 95; // 95 seconds total duration (Fast & Cinematic)
 
   // Voiceover Narrator states
   const [voices, setVoices] = useState([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState("");
-  const fadeVolumeIntervalRef = useRef(null);
 
-  // Volume Constants (Increased background presence while retaining clear voice balance)
-  const NORMAL_VOL = 0.22;
-  const DUCKED_VOL = 0.18;
+  // Original synthesized cinematic score (no external audio file, no licensing risk)
+  const audioCtxRef = useRef(null);
+  const masterGainRef = useRef(null);
+  const filterRef = useRef(null);
+  const padNodesRef = useRef([]);
+  const lfoRef = useRef(null);
+
+  // Gain levels for the score (Web Audio gain, 0-1 range)
+  const NORMAL_VOL = 0.5;
+  const DUCKED_VOL = 0.16;
 
   // Determine active scene based on optimized timings
   const getSceneInfo = () => {
@@ -165,10 +194,13 @@ export default function TrailerPage() {
       const englishVoices = allVoices.filter(v => v.lang.startsWith("en"));
       setVoices(englishVoices);
 
-      // Select highest quality default voice available on user's machine
-      const bestDefault = englishVoices.find(v => v.name.toLowerCase().includes("google us english")) ||
-                          englishVoices.find(v => v.name.toLowerCase().includes("david")) ||
+      // Select the most cinematic-sounding voice available on the user's machine,
+      // preferring deep/natural narrator-style voices over robotic defaults
+      const bestDefault = englishVoices.find(v => v.name.toLowerCase().includes("guy") && v.name.toLowerCase().includes("online")) ||
+                          englishVoices.find(v => v.name.toLowerCase().includes("ryan") && v.name.toLowerCase().includes("online")) ||
                           englishVoices.find(v => v.name.toLowerCase().includes("natural")) ||
+                          englishVoices.find(v => v.name.toLowerCase().includes("google us english")) ||
+                          englishVoices.find(v => v.name.toLowerCase().includes("david")) ||
                           englishVoices.find(v => v.name.toLowerCase().includes("zira")) ||
                           englishVoices[0];
       
@@ -183,39 +215,63 @@ export default function TrailerPage() {
     }
   }, []);
 
-  // Premium linear fader to prevent sudden pops / clicks during music transitions
-  const fadeVolume = (targetVol, duration = 300) => {
-    if (!audioRef.current || isMuted) return;
+  // Builds an original ambient cinematic pad (layered detuned oscillators through
+  // a swept low-pass filter) entirely in the browser — no external audio file,
+  // so there is zero licensing risk and nothing that can 404.
+  const initAudioEngine = () => {
+    if (audioCtxRef.current || typeof window === "undefined") return;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
 
-    if (fadeVolumeIntervalRef.current) {
-      clearInterval(fadeVolumeIntervalRef.current);
-    }
+    const ctx = new AudioCtx();
+    const master = ctx.createGain();
+    master.gain.value = 0;
 
-    const startVol = audioRef.current.volume;
-    const steps = 15;
-    const stepTime = duration / steps;
-    const volChange = (targetVol - startVol) / steps;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 900;
+    filter.Q.value = 0.6;
+    filter.connect(master);
+    master.connect(ctx.destination);
 
-    let currentStep = 0;
-    fadeVolumeIntervalRef.current = setInterval(() => {
-      if (!audioRef.current || isMuted) {
-        clearInterval(fadeVolumeIntervalRef.current);
-        return;
-      }
+    // Open, spacious chord (C2-G2-C3-E3) for a hopeful-but-epic keynote tone
+    const freqs = [65.41, 98.0, 130.81, 164.81];
+    const pads = freqs.map((freq, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = i % 2 === 0 ? "sine" : "triangle";
+      osc.frequency.value = freq;
+      osc.detune.value = (i - 1.5) * 5;
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(filter);
+      osc.start();
+      gain.gain.linearRampToValueAtTime(0.85 / freqs.length, ctx.currentTime + 5);
+      return { osc, gain };
+    });
 
-      currentStep++;
-      const newVol = startVol + (volChange * currentStep);
-      audioRef.current.volume = Math.max(0, Math.min(1, newVol));
+    // Slow LFO sweeping the filter cutoff so the pad breathes instead of droning
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.06;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 350;
+    lfo.connect(lfoGain);
+    lfoGain.connect(filter.frequency);
+    lfo.start();
 
-      if (currentStep >= steps) {
-        audioRef.current.volume = targetVol;
-        clearInterval(fadeVolumeIntervalRef.current);
-      }
-    }, stepTime);
+    audioCtxRef.current = ctx;
+    masterGainRef.current = master;
+    filterRef.current = filter;
+    padNodesRef.current = pads;
+    lfoRef.current = lfo;
   };
 
+  // Smooth ramp of the score's master volume (used for ducking under narration)
   const setAudioVolume = (vol) => {
-    fadeVolume(vol, 300);
+    if (!audioCtxRef.current || !masterGainRef.current || isMuted) return;
+    const ctx = audioCtxRef.current;
+    masterGainRef.current.gain.cancelScheduledValues(ctx.currentTime);
+    masterGainRef.current.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.4);
   };
 
   // Start the trailer and handle sound
@@ -223,10 +279,11 @@ export default function TrailerPage() {
     setHasStarted(true);
     setIsPlaying(true);
     setIsMuted(false);
-    if (audioRef.current) {
-      audioRef.current.muted = false;
-      audioRef.current.volume = NORMAL_VOL;
-      audioRef.current.play().catch((err) => console.log("Audio failed to play:", err));
+    initAudioEngine();
+    const ctx = audioCtxRef.current;
+    if (ctx) {
+      if (ctx.state === "suspended") ctx.resume();
+      masterGainRef.current.gain.linearRampToValueAtTime(NORMAL_VOL, ctx.currentTime + 2);
     }
   };
 
@@ -250,24 +307,33 @@ export default function TrailerPage() {
     return () => clearInterval(interval);
   }, [isPlaying, hasStarted, mounted]);
 
-  // Audio Play/Pause Sync
+  // Score Play/Pause Sync
   useEffect(() => {
-    if (!audioRef.current || !hasStarted) return;
+    const ctx = audioCtxRef.current;
+    if (!ctx || !hasStarted) return;
     if (isPlaying) {
-      audioRef.current.play().catch(() => {
-        setIsMuted(true);
-      });
+      if (ctx.state === "suspended") ctx.resume();
+      if (!isMuted) setAudioVolume(NORMAL_VOL);
     } else {
-      audioRef.current.pause();
+      masterGainRef.current?.gain.cancelScheduledValues(ctx.currentTime);
+      masterGainRef.current?.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
     }
   }, [isPlaying, hasStarted]);
 
-  // Sync mute state & initial volume
+  // Sync mute state
   useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.muted = isMuted;
-    audioRef.current.volume = isMuted ? 0 : NORMAL_VOL;
+    const ctx = audioCtxRef.current;
+    if (!ctx || !masterGainRef.current) return;
+    masterGainRef.current.gain.cancelScheduledValues(ctx.currentTime);
+    masterGainRef.current.gain.linearRampToValueAtTime(isMuted ? 0 : NORMAL_VOL, ctx.currentTime + 0.3);
   }, [isMuted]);
+
+  // Tear down the audio engine when leaving the page
+  useEffect(() => {
+    return () => {
+      audioCtxRef.current?.close();
+    };
+  }, []);
 
   // Web Speech API Voiceover Narrator Sync (with Audio Ducking)
   useEffect(() => {
@@ -278,9 +344,9 @@ export default function TrailerPage() {
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(scene.voiceover);
-      utterance.rate = 1.0;   // Crystal-clear normal narrator speech rate
-      utterance.pitch = 1.0;  // Natural organic pitch
-      utterance.volume = 1.0; // Max clarity volume
+      utterance.rate = 0.92;   // Slightly slower for deliberate, cinematic gravitas
+      utterance.pitch = 0.94;  // Slightly lower pitch for a deeper narrator tone
+      utterance.volume = 1.0;  // Max clarity volume
 
       // Set the custom voice if chosen
       if (voices.length > 0 && selectedVoiceName) {
@@ -314,9 +380,6 @@ export default function TrailerPage() {
       if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
-      if (fadeVolumeIntervalRef.current) {
-        clearInterval(fadeVolumeIntervalRef.current);
-      }
     };
   }, [scene?.id, isPlaying, isMuted, hasStarted, mounted, selectedVoiceName, voices]);
 
@@ -337,14 +400,6 @@ export default function TrailerPage() {
 
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden flex flex-col justify-between font-sans select-none">
-      
-      {/* Background Audio */}
-      <audio 
-        ref={audioRef} 
-        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" 
-        loop
-      />
-
       {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none z-0" />
 
@@ -534,6 +589,17 @@ export default function TrailerPage() {
             >
               <div className="absolute w-[280px] h-[280px] bg-indigo-500/15 rounded-full blur-[70px] pointer-events-none animate-pulse" />
 
+              {/* Cinematic blurred backdrop of the real dashboard */}
+              <motion.div
+                initial={{ opacity: 0, scale: 1.08 }}
+                animate={{ opacity: 0.25, scale: 1 }}
+                transition={{ duration: 1.5 }}
+                className="absolute inset-0 -z-10 rounded-3xl overflow-hidden hidden sm:block"
+              >
+                <Image src="/trailer/dashboard-real.png" alt="" fill className="object-cover blur-sm" />
+                <div className="absolute inset-0 bg-black/70" />
+              </motion.div>
+
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
@@ -574,34 +640,14 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* PDF upload and scanning animation */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
-                {/* Laser scanning line */}
-                <motion.div 
+              {/* Real product screenshot: AI study material generator */}
+              <div className="relative">
+                <motion.div
                   animate={{ top: ["0%", "100%", "0%"] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_#6366f1] z-20 pointer-events-none"
                 />
-
-                <div className="flex items-center gap-3 border-b border-slate-850 pb-4 mb-4">
-                  <FileText className="w-5 h-5 text-indigo-400 animate-bounce" />
-                  <span className="text-xs font-semibold text-slate-350">ethical_hacking.pdf</span>
-                </div>
-                
-                <div className="space-y-2 font-mono text-[9px] text-slate-400 text-left">
-                  <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-850">
-                    <span>⚡ Parsing Document</span>
-                    <span className="text-green-400">Done</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-850">
-                    <span>📚 Mapping Chapters</span>
-                    <span className="text-green-400">Done</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-850">
-                    <span>📝 Study Suite Creation</span>
-                    <span className="text-indigo-400 animate-pulse">Processing...</span>
-                  </div>
-                </div>
+                <BrowserFrame src="/trailer/topic-input-real.png" alt="Gemini LMS AI study material generator" />
               </div>
             </motion.div>
           )}
@@ -629,26 +675,8 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Scrolling note box */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl text-left relative overflow-hidden backdrop-blur-md max-h-[260px] flex flex-col">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-                  <span className="text-[10px] font-bold text-slate-350">Notes: Network Encryption</span>
-                  <span className="text-[8px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-mono">Autoscroll</span>
-                </div>
-                <motion.div 
-                  animate={{ y: [0, -60, 0] }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                  className="space-y-3 pr-2 overflow-hidden flex-1"
-                >
-                  <h4 className="text-xs font-bold text-slate-200">Asymmetric Cryptography</h4>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Uses pairs of keys: public keys which may be disseminated widely, and private keys which are known only to the owner...
-                  </p>
-                  <div className="bg-slate-950 p-2.5 rounded border border-slate-850 text-[10px] text-indigo-400 font-mono">
-                    Public Key (Encrypt) → Private Key (Decrypt)
-                  </div>
-                </motion.div>
-              </div>
+              {/* Real product screenshot: AI-generated structured notes */}
+              <BrowserFrame src="/trailer/notes-real.png" alt="Gemini LMS AI-generated study notes" />
             </motion.div>
           )}
 
@@ -675,22 +703,8 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              <div className="flex justify-center">
-                <motion.div
-                  animate={{ rotateY: [0, 180, 180, 0, 0] }}
-                  transition={{ duration: 4, repeat: Infinity }}
-                  className="w-full max-w-[260px] h-[170px] bg-gradient-to-tr from-indigo-950/70 to-slate-900 border border-indigo-500/20 rounded-2xl p-5 flex flex-col justify-between shadow-2xl"
-                  style={{ transformStyle: "preserve-3d" }}
-                >
-                  <div className="text-left">
-                    <span className="text-[8px] font-bold text-slate-500 tracking-widest uppercase">Card 03</span>
-                    <h3 className="text-xs font-bold text-white mt-1.5 leading-relaxed">What does the acronym HTTP stand for?</h3>
-                  </div>
-                  <div className="text-[10px] text-indigo-400 text-center font-bold">
-                    Hypertext Transfer Protocol
-                  </div>
-                </motion.div>
-              </div>
+              {/* Real product screenshot: spaced-repetition flashcard deck */}
+              <BrowserFrame src="/trailer/flashcard-real.png" alt="Gemini LMS flashcard deck with spaced repetition" className="max-w-[420px] mx-auto" />
             </motion.div>
           )}
 
@@ -717,24 +731,8 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Chat Waveform UI with Typewriter text */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4 text-left backdrop-blur-md w-full">
-                <div className="flex items-center justify-between border-b border-slate-855 pb-3">
-                  <span className="text-xs text-slate-350">Voice Session</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="text-[9px] text-emerald-400">Listening</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="bg-slate-950 p-2.5 rounded border border-slate-850 text-xs text-slate-300 font-medium">
-                    <TypewriterText text="Explain SQL Injection." speed={60} delay={500} />
-                  </div>
-                  <div className="bg-indigo-950/20 border border-indigo-500/10 p-2.5 rounded text-[11px] text-slate-400 leading-relaxed min-h-[50px]">
-                    <TypewriterText text="SQL Injection is a code injection technique where malicious SQL statements are inserted into inputs to execute unintended query commands." speed={30} delay={2000} />
-                  </div>
-                </div>
-              </div>
+              {/* Real product screenshot: AI tutor / support chat assistant */}
+              <BrowserFrame src="/trailer/chat-widget-real.png" alt="Gemini LMS AI tutor chat assistant" />
             </motion.div>
           )}
 
@@ -761,24 +759,14 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Assessment card with laser scan */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center space-y-4 backdrop-blur-md relative overflow-hidden">
-                <motion.div 
+              {/* Real product screenshot: adaptive quiz with instant feedback */}
+              <div className="relative">
+                <motion.div
                   animate={{ left: ["-100%", "200%"] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute top-0 bottom-0 w-2 bg-gradient-to-r from-transparent via-green-400/30 to-transparent skew-x-12 z-20 pointer-events-none"
                 />
-                
-                <div className="flex justify-center">
-                  <div className="w-16 h-16 rounded-full border-4 border-green-500 bg-green-500/10 flex flex-col items-center justify-center">
-                    <span className="text-xl font-black text-green-400">92%</span>
-                    <span className="text-[6px] text-slate-500 font-bold uppercase">GRADE A</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-slate-200">Exam Graded Successfully</h4>
-                  <p className="text-[9px] text-slate-450">Gemini checked: 18 correct / 2 incorrect.</p>
-                </div>
+                <BrowserFrame src="/trailer/quiz-real.png" alt="Gemini LMS adaptive quiz with instant feedback" />
               </div>
             </motion.div>
           )}
@@ -806,26 +794,8 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Code playground with typing animation */}
-              <div className="bg-slate-955 border border-slate-850 rounded-3xl p-5 shadow-2xl font-mono text-xs text-left space-y-3 w-full">
-                <div className="flex items-center gap-1 border-b border-slate-850 pb-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                  <span className="w-2 h-2 rounded-full bg-green-500" />
-                  <span className="text-[9px] text-slate-500 ml-2">script.py</span>
-                </div>
-                <div className="text-indigo-400 space-y-1 min-h-[40px]">
-                  <p className="text-indigo-300">
-                    <TypewriterText text="def sum(a, b): return a + b" speed={50} delay={500} />
-                  </p>
-                  <p className="text-indigo-300">
-                    <TypewriterText text="print(sum(10, 20))" speed={50} delay={2000} />
-                  </p>
-                </div>
-                <div className="bg-slate-900 border border-slate-855 p-2 rounded text-[9px] text-slate-450">
-                  <TypewriterText text="Output: 30" speed={20} delay={3250} />
-                </div>
-              </div>
+              {/* Real product screenshot: multi-language coding playground */}
+              <BrowserFrame src="/trailer/playground-real.png" alt="Gemini LMS multi-language coding playground" />
             </motion.div>
           )}
 
@@ -852,23 +822,8 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Community visually styled */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4 text-left backdrop-blur-md w-full">
-                <div className="flex items-center justify-between border-b border-slate-855 pb-3">
-                  <span className="text-xs text-slate-350">Study Hub</span>
-                  <span className="text-[8px] bg-pink-500/10 text-pink-400 px-2 py-0.5 rounded uppercase">Connected</span>
-                </div>
-                <div className="space-y-3">
-                  <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="border-l-2 border-pink-500 pl-3">
-                    <span className="text-[9px] text-slate-500">alex_coder</span>
-                    <p className="text-[11px] text-slate-300">"Anyone solved chapter 2 coding challenge? I'm stuck on recursion."</p>
-                  </motion.div>
-                  <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 2 }} className="border-l-2 border-indigo-500 pl-3">
-                    <span className="text-[9px] text-slate-500">sophia_admin</span>
-                    <p className="text-[11px] text-slate-300">"Check custom notes inside chapter 2 files! I uploaded a guide."</p>
-                  </motion.div>
-                </div>
-              </div>
+              {/* Real product screenshot: per-course discussion board */}
+              <BrowserFrame src="/trailer/discussion-real.png" alt="Gemini LMS course discussion board" />
             </motion.div>
           )}
 
@@ -895,22 +850,8 @@ export default function TrailerPage() {
                 </div>
               </div>
 
-              {/* Admin metrics dashboard with counting animation */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-left space-y-4 w-full">
-                <span className="text-[9px] text-slate-450 uppercase font-mono tracking-wider">System Activity</span>
-                <div className="grid grid-cols-2 gap-3 font-mono">
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-850">
-                    <div className="text-[8px] text-slate-500">Active Learners</div>
-                    <div className="text-base font-bold text-cyan-400">
-                      <span>1,240</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-850">
-                    <div className="text-[8px] text-slate-500">Completion Rate</div>
-                    <div className="text-base font-bold text-indigo-400">89.4%</div>
-                  </div>
-                </div>
-              </div>
+              {/* Real product screenshot: instructor gradebook analytics */}
+              <BrowserFrame src="/trailer/admin-chart-real.png" alt="Gemini LMS instructor gradebook analytics" />
             </motion.div>
           )}
 
@@ -994,6 +935,16 @@ export default function TrailerPage() {
                 <span className="text-[8px] font-mono tracking-widest px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400">GEMINI AI</span>
                 <span className="text-[8px] font-mono tracking-widest px-2 py-0.5 rounded bg-pink-500/10 border border-pink-500/20 text-pink-400">DRIZZLE ORM</span>
                 <span className="text-[8px] font-mono tracking-widest px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">NEON DATABASE</span>
+              </motion.div>
+
+              {/* Real certificate proof, floating in for social proof */}
+              <motion.div
+                initial={{ opacity: 0, y: 20, rotate: -4 }}
+                animate={{ opacity: 0.9, y: 0, rotate: -4 }}
+                transition={{ delay: 2.1, duration: 0.8 }}
+                className="hidden md:block absolute -right-6 bottom-6 w-40 rounded-lg overflow-hidden border border-white/10 shadow-2xl shadow-indigo-500/30"
+              >
+                <Image src="/trailer/certificate-real.png" alt="Gemini LMS verified certificate" width={320} height={240} className="object-cover" />
               </motion.div>
 
               {/* Call-to-action */}
