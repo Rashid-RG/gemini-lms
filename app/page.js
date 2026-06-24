@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { UserButton } from "@clerk/nextjs";
 import DashboardHeader from "./dashboard/_components/DashboardHeader";
-import { Sparkles, BookOpen, BrainCircuit, Compass, Target, GraduationCap, ArrowRight, Play, ShieldCheck } from "lucide-react";
+import { Sparkles, BookOpen, BrainCircuit, Compass, Target, GraduationCap, ArrowRight, Play, ShieldCheck, Mail, Github } from "lucide-react";
 import TrailerBackground from "./_components/TrailerBackground";
 
 export default function Home() {
@@ -171,6 +171,14 @@ export default function Home() {
               <p className="text-sm text-slate-500 font-medium leading-relaxed">
                 Elevate your learning with Google Gemini AI. Instantly generate professional exam preparation guides, custom notes, interactive flashcards, and automated grading assessments.
               </p>
+              <div className="flex items-center gap-3 pt-2">
+                <a href="mailto:mohammedrashid0012@hotmail.com" className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 rounded-xl transition-all hover:scale-105 duration-200" title="Email Support">
+                  <Mail className="w-4 h-4" />
+                </a>
+                <a href="https://github.com/Rashid-RG/gemini-lms" target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 rounded-xl transition-all hover:scale-105 duration-200" title="GitHub Repository">
+                  <Github className="w-4 h-4" />
+                </a>
+              </div>
             </div>
 
             {/* Column 2: Platform Links */}
