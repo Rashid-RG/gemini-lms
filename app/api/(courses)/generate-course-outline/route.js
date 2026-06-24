@@ -137,10 +137,14 @@ async function callAIWithRetry(prompt, retries = 4, delayMs = 3000) {
         throw new Error('AI response missing chapters array');
       }
       
-      // Ensure we have at least 2 chapters
-      if (data.chapters.length < 2) {
+      // Ensure we have exactly 3 chapters
+      if (data.chapters.length > 3) {
+        console.log(`AI returned ${data.chapters.length} chapters, slicing to exactly 3.`);
+        data.chapters = data.chapters.slice(0, 3);
+      }
+      if (data.chapters.length < 3) {
         console.error('AI returned insufficient chapters:', data.chapters.length);
-        throw new Error('AI returned too few chapters');
+        throw new Error('AI returned too few chapters (need exactly 3)');
       }
       
       // Ensure each chapter has required fields
@@ -291,6 +295,7 @@ export async function POST(req) {
 
     // 2️⃣ Build AI prompt - simplified for faster generation and complete responses
     const PROMPT = `Create a course outline for "${topic}" (${courseType}, ${difficultyLevel} level).
+Generate exactly 3 chapters (no more, no less).
 
 Return ONLY valid JSON with NO markdown, code blocks, or explanations:
 
