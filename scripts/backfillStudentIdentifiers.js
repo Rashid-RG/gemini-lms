@@ -4,7 +4,7 @@ const { neon } = require("@neondatabase/serverless");
 dotenv.config({ path: ".env.local" });
 
 async function main() {
-  const sql = neon(process.env.NEXT_PUBLIC_DB_CONNECTION_STRING, { fullResults: true });
+  const sql = neon(process.env.DATABASE_URL, { fullResults: true });
 
   const before = await sql`
     select count(*)::int as count

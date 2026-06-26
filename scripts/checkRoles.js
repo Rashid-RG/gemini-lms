@@ -1,7 +1,7 @@
 require('dotenv').config({ path: '.env.local' });
 const { neon } = require('@neondatabase/serverless');
 
-const sql = neon(process.env.NEXT_PUBLIC_DB_CONNECTION_STRING);
+const sql = neon(process.env.DATABASE_URL);
 
 async function checkRoles() {
     const admins = await sql`SELECT id, email, name, role, "isActive", "lastLoginAt", "createdAt" FROM admins ORDER BY id`;

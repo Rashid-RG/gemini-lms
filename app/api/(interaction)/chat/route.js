@@ -9,7 +9,7 @@ import { getAuthEmail } from "@/lib/clerkUtils";
 import { getApiKeyRotationManager } from "@/lib/apiKeyRotation";
 
 function getChatModel() {
-  let key = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+  let key = process.env.GEMINI_API_KEY || "";
   try {
     const rotationManager = getApiKeyRotationManager();
     key = rotationManager.getCurrentKey();

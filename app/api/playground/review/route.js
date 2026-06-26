@@ -36,7 +36,7 @@ export async function POST(req) {
                 console.warn('API Key Rotation Manager failed to initialize:', err.message);
             }
 
-            const currentKey = rotationManager ? rotationManager.getCurrentKey() : process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+            const currentKey = rotationManager ? rotationManager.getCurrentKey() : process.env.GEMINI_API_KEY;
             const genAI = new GoogleGenerativeAI(currentKey);
 
             const model = genAI.getGenerativeModel({

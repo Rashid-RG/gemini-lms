@@ -27,10 +27,10 @@ const NEW_EMAIL = "e2240212@bit.uom.lk";
 
 async function updateAdminEmail() {
     try {
-        const connectionString = process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DB_CONNECTION_STRING;
+        const connectionString = process.env.DATABASE_URL || process.env.DATABASE_URL;
         
         if (!connectionString) {
-            console.error("❌ Error: DATABASE_URL or NEXT_PUBLIC_DB_CONNECTION_STRING is not defined in .env.local");
+            console.error("❌ Error: DATABASE_URL or DATABASE_URL is not defined in .env.local");
             return;
         }
 

@@ -2,7 +2,7 @@ require('dotenv').config({ path: '.env.local' });
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 
-const sql = neon(process.env.NEXT_PUBLIC_DB_CONNECTION_STRING);
+const sql = neon(process.env.DATABASE_URL);
 
 // Must match lib/adminAuth.js: 100000 iterations
 function hashPassword(password) {

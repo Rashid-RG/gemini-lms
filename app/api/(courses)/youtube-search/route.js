@@ -28,7 +28,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Maximum 10 chapters allowed per request' }, { status: 400 });
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+    const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) {
       console.warn('YouTube API key not configured. Skipping video search.');
       return NextResponse.json({ videos: {}, errors: [] });

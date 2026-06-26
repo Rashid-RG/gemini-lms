@@ -278,7 +278,7 @@ export const FetchYouTubeVideos = inngest.createFunction(
             }
 
             const videoResult = await step.run('Fetch YouTube videos', async () => {
-                const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+                const apiKey = process.env.YOUTUBE_API_KEY;
                 if (!apiKey) {
                     console.warn('YouTube API key not configured. Skipping video search.');
                     return { success: false, videos: {} };
