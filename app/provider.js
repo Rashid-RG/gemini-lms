@@ -18,6 +18,14 @@ function Provider({ children }) {
     const checkedRef = useRef(false);
 
     useEffect(() => {
+        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then((reg) => console.log('Service Worker registered', reg.scope))
+                .catch((err) => console.error('Service Worker registration failed', err));
+        }
+    }, []);
+
+    useEffect(() => {
         // Only check once per session to avoid repeated API calls
         if (user && !checkedRef.current) {
             checkedRef.current = true;
