@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useStudentDashboard } from '@/hooks/useStudentDashboard'
+import AIStudyCoach from './_components/AIStudyCoach'
 
 function Dashboard() {
   const {
@@ -94,6 +95,10 @@ function Dashboard() {
               Resume Course
             </Link>
           </div>
+        )}
+
+        {activeCourse && studentEmail && (
+          <AIStudyCoach courseId={activeCourse.courseId || activeCourse.id} studentEmail={studentEmail} />
         )}
 
         <CourseList/>
