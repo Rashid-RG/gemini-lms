@@ -42,10 +42,6 @@ export async function POST(req) {
           PROMPT=`Generate 10 flashcards on: ${chapters}
 Return JSON array: [{"front":"Question?","back":"Short answer"}]
 Keep answers under 80 chars.`;
-        } else if(type=='MCQ') {
-          const context = courseDetails || `${topic || 'Topic'} - ${chapters}`;
-          PROMPT=`Generate 10 MCQs on: ${context}
-Return JSON: {"questions":[{"question":"?","options":["A","B","C","D"],"answer":"Correct"}]}`;
         } else if(type=='qa') {
           PROMPT=`Generate 10 Q&A on: ${chapters}
 Return JSON: {"questions":[{"question":"?","answer":"Detailed answer"}]}`;

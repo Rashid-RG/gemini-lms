@@ -46,7 +46,6 @@ export async function POST(req) {
                 notes:notes,
                 flashcard:contentList?.filter(item=>item.type=='Flashcard'),
                 quiz:contentList?.filter(item=>item.type=='Quiz'),
-                mcq:contentList?.filter(item=>item.type=='MCQ'),
                 qa:contentList?.filter(item=>item.type=='QA'),
             }
             return NextResponse.json(result);
