@@ -134,6 +134,7 @@ export default function AdminGradeBookPage() {
   const [commentSaving, setCommentSaving] = useState({})
   const [commentErrors, setCommentErrors] = useState({})
   const [commentGenerating, setCommentGenerating] = useState({})
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     fetchAllCourses(false)
@@ -253,6 +254,71 @@ export default function AdminGradeBookPage() {
   const handleCloseStudentPanel = () => {
     setActiveStudentEmail(null)
   }
+
+  const handleRevokeCertificate = async (certificateId, studentEmail) => {
+    if (!certificateId) return;
+    const confirmRevoke = window.confirm(
+      `Are you sure you want to revoke the certificate (ID: ${certificateId}) for student ${studentEmail}?\n\nThis will delete the certificate record and reset the student's status to In Progress.`
+    );
+    if (!confirmRevoke) return;
+
+    try {
+      setActionLoading(true);
+      const res = await axios.delete(`/api/admin/certificates?certificateId=${certificateId}`);
+      if (res.data.success) {
+        toast.success(`Certificate ${certificateId} revoked successfully`);
+        // Refresh gradebook data
+        if (selectedCourse?.courseId) {
+          await fetchCourseGrades(selectedCourse.courseId, true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to revoke certificate:', err);
+      toast.error(err.response?.data?.error || 'Failed to revoke certificate');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleIssueCertificate = async (student) => {
+    if (!selectedCourse?.courseId || !student?.studentEmail) return;
+
+    let isForced = false;
+    if (!student.isEligibleForCertificate) {
+      const confirmForce = window.confirm(
+        `Warning: Student ${student.studentName || student.studentEmail} has not met the default passing criteria for this course.\n\nForce-issuing a certificate will bypass these criteria. Do you want to proceed?`
+      );
+      if (!confirmForce) return;
+      isForced = true;
+    } else {
+      const confirmIssue = window.confirm(
+        `Are you sure you want to issue a completion certificate for ${student.studentName || student.studentEmail}?`
+      );
+      if (!confirmIssue) return;
+    }
+
+    try {
+      setActionLoading(true);
+      const res = await axios.post('/api/admin/certificates', {
+        courseId: selectedCourse.courseId,
+        studentEmail: student.studentEmail,
+        studentName: student.studentName,
+        force: isForced
+      });
+      if (res.data.success) {
+        toast.success(`Certificate issued successfully! ID: ${res.data.certificate?.certificateId}`);
+        // Refresh gradebook data
+        if (selectedCourse?.courseId) {
+          await fetchCourseGrades(selectedCourse.courseId, true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to issue certificate:', err);
+      toast.error(err.response?.data?.error || 'Failed to issue certificate');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleSubmitComment = async (student) => {
     if (!selectedCourse?.courseId || !student?.studentEmail) return
@@ -949,6 +1015,7 @@ export default function AdminGradeBookPage() {
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Assignment</th>
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Final Grade</th>
                         <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Risk</th>
+                        <th className="px-3 py-2.5 text-center text-xs font-medium text-gray-500">Certificate</th>
                         <th className="px-3 py-2.5"></th>
                       </tr>
                     </thead>
@@ -991,6 +1058,21 @@ export default function AdminGradeBookPage() {
                                   <span className={`inline-block text-xs px-2 py-0.5 rounded-full border font-medium ${riskCfg.color}`}>
                                     {riskCfg.label}
                                   </span>
+                                </td>
+                                <td className="px-3 py-3 text-center">
+                                  {student.certificateIssued ? (
+                                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 font-medium">
+                                      Earned
+                                    </span>
+                                  ) : student.isEligibleForCertificate ? (
+                                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 font-medium">
+                                      Eligible
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 font-medium">
+                                      In Progress
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-3 py-3 text-center">
                                   <Button
@@ -1054,17 +1136,86 @@ export default function AdminGradeBookPage() {
               </div>
 
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
-                <p className="mb-2 font-semibold text-gray-600 dark:text-gray-400">Activity</p>
-                <div className="space-y-1 text-gray-700 dark:text-gray-300">
-                  <p>Last Active: {activeStudent.lastActivityAt ? new Date(activeStudent.lastActivityAt).toLocaleDateString() : 'Never'}</p>
-                  <p>Last Accessed: {activeStudent.lastAccessedAt ? new Date(activeStudent.lastAccessedAt).toLocaleDateString() : 'Not available'}</p>
-                  <p>Started: {activeStudent.startedAt ? new Date(activeStudent.startedAt).toLocaleDateString() : '–'}</p>
-                  <p>Joined Platform: {activeStudent.joinedAt ? new Date(activeStudent.joinedAt).toLocaleDateString() : 'Not available'}</p>
-                  <p>Time Spent: {activeStudent.totalTimeSpent || 0} min</p>
-                  <p>Certificate: {activeStudent.certificateIssued ? 'Issued' : 'Not issued'}</p>
-                  {activeStudent.completedAt && <p>Completed: {new Date(activeStudent.completedAt).toLocaleDateString()}</p>}
-                </div>
-              </div>
+                                <p className="mb-2 font-semibold text-gray-600 dark:text-gray-400">Activity</p>
+                                <div className="space-y-1 text-gray-700 dark:text-gray-300">
+                                  <p>Last Active: {activeStudent.lastActivityAt ? new Date(activeStudent.lastActivityAt).toLocaleDateString() : 'Never'}</p>
+                                  <p>Last Accessed: {activeStudent.lastAccessedAt ? new Date(activeStudent.lastAccessedAt).toLocaleDateString() : 'Not available'}</p>
+                                  <p>Started: {activeStudent.startedAt ? new Date(activeStudent.startedAt).toLocaleDateString() : '–'}</p>
+                                  <p>Joined Platform: {activeStudent.joinedAt ? new Date(activeStudent.joinedAt).toLocaleDateString() : 'Not available'}</p>
+                                  <p>Time Spent: {activeStudent.totalTimeSpent || 0} min</p>
+                                  <p>Certificate: {activeStudent.certificateIssued ? 'Issued' : 'Not issued'}</p>
+                                  {activeStudent.completedAt && <p>Completed: {new Date(activeStudent.completedAt).toLocaleDateString()}</p>}
+                                </div>
+                              </div>
+
+                              {/* Certificate Management Section */}
+                              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
+                                <p className="mb-2 font-semibold text-gray-600 dark:text-gray-400">Certificate Control</p>
+                                <div className="space-y-3">
+                                  <div className="space-y-1 text-gray-700 dark:text-gray-300">
+                                    <p className="flex items-center gap-1.5">
+                                      Status: 
+                                      {activeStudent.certificateIssued ? (
+                                        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold dark:bg-green-950 dark:text-green-300">Earned</span>
+                                      ) : activeStudent.isEligibleForCertificate ? (
+                                        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold dark:bg-blue-950 dark:text-blue-300">Eligible</span>
+                                      ) : (
+                                        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-bold dark:bg-gray-800 dark:text-gray-400">In Progress</span>
+                                      )}
+                                    </p>
+                                    {activeStudent.certificateIssued && activeStudent.certificateId && (
+                                      <p className="font-mono text-[10px] text-gray-500">ID: {activeStudent.certificateId}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    {activeStudent.certificateIssued ? (
+                                      <>
+                                        <Button 
+                                          type="button" 
+                                          variant="outline" 
+                                          size="sm"
+                                          className="w-full text-center text-xs flex items-center justify-center gap-1 border-slate-200 bg-slate-50 hover:bg-slate-100 hover:text-slate-800"
+                                          onClick={() => {
+                                            if (activeStudent.certificateId) {
+                                              window.open(`/verify-certificate/${activeStudent.certificateId}`, '_blank');
+                                            }
+                                          }}
+                                        >
+                                          <BookOpen className="h-3.5 w-3.5" />
+                                          View Certificate
+                                        </Button>
+                                        <Button 
+                                          type="button" 
+                                          variant="destructive" 
+                                          size="sm"
+                                          disabled={actionLoading}
+                                          className="w-full text-center text-xs flex items-center justify-center gap-1 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:border-red-900/50 dark:text-red-400"
+                                          onClick={() => handleRevokeCertificate(activeStudent.certificateId, activeStudent.studentEmail)}
+                                        >
+                                          <AlertTriangle className="h-3.5 w-3.5" />
+                                          Revoke Certificate
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        size="sm"
+                                        disabled={actionLoading}
+                                        className={`w-full text-center text-xs flex items-center justify-center gap-1 ${
+                                          activeStudent.isEligibleForCertificate 
+                                            ? 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800' 
+                                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                        }`}
+                                        onClick={() => handleIssueCertificate(activeStudent)}
+                                      >
+                                        <Award className="h-3.5 w-3.5" />
+                                        {activeStudent.isEligibleForCertificate ? 'Issue Certificate' : 'Force Issue Certificate'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
 
               {activeStudentRiskConfig ? (
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">

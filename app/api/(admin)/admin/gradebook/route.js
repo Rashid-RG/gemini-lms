@@ -5,6 +5,7 @@ import {
   ASSIGNMENT_SUBMISSIONS_TABLE,
   USER_TABLE,
   COURSE_ENROLLMENT_TABLE,
+  CERTIFICATES_TABLE,
 } from "@/configs/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -121,12 +122,23 @@ export async function GET(req) {
           .where(eq(COURSE_ENROLLMENT_TABLE.courseId, courseId))
       : [];
 
+    const certificates = studentEmails.length > 0
+      ? await db
+          .select()
+          .from(CERTIFICATES_TABLE)
+          .where(eq(CERTIFICATES_TABLE.courseId, courseId))
+      : [];
+
     const profileMap = new Map(
       studentProfiles.map((profile) => [String(profile.email || '').toLowerCase(), profile])
     );
 
     const enrollmentMap = new Map(
       enrollments.map((enrollment) => [String(enrollment.studentEmail || '').toLowerCase(), enrollment])
+    );
+
+    const certificateMap = new Map(
+      certificates.map((cert) => [String(cert.studentEmail || '').toLowerCase(), cert])
     );
 
     // Get assignment submissions for this course
@@ -140,6 +152,7 @@ export async function GET(req) {
       const normalizedEmail = String(progress.studentEmail || '').toLowerCase();
       const profile = profileMap.get(normalizedEmail);
       const enrollment = enrollmentMap.get(normalizedEmail);
+      const cert = certificateMap.get(normalizedEmail);
 
       const parseScoreObj = (val) => {
         try {
@@ -170,6 +183,49 @@ export async function GET(req) {
         quiz.avg * 0.5 + assignmentAvg * 0.5
       );
 
+      // Calculate Certificate Eligibility
+      const completedChapters = Array.isArray(progress.completedChapters)
+        ? progress.completedChapters
+        : JSON.parse(progress.completedChapters || '[]');
+      const totalChapters = progress.totalChapters || 0;
+      const chaptersCompleted = completedChapters.length >= totalChapters && totalChapters > 0;
+
+      const quizScores = typeof progress.quizScores === 'string'
+        ? JSON.parse(progress.quizScores || '{}')
+        : (progress.quizScores || {});
+      const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n));
+      const avgQuizScore = quizScoreValues.length > 0
+        ? quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length
+        : 0;
+      
+      // Must complete ALL quizzes and average >= 60%
+      const allQuizzesCompleted = quizScoreValues.length >= totalChapters && totalChapters > 0;
+      const passedQuizzes = allQuizzesCompleted && avgQuizScore >= 60;
+
+      const courseHasAssignments = course[0].hasAssignments === true || (course[0].assignmentCount && course[0].assignmentCount > 0);
+      const expectedAssignmentCount = course[0].assignmentCount || 0;
+      const assignmentScores = typeof progress.assignmentScores === 'string'
+        ? JSON.parse(progress.assignmentScores || '{}')
+        : (progress.assignmentScores || {});
+      const assignmentScoreEntries = Object.entries(assignmentScores);
+
+      // Must complete ALL assignments
+      const allAssignmentsCompleted = !courseHasAssignments || (assignmentScoreEntries.length >= expectedAssignmentCount);
+      
+      let allAssignmentsPassed = allAssignmentsCompleted;
+      if (courseHasAssignments) {
+        for (const [, score] of assignmentScoreEntries) {
+          const scoreNum = Number(score);
+          if (isNaN(scoreNum) || scoreNum < 60) {
+            allAssignmentsPassed = false;
+            break;
+          }
+        }
+      }
+
+      const isEligibleForCertificate = chaptersCompleted && passedQuizzes && allAssignmentsPassed;
+      const isCertIssued = !!cert || enrollment?.certificateIssued || false;
+
       return {
         studentId: profile?.studentIdentifier || profile?.id || null,
         studentName: profile?.name || progress.studentEmail?.split('@')[0] || 'Student',
@@ -184,9 +240,30 @@ export async function GET(req) {
         isMember: profile?.isMember ?? false,
         joinedAt: profile?.createdAt || null,
         enrolledAt: enrollment?.enrolledAt || null,
-        lastAccessedAt: enrollment?.lastAccessedAt || null,
-        totalTimeSpent: enrollment?.totalTimeSpent || 0,
-        certificateIssued: enrollment?.certificateIssued || false,
+        lastAccessedAt: enrollment?.lastAccessedAt || progress.lastActivityAt || enrollment?.enrolledAt || null,
+        totalTimeSpent: (() => {
+          let time = enrollment?.totalTimeSpent || 0;
+          if (time === 0 && progress.progressPercentage > 0) {
+            let estimatedTime = 0;
+            try {
+              const completedChaps = typeof progress.completedChapters === 'string' 
+                ? JSON.parse(progress.completedChapters || '[]') 
+                : (progress.completedChapters || []);
+              estimatedTime += completedChaps.length * 12;
+            } catch(e) {}
+            
+            estimatedTime += (progress.completedNotes || 0) * 5;
+            estimatedTime += (progress.completedFlashcards || 0) * 3;
+            estimatedTime += (quiz.count || 0) * 8;
+            estimatedTime += (studentSubs.length || 0) * 20;
+            
+            time = Math.max(5, estimatedTime);
+          }
+          return time;
+        })(),
+        certificateIssued: isCertIssued,
+        certificateId: cert?.certificateId || null,
+        isEligibleForCertificate,
         progressPercentage: progress.progressPercentage || 0,
         status: progress.status || "In Progress",
         quizAverage: quiz.avg,
@@ -238,3 +315,4 @@ export async function GET(req) {
     );
   }
 }
+

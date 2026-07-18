@@ -128,39 +128,40 @@ export async function POST(req) {
       totalChapters
     });
 
-    // REQUIREMENT: Must complete at least 1 quiz
-    if (quizScoreValues.length < 1) {
+    // REQUIREMENT: Must complete ALL quizzes
+    if (quizScoreValues.length < totalChapters) {
       return NextResponse.json(
-        { error: `You must complete the quiz to earn a certificate.` },
+        { error: `You must complete all quizzes to earn a certificate. Completed ${quizScoreValues.length} out of ${totalChapters} quizzes.` },
         { status: 400 }
       );
     }
 
-    // REQUIREMENT: Quiz average must be at least 45%
+    // REQUIREMENT: Quiz average must be at least 60%
     const avgQuizScore = quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length;
     
-    if (avgQuizScore < 45) {
+    if (avgQuizScore < 60) {
       return NextResponse.json(
-        { error: `Quiz average must be at least 45% to earn a certificate. Your average: ${Math.round(avgQuizScore)}%` },
+        { error: `Quiz average must be at least 60% to earn a certificate. Your average: ${Math.round(avgQuizScore)}%` },
         { status: 400 }
       );
     }
 
-    // REQUIREMENT: If course has assignments, must complete at least 1 assignment
+    // REQUIREMENT: If course has assignments, must complete ALL assignments
     if (courseHasAssignments) {
-      if (assignmentScoreEntries.length < 1) {
+      const expectedAssignmentCount = course[0].assignmentCount || 0;
+      if (assignmentScoreEntries.length < expectedAssignmentCount) {
         return NextResponse.json(
-          { error: `You must complete at least one assignment to earn a certificate.` },
+          { error: `You must complete all assignments to earn a certificate. Submitted ${assignmentScoreEntries.length} out of ${expectedAssignmentCount} assignments.` },
           { status: 400 }
         );
       }
 
-      // REQUIREMENT: EACH assignment must have at least 45 points
+      // REQUIREMENT: EACH assignment must have at least 60 points
       for (const [assignmentId, score] of assignmentScoreEntries) {
         const scoreNum = Number(score);
-        if (!isNaN(scoreNum) && scoreNum < 45) {
+        if (!isNaN(scoreNum) && scoreNum < 60) {
           return NextResponse.json(
-            { error: `Assignment "${assignmentId}" has a score of ${Math.round(scoreNum)} points. Each assignment must have at least 45 points to earn a certificate.` },
+            { error: `Assignment "${assignmentId}" has a score of ${Math.round(scoreNum)} points. Each assignment must have at least 60 points to earn a certificate.` },
             { status: 400 }
           );
         }

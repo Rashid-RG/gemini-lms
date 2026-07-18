@@ -49,30 +49,26 @@ export function useCertificateCheck(courseId, progress, course = null) {
             const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n))
             const assignmentScoreEntries = Object.entries(assignmentScores)
 
-            const hasCompletedQuizzes = quizScoreValues.length > 0
-            const hasCompletedAssignments = assignmentScoreEntries.length > 0
-
-            // REQUIREMENT: Must have completed at least one quiz
-            if (!hasCompletedQuizzes) {
-                return // Don't auto-generate if no quizzes completed
-            }
-
-            // REQUIREMENT: If course has assignments, must have completed at least one
-            if (courseHasAssignments && !hasCompletedAssignments) {
-                return // Don't auto-generate if course has assignments but none completed
+            // REQUIREMENT: Must have completed ALL quizzes
+            const allQuizzesCompleted = quizScoreValues.length >= totalChapters && totalChapters > 0
+            if (!allQuizzesCompleted) {
+                return // Don't auto-generate if quizzes not fully completed
             }
 
             const avgQuizScore = quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length
 
-            // Check if quizzes passed (≥45%) - required
-            const passedQuizzes = avgQuizScore >= 45
+            // Check if quizzes passed (≥60%) - required
+            const passedQuizzes = avgQuizScore >= 60
             
-            // REQUIREMENT: EACH assignment must have at least 45 points
-            let allAssignmentsPassed = true
-            if (courseHasAssignments && hasCompletedAssignments) {
+            // REQUIREMENT: If course has assignments, must have completed ALL assignments
+            const expectedAssignmentCount = course?.assignmentCount || 0
+            const allAssignmentsCompleted = !courseHasAssignments || (assignmentScoreEntries.length >= expectedAssignmentCount)
+            
+            let allAssignmentsPassed = allAssignmentsCompleted
+            if (courseHasAssignments && allAssignmentsCompleted) {
                 for (const [, score] of assignmentScoreEntries) {
                     const scoreNum = Number(score)
-                    if (!isNaN(scoreNum) && scoreNum < 45) {
+                    if (!isNaN(scoreNum) && scoreNum < 60) {
                         allAssignmentsPassed = false
                         break
                     }
@@ -81,8 +77,8 @@ export function useCertificateCheck(courseId, progress, course = null) {
 
             // Course is complete if:
             // 1. All chapters completed
-            // 2. Quiz average ≥45%
-            // 3. If course has assignments: EACH assignment ≥45 points
+            // 2. All quizzes completed with average ≥60%
+            // 3. If course has assignments: ALL assignments completed with EACH assignment ≥60 points
             const isComplete = chaptersCompleted && passedQuizzes && allAssignmentsPassed
 
             if (isComplete && progress.status !== 'Completed') {

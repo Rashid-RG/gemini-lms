@@ -68,8 +68,8 @@ function CertificatesPage() {
                     </p>
                     <ul className="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-400">
                         <li><strong className="text-slate-800 dark:text-slate-300">100% Course Progress:</strong> Complete all chapters, study materials, and note activities in the course layout.</li>
-                        <li><strong className="text-slate-800 dark:text-slate-300">Graded Quizzes:</strong> Complete at least 1 quiz with a minimum average score of <span className="font-bold text-emerald-600 dark:text-emerald-400">45%</span>.</li>
-                        <li><strong className="text-slate-800 dark:text-slate-300">Graded Assignments (if applicable):</strong> Submit at least one assignment, and every graded assignment must score at least <span className="font-bold text-emerald-600 dark:text-emerald-400">45 points</span>.</li>
+                        <li><strong className="text-slate-800 dark:text-slate-300">Graded Quizzes:</strong> Complete all quizzes in the course with a minimum average score of <span className="font-bold text-emerald-600 dark:text-emerald-400">60%</span>.</li>
+                        <li><strong className="text-slate-800 dark:text-slate-300">Graded Assignments:</strong> Submit all course assignments, and each graded assignment must score at least <span className="font-bold text-emerald-600 dark:text-emerald-400">60 points</span>.</li>
                         <li><strong className="text-slate-800 dark:text-slate-300">Automatic Issue:</strong> Once met, go to your course page to generate and claim your certificate. It will then appear here permanently.</li>
                     </ul>
                 </div>

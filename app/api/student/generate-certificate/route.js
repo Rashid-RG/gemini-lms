@@ -57,18 +57,70 @@ export async function POST(req) {
     }
 
     const courseProgress = progress[0];
-    const completionPercentage = courseProgress.progressPercentage || 0;
-    const averageScore = courseProgress.finalScore || 0;
 
-    // Check if eligible for certificate
-    if (!shouldIssueCertificate(completionPercentage, averageScore, 60)) {
+    // Validate completion requirements (Option 1)
+    const completedChapters = Array.isArray(courseProgress.completedChapters)
+      ? courseProgress.completedChapters
+      : JSON.parse(courseProgress.completedChapters || '[]');
+
+    const quizScores = typeof courseProgress.quizScores === 'string'
+      ? JSON.parse(courseProgress.quizScores || '{}')
+      : (courseProgress.quizScores || {});
+
+    const assignmentScores = typeof courseProgress.assignmentScores === 'string'
+      ? JSON.parse(courseProgress.assignmentScores || '{}')
+      : (courseProgress.assignmentScores || {});
+
+    const totalChapters = courseProgress.totalChapters || 0;
+    const allChaptersCompleted = completedChapters.length >= totalChapters && totalChapters > 0;
+
+    if (!allChaptersCompleted) {
       return NextResponse.json(
-        {
-          error: "Not eligible for certificate",
-          reason: `Completion: ${completionPercentage}%, Score: ${averageScore}%. Both must be ≥60% and 60% respectively.`
-        },
+        { error: `Complete all chapters first (${completedChapters.length}/${totalChapters})` },
         { status: 400 }
       );
+    }
+
+    const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n));
+    const assignmentScoreEntries = Object.entries(assignmentScores);
+
+    // Require ALL quizzes completed
+    if (quizScoreValues.length < totalChapters) {
+      return NextResponse.json(
+        { error: `You must complete all quizzes to earn a certificate. Completed ${quizScoreValues.length} out of ${totalChapters} quizzes.` },
+        { status: 400 }
+      );
+    }
+
+    // Require quiz average >= 60%
+    const avgQuizScore = quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length;
+    if (avgQuizScore < 60) {
+      return NextResponse.json(
+        { error: `Quiz average must be at least 60% to earn a certificate. Your average: ${Math.round(avgQuizScore)}%` },
+        { status: 400 }
+      );
+    }
+
+    // If course has assignments, require ALL assignments completed and each >= 60%
+    const courseHasAssignments = course[0].hasAssignments === true || (course[0].assignmentCount && course[0].assignmentCount > 0);
+    if (courseHasAssignments) {
+      const expectedAssignmentCount = course[0].assignmentCount || 0;
+      if (assignmentScoreEntries.length < expectedAssignmentCount) {
+        return NextResponse.json(
+          { error: `You must complete all assignments to earn a certificate. Submitted ${assignmentScoreEntries.length} out of ${expectedAssignmentCount} assignments.` },
+          { status: 400 }
+        );
+      }
+
+      for (const [assignmentId, score] of assignmentScoreEntries) {
+        const scoreNum = Number(score);
+        if (!isNaN(scoreNum) && scoreNum < 60) {
+          return NextResponse.json(
+            { error: `Assignment "${assignmentId}" has a score of ${Math.round(scoreNum)} points. Each assignment must have at least 60 points to earn a certificate.` },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Check if certificate already issued

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Award, Download, Share2, CheckCircle, Calendar, Trophy, Loader, FileDown, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import QRCode from 'qrcode'
+import { getGradeLabel, getGradeDescription } from '@/lib/gradingSystem'
 
 function CertificatePage() {
     const router = useRouter();
@@ -266,9 +267,11 @@ function CertificatePage() {
         ctx.fillText(courseName, canvas.width / 2, 515)
         
         // Score
+        const grade = getGradeLabel(certificate.finalScore)
+        const description = getGradeDescription(certificate.finalScore)
         ctx.font = '600 18px "Montserrat", sans-serif'
         ctx.fillStyle = '#16a34a'
-        ctx.fillText(`Final Evaluation Index: ${certificate.finalScore}% (Academic Merit)`, canvas.width / 2, 570)
+        ctx.fillText(`Final Grade: ${grade} (${certificate.finalScore}%) — ${description}`, canvas.width / 2, 570)
         
         // Date
         ctx.font = '500 16px "Montserrat", sans-serif'
@@ -623,7 +626,7 @@ function CertificatePage() {
                             <Trophy className='w-20 h-20 text-slate-300 mb-4' />
                             <h3 className='text-xl font-semibold text-slate-700 mb-2'>Certificate Not Generated Yet</h3>
                             <p className='text-slate-500 mb-6 text-center max-w-md'>
-                                If you have completed <b>all chapters</b> and achieved <b>45%+ average on quizzes</b> and <b>45+ points on each assignment</b>, click the button below to generate your certificate.
+                                If you have completed <b>all chapters</b> and achieved <b>60%+ average on quizzes</b> and <b>60+ points on each assignment</b>, click the button below to generate your certificate.
                             </p>
                             <div className="flex gap-3">
                                 <Button 
@@ -883,7 +886,7 @@ function CertificatePage() {
                         <Trophy className="w-12 h-12 text-indigo-500 mb-4 animate-pulse" />
                         <div className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Certificate Locked</div>
                         <div className="text-lg text-slate-500 dark:text-slate-400 max-w-xl text-center mb-6 px-4">
-                            Complete <b>all chapters</b>, achieve <b>45%+ quiz average</b>, and <b>45+ points on each assignment</b> to earn your certificate.
+                            Complete <b>all chapters</b>, achieve <b>60%+ quiz average</b>, and <b>60+ points on each assignment</b> to earn your certificate.
                         </div>
                         <Button className="bg-indigo-650 hover:bg-indigo-700 font-bold rounded-xl h-10 px-5 transition-all hover:scale-105 active:scale-95" variant="outline" onClick={() => router.push(`/course/${courseId}`)}>
                             Go to Course

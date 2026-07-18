@@ -71,7 +71,7 @@ export async function POST(req) {
                 correctCount,
                 totalQuestions,
                 percentage: score,
-                passed: score >= 45,
+                passed: score >= 60,
                 detailedResults,
                 timestamp: new Date()
             }

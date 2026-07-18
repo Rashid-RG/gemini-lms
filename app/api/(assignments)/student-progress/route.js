@@ -1,5 +1,5 @@
 import { db } from "@/configs/db";
-import { STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE, USER_STREAK_TABLE } from "@/configs/schema";
+import { STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE, USER_STREAK_TABLE, COURSE_ENROLLMENT_TABLE } from "@/configs/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireUserAuth } from "@/lib/userApiAuth";
@@ -277,6 +277,57 @@ export async function POST(req) {
     } catch (streakError) {
       console.error("Streak update failed (non-critical):", streakError);
       // Don't fail the main request if streak update fails
+    }
+
+    // 🔥 Update enrollment last accessed & time spent
+    try {
+      const now = new Date();
+      // Estimate active session time difference
+      let timeDiffMinutes = 2; // Default to 2 minutes per action/page visit
+      if (existing.length > 0) {
+        const prev = existing[0];
+        const prevActivity = prev.lastActivityAt || prev.startedAt;
+        if (prevActivity) {
+          const diffMs = now.getTime() - new Date(prevActivity).getTime();
+          const diffMins = Math.round(diffMs / (1000 * 60));
+          // If they were active within the last 45 minutes, count the exact difference
+          if (diffMins > 0 && diffMins <= 45) {
+            timeDiffMinutes = diffMins;
+          }
+        }
+      }
+
+      // Fetch current enrollment
+      const currentEnrollment = await db
+        .select()
+        .from(COURSE_ENROLLMENT_TABLE)
+        .where(
+          and(
+            eq(COURSE_ENROLLMENT_TABLE.courseId, courseId),
+            eq(COURSE_ENROLLMENT_TABLE.studentEmail, studentEmail)
+          )
+        );
+
+      if (currentEnrollment.length > 0) {
+        const currentVal = currentEnrollment[0].totalTimeSpent || 0;
+        const newTotalTime = currentVal + timeDiffMinutes;
+
+        await db
+          .update(COURSE_ENROLLMENT_TABLE)
+          .set({
+            lastAccessedAt: now,
+            totalTimeSpent: newTotalTime,
+          })
+          .where(
+            and(
+              eq(COURSE_ENROLLMENT_TABLE.courseId, courseId),
+              eq(COURSE_ENROLLMENT_TABLE.studentEmail, studentEmail)
+            )
+          );
+        console.log(`\u2705 Enrollment time spent updated: +${timeDiffMinutes} min (Total: ${newTotalTime} min)`);
+      }
+    } catch (enrollmentUpdateError) {
+      console.error("Enrollment status update failed:", enrollmentUpdateError);
     }
 
     return NextResponse.json({ result: result[0] });
