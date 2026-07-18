@@ -188,6 +188,51 @@ export async function GET(req) {
             updatedAt: comment.updatedAt,
           }));
 
+        // Calculate Academic Rigor eligibility (Option 1)
+        const completedChapters = Array.isArray(progress.completedChapters)
+          ? progress.completedChapters
+          : JSON.parse(progress.completedChapters || '[]');
+        const totalChapters = progress.totalChapters || 0;
+        const chaptersCompleted = completedChapters.length >= totalChapters && totalChapters > 0;
+
+        const quizScores = typeof progress.quizScores === 'string'
+          ? JSON.parse(progress.quizScores || '{}')
+          : (progress.quizScores || {});
+        const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n));
+        const avgQuizScore = quizScoreValues.length > 0
+          ? quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length
+          : 0;
+        const allQuizzesCompleted = quizScoreValues.length >= totalChapters && totalChapters > 0;
+        const passedQuizzes = allQuizzesCompleted && avgQuizScore >= 60;
+
+        const courseHasAssignments = course?.[0]?.hasAssignments === true || (course?.[0]?.assignmentCount && course?.[0]?.assignmentCount > 0);
+        const expectedAssignmentCount = course?.[0]?.assignmentCount || 0;
+        const assignmentScores = typeof progress.assignmentScores === 'string'
+          ? JSON.parse(progress.assignmentScores || '{}')
+          : (progress.assignmentScores || {});
+        const assignmentScoreEntries = Object.entries(assignmentScores);
+        const allAssignmentsCompleted = !courseHasAssignments || (assignmentScoreEntries.length >= expectedAssignmentCount);
+
+        let allAssignmentsPassed = allAssignmentsCompleted;
+        if (courseHasAssignments) {
+          for (const [, score] of assignmentScoreEntries) {
+            const scoreNum = Number(score);
+            if (isNaN(scoreNum) || scoreNum < 60) {
+              allAssignmentsPassed = false;
+              break;
+            }
+          }
+        }
+
+        const isPassedAcademicRigor = chaptersCompleted && passedQuizzes && allAssignmentsPassed;
+
+        let resultStatus = "In Progress";
+        if (isPassedAcademicRigor) {
+          resultStatus = "Passed";
+        } else if ((progress.progressPercentage || 0) >= 100 || chaptersCompleted) {
+          resultStatus = "Failed";
+        }
+
         return {
           courseId: progress.courseId,
           courseName: course?.[0]?.topic || "Unknown Course",
@@ -201,7 +246,7 @@ export async function GET(req) {
           assignmentCount: gradeBreakdown.assignmentCount,
           finalGrade: gradeBreakdown.finalGrade,
           finalScore: progress.finalScore || gradeBreakdown.finalGrade,
-          resultStatus: gradeBreakdown.finalGrade >= 35 ? "Passed" : "Failed",
+          resultStatus,
           classRank: classRank || null,
           classSize: rankedPeers.length,
           percentile: rankedPeers.length > 0 && classRank > 0
