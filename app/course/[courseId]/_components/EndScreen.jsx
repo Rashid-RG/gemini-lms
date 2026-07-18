@@ -4,9 +4,9 @@ import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Award, CheckCircle } from 'lucide-react'
+import { Award, CheckCircle, AlertTriangle, XCircle, RefreshCw } from 'lucide-react'
 
-function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers, chapterStartTime, secondsRemaining = 0}) {
+function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers, chapterStartTime, secondsRemaining = 0, onRetake}) {
     const route = useRouter();
     const params = useParams();
     const { user } = useUser();
@@ -21,6 +21,67 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
     };
     
     const quizScore = correctCount !== undefined ? calculateScore() : 0;
+
+    // Save quiz score immediately when the end screen is reached
+    useEffect(() => {
+        let isMounted = true;
+        
+        const saveScoreOnComplete = async () => {
+            if (!user || !courseId || chapterIndex === undefined) return;
+            if (data && data.length > 0 && stepCount === data.length && (contentType === 'quiz' || contentType === 'mcq')) {
+                try {
+                    const progressRes = await axios.get(
+                        `/api/student-progress?courseId=${courseId}&studentEmail=${user?.primaryEmailAddress?.emailAddress}`
+                    );
+
+                    if (!isMounted) return;
+                    const currentProgress = progressRes.data.result;
+                    
+                    let quizScores = currentProgress.quizScores || {};
+                    if (typeof quizScores === 'string') quizScores = JSON.parse(quizScores || '{}');
+                    
+                    let mcqScores = currentProgress.mcqScores || {};
+                    if (typeof mcqScores === 'string') mcqScores = JSON.parse(mcqScores || '{}');
+
+                    let completedChapters = Array.isArray(currentProgress.completedChapters)
+                        ? currentProgress.completedChapters
+                        : JSON.parse(currentProgress.completedChapters || '[]');
+
+                    let scoreUpdated = false;
+                    if (contentType === 'quiz' && quizScores[`chapter_${chapterIndex}`] !== quizScore) {
+                        quizScores[`chapter_${chapterIndex}`] = quizScore;
+                        scoreUpdated = true;
+                    }
+                    if (contentType === 'mcq' && mcqScores[`chapter_${chapterIndex}`] !== quizScore) {
+                        mcqScores[`chapter_${chapterIndex}`] = quizScore;
+                        scoreUpdated = true;
+                    }
+
+                    if (scoreUpdated) {
+                        await axios.post('/api/student-progress', {
+                            courseId,
+                            studentEmail: user?.primaryEmailAddress?.emailAddress,
+                            completedChapters, // Keep existing completed chapters (do not mark completed yet)
+                            quizScores,
+                            assignmentScores: currentProgress.assignmentScores || {},
+                            mcqScores,
+                            progressPercentage: currentProgress.progressPercentage,
+                        });
+                    }
+
+                    // Call quiz-specific callback for adaptive difficulty tracking
+                    if (onQuizComplete) {
+                        onQuizComplete(quizScore);
+                    }
+                } catch (err) {
+                    console.error('Error saving score:', err);
+                }
+            }
+        };
+        
+        saveScoreOnComplete();
+        return () => { isMounted = false; };
+    }, [stepCount, data?.length, user?.primaryEmailAddress?.emailAddress, courseId, chapterIndex, contentType, quizScore]);
 
     const markChapterComplete = async () => {
         if (!user || !courseId || chapterIndex === undefined) return;
@@ -38,7 +99,7 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
                 ? currentProgress.completedChapters
                 : JSON.parse(currentProgress.completedChapters || '[]');
 
-            // Use chapterIndex directly (should come from context)
+            // Add chapter to completed list
             if (!completedChapters.includes(chapterIndex)) {
                 completedChapters.push(chapterIndex);
             }
@@ -60,11 +121,10 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
             }
 
             // Store appropriate score based on content type
-            if (contentType === 'quiz' && correctCount !== undefined && data && data.length > 0) {
+            if (contentType === 'quiz') {
                 quizScores[`chapter_${chapterIndex}`] = quizScore;
             }
-            
-            if (contentType === 'mcq' && correctCount !== undefined && data && data.length > 0) {
+            if (contentType === 'mcq') {
                 mcqScores[`chapter_${chapterIndex}`] = quizScore;
             }
 
@@ -97,11 +157,6 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
             if (onChapterComplete) {
                 onChapterComplete();
             }
-
-            // Call quiz-specific callback after marking completion
-            if (onQuizComplete && (contentType === 'quiz' || contentType === 'mcq')) {
-                onQuizComplete(quizScore);
-            }
         } catch (error) {
             console.error('Error marking completion:', error);
             toast.error('Failed to Mark Completion', {
@@ -118,51 +173,102 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
         <div className="w-full">
             {data?.length == stepCount && (
                 <div className="flex flex-col gap-8 w-full">
-                    <div className='flex items-center gap-10 flex-col justify-center py-12 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-8 text-center'>
-                        <div>
-                            <h2 className='text-3xl font-bold text-green-600 mb-3'>✓ Content Completed!</h2>
-                            <p className='text-slate-600 text-lg mb-6'>
-                                You've finished all the {
-                                    contentType === 'quiz' ? 'quiz questions' : 
-                                    contentType === 'mcq' ? 'MCQ questions' : 
-                                    'reading content'
-                                } in this section.
-                            </p>
+                    {((contentType !== 'quiz' && contentType !== 'mcq') || quizScore >= 60) ? (
+                        // Passed State (or reading chapter notes content)
+                        <div className='flex items-center gap-10 flex-col justify-center py-12 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-8 text-center'>
+                            <div>
+                                <h2 className='text-3xl font-bold text-green-600 mb-3'>✓ Content Completed!</h2>
+                                <p className='text-slate-600 text-lg mb-6'>
+                                    You've finished all the {
+                                        contentType === 'quiz' ? 'quiz questions' : 
+                                        contentType === 'mcq' ? 'MCQ questions' : 
+                                        'reading content'
+                                    } in this section.
+                                </p>
+                                
+                                {(contentType === 'quiz' || contentType === 'mcq') && (
+                                    <div className='mb-6 inline-block bg-white rounded-lg p-4 border-2 border-green-300 shadow-md text-center'>
+                                        <div className='flex items-center gap-2 justify-center mb-2'>
+                                            <Award className='w-6 h-6 text-blue-600' />
+                                            <p className='text-sm font-medium text-slate-600'>{contentType === 'mcq' ? 'MCQ' : 'Quiz'} Score</p>
+                                        </div>
+                                        <div className='text-4xl font-bold text-blue-600'>{quizScore}%</div>
+                                        <p className='text-xs text-slate-500 mt-1'>{correctCount} out of {data.length} correct</p>
+                                    </div>
+                                )}
+                            </div>
                             
-                            {(contentType === 'quiz' || contentType === 'mcq') && (
-                                <div className='mb-6 inline-block bg-white rounded-lg p-4 border-2 border-green-300 shadow-md text-center'>
+                            <div className='flex gap-4 justify-center'>
+                                <Button 
+                                    onClick={markChapterComplete}
+                                    disabled={marking || !user || (contentType === 'chapter' && secondsRemaining > 0)}
+                                    className='bg-green-600 hover:bg-green-700 text-white'
+                                >
+                                    <CheckCircle className='w-4 h-4 mr-2' />
+                                    {marking ? 'Marking...' : 
+                                        (contentType === 'chapter' && secondsRemaining > 0) ? `Read Content (${secondsRemaining}s)` :
+                                        contentType === 'mcq' ? 'Mark MCQ Completed' :
+                                        contentType === 'quiz' ? 'Mark Quiz Completed' : 
+                                        'Mark Chapter Complete'
+                                    }
+                                </Button>
+                                <Button 
+                                    onClick={() => route.back()}
+                                    variant="outline"
+                                >
+                                    Go to Course Page
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        // Failed State (Quiz / MCQ Score < 60%)
+                        <div className='flex items-center gap-10 flex-col justify-center py-12 bg-gradient-to-br from-red-50 to-orange-50 rounded-xl border-2 border-red-200 p-8 text-center'>
+                            <div>
+                                <h2 className='text-3xl font-bold text-red-650 mb-3 flex items-center justify-center gap-2'>
+                                    <XCircle className="w-8 h-8 text-red-650" /> Quiz Failed
+                                </h2>
+                                <p className='text-slate-600 text-lg mb-6'>
+                                    You must score at least **60%** to pass and complete this chapter.
+                                </p>
+                                
+                                <div className='mb-6 inline-block bg-white rounded-lg p-4 border-2 border-red-300 shadow-md text-center'>
                                     <div className='flex items-center gap-2 justify-center mb-2'>
-                                        <Award className='w-6 h-6 text-blue-600' />
+                                        <Award className='w-6 h-6 text-red-650' />
                                         <p className='text-sm font-medium text-slate-600'>{contentType === 'mcq' ? 'MCQ' : 'Quiz'} Score</p>
                                     </div>
-                                    <div className='text-4xl font-bold text-blue-600'>{quizScore}%</div>
+                                    <div className='text-4xl font-bold text-red-650'>{quizScore}%</div>
                                     <p className='text-xs text-slate-500 mt-1'>{correctCount} out of {data.length} correct</p>
                                 </div>
-                            )}
+                            </div>
+                            
+                            <div className='flex gap-4 justify-center'>
+                                {onRetake ? (
+                                    <Button 
+                                        onClick={onRetake}
+                                        className='bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center gap-2 shadow-md'
+                                    >
+                                        <RefreshCw className="w-4 h-4 animate-spin-hover" />
+                                        Retake Quiz
+                                    </Button>
+                                ) : (
+                                    <Button 
+                                        onClick={() => window.location.reload()}
+                                        className='bg-red-600 hover:bg-red-700 text-white font-semibold flex items-center gap-2 shadow-md'
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        Retake Quiz
+                                    </Button>
+                                )}
+                                <Button 
+                                    onClick={() => route.back()}
+                                    variant="outline"
+                                >
+                                    Go to Course Page
+                                </Button>
+                            </div>
                         </div>
-                        
-                        <div className='flex gap-4 justify-center'>
-                            <Button 
-                                onClick={markChapterComplete}
-                                disabled={marking || !user || (contentType === 'chapter' && secondsRemaining > 0)}
-                                className='bg-green-600 hover:bg-green-700 text-white'
-                            >
-                                <CheckCircle className='w-4 h-4 mr-2' />
-                                {marking ? 'Marking...' : 
-                                    (contentType === 'chapter' && secondsRemaining > 0) ? `Read Content (${secondsRemaining}s)` :
-                                    contentType === 'mcq' ? 'Mark MCQ Completed' :
-                                    contentType === 'quiz' ? 'Mark Quiz Completed' : 
-                                    'Mark Chapter Complete'
-                                }
-                            </Button>
-                            <Button 
-                                onClick={() => route.back()}
-                                variant="outline"
-                            >
-                                Go to Course Page
-                            </Button>
-                        </div>
-                    </div>
+                    )}
+
 
                     {/* Quiz Review Section */}
                     {(contentType === 'quiz' || contentType === 'mcq') && userAnswers && (

@@ -463,6 +463,13 @@ ${course.courseLayout.chapters.map((ch, idx) => {
                             contentType="mcq"
                             onQuizComplete={(mcqScore) => handleMCQSubmit(mcqScore)}
                             userAnswers={userAnswers}
+                            onRetake={() => {
+                                setStepCount(0);
+                                setCorrectCount(0);
+                                setUserAnswers({});
+                                setIsCorrectAnswer(null);
+                                setCorrectAns(null);
+                            }}
                         />
                 </>
         ) : (

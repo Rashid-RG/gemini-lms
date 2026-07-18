@@ -490,6 +490,16 @@ function Quiz() {
                         contentType="quiz"
                         onQuizComplete={(quizScore) => handleQuizSubmit(quizScore)}
                         userAnswers={userAnswers}
+                        onRetake={() => {
+                            setStepCount(0);
+                            setCorrectCount(0);
+                            setUserAnswers({});
+                            setTimeLeft(quiz.length * 60);
+                            setIsTimeUp(false);
+                            setIsStarted(true);
+                            setCorrectAns(null);
+                            setIsCorrectAnswer(null);
+                        }}
                     />
                 </>
             ) : (
