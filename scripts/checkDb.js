@@ -1,7 +1,10 @@
 const { neon } = require('@neondatabase/serverless');
+const dotenv = require('dotenv');
+
+dotenv.config({ path: '.env.local' });
 
 async function checkDatabase() {
-    const sql = neon('postgresql://neondb_owner:npg_d8Fgih1lWUqH@ep-cool-tree-a4ll1itd-pooler.us-east-1.aws.neon.tech/AI-Study-Material-Gen?sslmode=require');
+    const sql = neon(process.env.DATABASE_URL);
     
     console.log('=== Checking User Data ===');
     const users = await sql`SELECT id, name, email, credits, "isMember" FROM users WHERE email = 'darkmotosu@gmail.com'`;
