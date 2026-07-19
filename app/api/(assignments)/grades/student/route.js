@@ -227,7 +227,7 @@ export async function GET(req) {
         const isPassedAcademicRigor = chaptersCompleted && passedQuizzes && allAssignmentsPassed;
 
         let resultStatus = "In Progress";
-        if (isPassedAcademicRigor) {
+        if (isPassedAcademicRigor || ((progress.progressPercentage || 0) >= 100 && gradeBreakdown.finalGrade >= 60)) {
           resultStatus = "Passed";
         } else if ((progress.progressPercentage || 0) >= 100 || chaptersCompleted) {
           resultStatus = "Failed";
