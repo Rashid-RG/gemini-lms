@@ -1,6 +1,6 @@
 import { db } from "@/configs/db";
-import { STUDY_MATERIAL_TABLE, USER_TABLE, TUTOR_REQUESTS_TABLE, ADMIN_TABLE } from "@/configs/schema";
-import { desc, eq, and, or, ilike } from "drizzle-orm";
+import { STUDY_MATERIAL_TABLE, USER_TABLE, TUTOR_REQUESTS_TABLE, ADMIN_TABLE, COURSE_ENROLLMENT_TABLE, STUDENT_PROGRESS_TABLE } from "@/configs/schema";
+import { desc, eq, and, or, ilike, inArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { withDbRetry } from "@/lib/dbUtils";
 import { auth } from "@clerk/nextjs/server";
@@ -135,14 +135,49 @@ export async function POST(req) {
 
             clearTimeout(timeout);
 
+            // Fetch enrolled student counts for these courses
+            const courseIds = result.map(c => c.courseId).filter(Boolean);
+            let enrollmentMap = new Map();
+            let progressMap = new Map();
+
+            if (courseIds.length > 0) {
+                const [enrollmentCounts, progressCounts] = await Promise.all([
+                    db.select({
+                        courseId: COURSE_ENROLLMENT_TABLE.courseId,
+                        count: sql`count(distinct ${COURSE_ENROLLMENT_TABLE.studentEmail})`
+                    })
+                    .from(COURSE_ENROLLMENT_TABLE)
+                    .where(inArray(COURSE_ENROLLMENT_TABLE.courseId, courseIds))
+                    .groupBy(COURSE_ENROLLMENT_TABLE.courseId),
+                    db.select({
+                        courseId: STUDENT_PROGRESS_TABLE.courseId,
+                        count: sql`count(distinct ${STUDENT_PROGRESS_TABLE.studentEmail})`
+                    })
+                    .from(STUDENT_PROGRESS_TABLE)
+                    .where(inArray(STUDENT_PROGRESS_TABLE.courseId, courseIds))
+                    .groupBy(STUDENT_PROGRESS_TABLE.courseId)
+                ]);
+
+                enrollmentMap = new Map(enrollmentCounts.map(item => [item.courseId, Number(item.count || 0)]));
+                progressMap = new Map(progressCounts.map(item => [item.courseId, Number(item.count || 0)]));
+            }
+
+            const resultWithStats = result.map(course => ({
+                ...course,
+                totalStudents: Math.max(
+                    enrollmentMap.get(course.courseId) ?? 0,
+                    progressMap.get(course.courseId) ?? 0
+                )
+            }));
+
             // Cache the result
             coursesCache.set(cacheKey, {
-                data: result,
+                data: resultWithStats,
                 timestamp: Date.now()
             });
 
             return NextResponse.json(
-                {result: result},
+                {result: resultWithStats},
                 {
                     headers: {
                         'X-Cache': 'MISS',
