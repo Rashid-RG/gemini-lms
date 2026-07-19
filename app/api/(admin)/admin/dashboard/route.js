@@ -1,5 +1,5 @@
 import { db } from "@/configs/db";
-import { USER_TABLE, STUDY_MATERIAL_TABLE, STUDY_TYPE_CONTENT_TABLE, SUPPORT_TICKETS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, CREDIT_TRANSACTION_TABLE, PAYMENT_RECORD_TABLE } from "@/configs/schema";
+import { USER_TABLE, STUDY_MATERIAL_TABLE, STUDY_TYPE_CONTENT_TABLE, SUPPORT_TICKETS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, CREDIT_TRANSACTION_TABLE, PAYMENT_RECORD_TABLE, STUDENT_PROGRESS_TABLE } from "@/configs/schema";
 import { eq, desc, sql, and, gte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { verifyAdminSession } from "@/lib/adminAuth";
@@ -39,7 +39,8 @@ export async function GET(req) {
             recentCourses,
             submissionsTodayResult,
             paymentStats,
-            monthlyRevenueResult
+            monthlyRevenueResult,
+            activeTodayResult
         ] = await Promise.all([
             // User statistics
             db.select({
@@ -114,7 +115,14 @@ export async function GET(req) {
                   eq(PAYMENT_RECORD_TABLE.status, 'completed'),
                   gte(PAYMENT_RECORD_TABLE.createdAt, sql`date_trunc('month', current_date)`)
               ))
-              .catch(() => [{ monthlyRevenue: 0 }])
+              .catch(() => [{ monthlyRevenue: 0 }]),
+            
+            // Active users today
+            db.select({
+                count: sql`count(distinct ${STUDENT_PROGRESS_TABLE.studentEmail})`
+            }).from(STUDENT_PROGRESS_TABLE)
+              .where(gte(STUDENT_PROGRESS_TABLE.lastActivityAt, today))
+              .catch(() => [{ count: 0 }])
         ]);
 
         // Process course stats
@@ -175,6 +183,7 @@ export async function GET(req) {
                 totalCreditsUsed: Number(creditStats[0]?.totalUsed || 0),
                 pendingReviews: Number(reviewRequestStats[0]?.count || 0),
                 submissionsToday: Number(submissionsTodayResult[0]?.count || 0),
+                activeToday: Number(activeTodayResult[0]?.count || 0),
                 successRate,
                 // Payment stats
                 totalRevenue: parseFloat(paymentStats[0]?.totalRevenue || 0).toFixed(2),
