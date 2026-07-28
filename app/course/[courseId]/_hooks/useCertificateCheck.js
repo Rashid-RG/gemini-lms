@@ -48,10 +48,10 @@ export function useCertificateCheck(courseId, progress, course = null) {
             const quizScoreValues = Object.values(combinedQuizScores)
             const assignmentScoreEntries = Object.entries(assignmentScores)
 
-            // REQUIREMENT: Must have completed ALL quizzes
-            const allQuizzesCompleted = quizScoreValues.length >= totalChapters && totalChapters > 0
+            // REQUIREMENT: Must have completed at least 1 quiz
+            const allQuizzesCompleted = quizScoreValues.length > 0
             if (!allQuizzesCompleted) {
-                return // Don't auto-generate if quizzes not fully completed
+                return // Don't auto-generate if quiz not completed
             }
 
             const avgQuizScore = quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length

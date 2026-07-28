@@ -198,8 +198,8 @@ export async function GET(req) {
 
       const avgQuizScore = quizAvgScore;
       
-      // Must complete ALL quizzes and average >= 60%
-      const allQuizzesCompleted = quizScoreValues.length >= totalChapters && totalChapters > 0;
+      // Must complete at least 1 quiz and average >= 60%
+      const allQuizzesCompleted = quizScoreValues.length > 0;
       const passedQuizzes = allQuizzesCompleted && avgQuizScore >= 60;
 
       const courseHasAssignments = course[0].hasAssignments === true || (course[0].assignmentCount && course[0].assignmentCount > 0);

@@ -183,8 +183,8 @@ export async function POST(req) {
                 ? quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length
                 : 0;
             
-            // Must complete ALL quizzes and average >= 60%
-            const allQuizzesCompleted = quizScoreValues.length >= totalChapters && totalChapters > 0;
+            // Must complete at least 1 quiz and average >= 60%
+            const allQuizzesCompleted = quizScoreValues.length > 0;
             const passedQuizzes = allQuizzesCompleted && avgQuizScore >= 60;
 
             const courseHasAssignments = courses[0].hasAssignments === true || (courses[0].assignmentCount && courses[0].assignmentCount > 0);

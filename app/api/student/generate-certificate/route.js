@@ -82,10 +82,10 @@ export async function POST(req) {
     const quizScoreValues = Object.values(combinedQuizScores);
     const assignmentScoreEntries = Object.entries(assignmentScores);
 
-    // Require ALL quizzes completed
-    if (quizScoreValues.length < totalChapters) {
+    // Require at least 1 quiz completed
+    if (quizScoreValues.length === 0) {
       return NextResponse.json(
-        { error: `You must complete all quizzes to earn a certificate. Completed ${quizScoreValues.length} out of ${totalChapters} quizzes.` },
+        { error: `You must complete the course quiz to earn a certificate.` },
         { status: 400 }
       );
     }
