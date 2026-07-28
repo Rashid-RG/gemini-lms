@@ -3,6 +3,7 @@ import { STUDENT_PROGRESS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireUserAuth } from "@/lib/userApiAuth";
+import { getMergedQuizScores } from "@/lib/gradingEngine";
 
 /**
  * POST /api/sync-progress
@@ -64,16 +65,9 @@ export async function POST(req) {
             }, { status: 404 });
         }
 
-        // Get existing quiz scores to include in final score calculation
-        let quizScores;
-        if (typeof progress[0].quizScores === 'string') {
-            try { quizScores = JSON.parse(progress[0].quizScores || '{}'); } catch { quizScores = {}; }
-        } else {
-            quizScores = progress[0].quizScores || {};
-        }
-
-        // Calculate new final score
-        const quizArray = Object.values(quizScores).filter(s => typeof s === 'number');
+        // Get existing combined quiz & MCQ scores to include in final score calculation
+        const combinedQuizScores = getMergedQuizScores(progress[0].quizScores, progress[0].mcqScores);
+        const quizArray = Object.values(combinedQuizScores);
         const assignmentArray = Object.values(assignmentScores).filter(s => typeof s === 'number');
         const allScores = [...quizArray, ...assignmentArray];
         const finalScore = allScores.length > 0 

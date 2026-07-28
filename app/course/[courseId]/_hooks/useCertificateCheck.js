@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
 import { toast } from 'sonner'
+import { getMergedQuizScores } from '@/lib/gradingEngine'
 
 /**
  * Hook to check if course is completed and auto-generate certificate
@@ -30,9 +31,7 @@ export function useCertificateCheck(courseId, progress, course = null) {
                 ? progress.completedChapters
                 : JSON.parse(progress.completedChapters || '[]')
 
-            const quizScores = typeof progress.quizScores === 'string'
-                ? JSON.parse(progress.quizScores || '{}')
-                : (progress.quizScores || {})
+            const combinedQuizScores = getMergedQuizScores(progress.quizScores, progress.mcqScores)
 
             const assignmentScores = typeof progress.assignmentScores === 'string'
                 ? JSON.parse(progress.assignmentScores || '{}')
@@ -46,7 +45,7 @@ export function useCertificateCheck(courseId, progress, course = null) {
             const courseHasAssignments = course?.hasAssignments === true || (course?.assignmentCount && course?.assignmentCount > 0)
 
             // Get quiz scores
-            const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n))
+            const quizScoreValues = Object.values(combinedQuizScores)
             const assignmentScoreEntries = Object.entries(assignmentScores)
 
             // REQUIREMENT: Must have completed ALL quizzes

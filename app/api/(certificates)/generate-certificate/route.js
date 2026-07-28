@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { requireUserAuth } from "@/lib/userApiAuth";
 import { v4 as uuidv4 } from 'uuid';
 import { emailService } from "@/lib/emailService";
+import { getMergedQuizScores } from "@/lib/gradingEngine";
 
 /**
  * POST /api/generate-certificate
@@ -82,9 +83,7 @@ export async function POST(req) {
       ? progress[0].completedChapters
       : JSON.parse(progress[0].completedChapters || '[]');
 
-    const quizScores = typeof progress[0].quizScores === 'string'
-      ? JSON.parse(progress[0].quizScores || '{}')
-      : (progress[0].quizScores || {});
+    const combinedQuizScores = getMergedQuizScores(progress[0].quizScores, progress[0].mcqScores);
 
     const assignmentScores = typeof progress[0].assignmentScores === 'string'
       ? JSON.parse(progress[0].assignmentScores || '{}')
@@ -98,7 +97,7 @@ export async function POST(req) {
       completedChapters: completedChapters.length,
       totalChapters,
       allChaptersCompleted,
-      quizScores,
+      combinedQuizScores,
       assignmentScores,
       progressPercentage: progress[0].progressPercentage
     });
@@ -111,7 +110,7 @@ export async function POST(req) {
     }
 
     // Get all scores
-    const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n));
+    const quizScoreValues = Object.values(combinedQuizScores);
     const assignmentScoreEntries = Object.entries(assignmentScores);
 
     // Check if user has completed any assessments

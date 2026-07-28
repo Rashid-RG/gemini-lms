@@ -4,6 +4,7 @@ import {
   gradeQuiz,
   calculateProgress,
   shouldIssueCertificate,
+  getMergedQuizScores,
 } from '../lib/gradingEngine.js';
 
 describe('gradeAnswer — multiple choice', () => {
@@ -169,3 +170,23 @@ describe('shouldIssueCertificate', () => {
     expect(shouldIssueCertificate(99, 90)).toBe(false);
   });
 });
+
+describe('getMergedQuizScores', () => {
+  it('merges quizScores and mcqScores and normalizes chapter keys', () => {
+    const quizScores = JSON.stringify({ "chapter_1": 90 });
+    const mcqScores = JSON.stringify({ "chapter_0": 85, "chapter_2": 95 });
+    const merged = getMergedQuizScores(quizScores, mcqScores);
+    expect(Object.keys(merged).length).toBe(3);
+    expect(merged['0']).toBe(85);
+    expect(merged['1']).toBe(90);
+    expect(merged['2']).toBe(95);
+  });
+
+  it('picks higher score if chapter exists in both quizScores and mcqScores', () => {
+    const quizScores = { "chapter_0": 70 };
+    const mcqScores = { "chapter_0": 88 };
+    const merged = getMergedQuizScores(quizScores, mcqScores);
+    expect(merged['0']).toBe(88);
+  });
+});
+

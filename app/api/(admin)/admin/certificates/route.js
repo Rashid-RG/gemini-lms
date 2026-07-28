@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
 import { v4 as uuidv4 } from 'uuid';
 import { emailService } from "@/lib/emailService";
+import { getMergedQuizScores } from "@/lib/gradingEngine";
 
 /**
  * DELETE /api/admin/certificates
@@ -176,10 +177,8 @@ export async function POST(req) {
             const totalChapters = progressRecord.totalChapters || 0;
             const chaptersCompleted = completedChapters.length >= totalChapters && totalChapters > 0;
 
-            const quizScores = typeof progressRecord.quizScores === 'string'
-                ? JSON.parse(progressRecord.quizScores || '{}')
-                : (progressRecord.quizScores || {});
-            const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n));
+            const combinedQuizScores = getMergedQuizScores(progressRecord.quizScores, progressRecord.mcqScores);
+            const quizScoreValues = Object.values(combinedQuizScores);
             const avgQuizScore = quizScoreValues.length > 0
                 ? quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length
                 : 0;

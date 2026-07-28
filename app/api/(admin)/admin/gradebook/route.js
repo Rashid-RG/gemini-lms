@@ -10,6 +10,7 @@ import {
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
+import { getMergedQuizScores } from "@/lib/gradingEngine";
 
 function dedupeProgressRows(progressRows) {
   const byEmail = new Map();
@@ -167,7 +168,12 @@ export async function GET(req) {
         }
       };
 
-      const quiz = parseScoreObj(progress.quizScores);
+      const combinedQuizScores = getMergedQuizScores(progress.quizScores, progress.mcqScores);
+      const quizScoreValues = Object.values(combinedQuizScores);
+      const quizAvgScore = quizScoreValues.length > 0
+        ? quizScoreValues.reduce((a, b) => a + b, 0) / quizScoreValues.length
+        : 0;
+      const quiz = { avg: quizAvgScore, count: quizScoreValues.length };
 
       // Assignment average from submissions
       const studentSubs = submissions.filter(
@@ -190,13 +196,7 @@ export async function GET(req) {
       const totalChapters = progress.totalChapters || 0;
       const chaptersCompleted = completedChapters.length >= totalChapters && totalChapters > 0;
 
-      const quizScores = typeof progress.quizScores === 'string'
-        ? JSON.parse(progress.quizScores || '{}')
-        : (progress.quizScores || {});
-      const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n));
-      const avgQuizScore = quizScoreValues.length > 0
-        ? quizScoreValues.reduce((sum, score) => sum + score, 0) / quizScoreValues.length
-        : 0;
+      const avgQuizScore = quizAvgScore;
       
       // Must complete ALL quizzes and average >= 60%
       const allQuizzesCompleted = quizScoreValues.length >= totalChapters && totalChapters > 0;

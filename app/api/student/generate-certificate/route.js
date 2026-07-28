@@ -9,7 +9,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { v4 as uuidv4 } from 'uuid';
-import { shouldIssueCertificate } from "@/lib/gradingEngine";
+import { shouldIssueCertificate, getMergedQuizScores } from "@/lib/gradingEngine";
 
 /**
  * POST /api/student/generate-certificate
@@ -63,9 +63,7 @@ export async function POST(req) {
       ? courseProgress.completedChapters
       : JSON.parse(courseProgress.completedChapters || '[]');
 
-    const quizScores = typeof courseProgress.quizScores === 'string'
-      ? JSON.parse(courseProgress.quizScores || '{}')
-      : (courseProgress.quizScores || {});
+    const combinedQuizScores = getMergedQuizScores(courseProgress.quizScores, courseProgress.mcqScores);
 
     const assignmentScores = typeof courseProgress.assignmentScores === 'string'
       ? JSON.parse(courseProgress.assignmentScores || '{}')
@@ -81,7 +79,7 @@ export async function POST(req) {
       );
     }
 
-    const quizScoreValues = Object.values(quizScores).map(Number).filter(n => !isNaN(n));
+    const quizScoreValues = Object.values(combinedQuizScores);
     const assignmentScoreEntries = Object.entries(assignmentScores);
 
     // Require ALL quizzes completed
