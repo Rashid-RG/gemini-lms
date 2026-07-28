@@ -187,17 +187,9 @@ function ViewNotes() {
                 {notes[stepCount] && (
                     <VoiceReader htmlContent={notes[stepCount]?.notes} />
                 )}
-                {stepCount < notes.length && (
-                    secondsRemaining > 0 ? (
-                        <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/30 text-xs font-semibold">
-                            <span className="animate-pulse">📖</span> Reading verification: {secondsRemaining}s remaining
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-900/30 text-xs font-semibold">
-                            <span>✓</span> Ready to complete chapter
-                        </div>
-                    )
-                )}
+                <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-900/30 text-xs font-semibold">
+                    <span>✓</span> Ready to complete chapter
+                </div>
             </div>
             <div className='flex items-center gap-3 self-end md:self-auto'>
                 <ReportContentIssue 
@@ -220,8 +212,7 @@ function ViewNotes() {
                     courseId={courseId}
                     chapterIndex={currentChapterIndex}
                     onChapterComplete={handleChapterComplete}
-                    chapterStartTime={chapterStartTime}
-                    secondsRemaining={secondsRemaining}
+                    contentType="notes"
                 />
 
                 {notes[stepCount] && (

@@ -4,7 +4,7 @@ import { useUser } from '@clerk/nextjs'
 import axios from 'axios'
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Award, CheckCircle, AlertTriangle, XCircle, RefreshCw } from 'lucide-react'
+import { Award, CheckCircle, AlertTriangle, XCircle, RefreshCw, Sparkles, CheckCheck } from 'lucide-react'
 
 function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onChapterComplete, correctCount, contentType = 'chapter', onQuizComplete, userAnswers, chapterStartTime, secondsRemaining = 0, onRetake}) {
     const route = useRouter();
@@ -169,6 +169,54 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
         }
     };
 
+    const markAllChaptersComplete = async () => {
+        if (!user || !courseId) return;
+
+        try {
+            setMarking(true);
+            
+            const progressRes = await axios.get(
+                `/api/student-progress?courseId=${courseId}&studentEmail=${user?.primaryEmailAddress?.emailAddress}`
+            );
+
+            const currentProgress = progressRes.data.result || {};
+            const totalChaps = currentProgress.totalChapters || (data ? data.length : 0) || 1;
+            const allCompletedChapters = Array.from({ length: totalChaps }, (_, i) => i);
+
+            await axios.post('/api/student-progress', {
+                courseId,
+                studentEmail: user?.primaryEmailAddress?.emailAddress,
+                completedChapters: allCompletedChapters,
+                quizScores: currentProgress.quizScores || {},
+                assignmentScores: currentProgress.assignmentScores || {},
+                mcqScores: currentProgress.mcqScores || {},
+                progressPercentage: 100,
+                completedNotes: totalChaps,
+                totalNotes: totalChaps,
+                activityType: 'notes'
+            });
+
+            toast.success(`🎉 All ${totalChaps} Chapters Marked as Complete!`, {
+                description: "Awesome! All course chapters have been marked as completed in one click.",
+                duration: 5000,
+                position: 'top-center'
+            });
+
+            if (onChapterComplete) {
+                onChapterComplete();
+            }
+        } catch (error) {
+            console.error('Error marking all chapters complete:', error);
+            toast.error('Failed to Mark All Chapters Complete', {
+                description: 'Please try again or contact support.',
+                duration: 4000,
+                position: 'top-center'
+            });
+        } finally {
+            setMarking(false);
+        }
+    };
+
     return (
         <div className="w-full">
             {data?.length == stepCount && (
@@ -198,20 +246,29 @@ function EndScreen({data, stepCount, courseId: propCourseId, chapterIndex, onCha
                                 )}
                             </div>
                             
-                            <div className='flex gap-4 justify-center'>
+                            <div className='flex flex-wrap gap-4 justify-center'>
                                 <Button 
                                     onClick={markChapterComplete}
-                                    disabled={marking || !user || (contentType === 'chapter' && secondsRemaining > 0)}
+                                    disabled={marking || !user}
                                     className='bg-green-600 hover:bg-green-700 text-white'
                                 >
                                     <CheckCircle className='w-4 h-4 mr-2' />
                                     {marking ? 'Marking...' : 
-                                        (contentType === 'chapter' && secondsRemaining > 0) ? `Read Content (${secondsRemaining}s)` :
                                         contentType === 'mcq' ? 'Mark MCQ Completed' :
                                         contentType === 'quiz' ? 'Mark Quiz Completed' : 
                                         'Mark Chapter Complete'
                                     }
                                 </Button>
+                                {(contentType === 'chapter' || contentType === 'notes') && (
+                                    <Button 
+                                        onClick={markAllChaptersComplete}
+                                        disabled={marking || !user}
+                                        className='bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md'
+                                    >
+                                        <Sparkles className='w-4 h-4 mr-2' />
+                                        {marking ? 'Marking All...' : 'Mark All Chapters Complete'}
+                                    </Button>
+                                )}
                                 <Button 
                                     onClick={() => route.back()}
                                     variant="outline"
