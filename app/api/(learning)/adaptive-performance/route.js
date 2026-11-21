@@ -11,6 +11,11 @@ import { requireUserAuth } from "@/lib/userApiAuth";
  * Body: { courseId, studentEmail, topicId, topicName, score, assessmentType }
  */
 export async function POST(req) {
+    // Legacy client-submitted scores cannot be treated as verified ML data.
+    // Once trusted mode is enabled, accept scores only through verified attempt submission.
+    if (process.env.TRUSTED_ASSESSMENTS_ENABLED === "true") {
+        return NextResponse.json({ error: "Use the trusted assessment submission endpoint" }, { status: 409 });
+    }
     try {
         const authResult = await requireUserAuth(req);
         if (!authResult.authenticated) return authResult.error;
