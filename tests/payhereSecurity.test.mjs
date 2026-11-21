@@ -84,3 +84,22 @@ test("merchant secret encoding is explicit and validated", () => {
   assert.equal(normalizePayhereSecret("!not base64!", "base64"), null);
   assert.equal(normalizePayhereSecret("", "raw"), null);
 });
+
+test("payment redirect never awards credits; status lookup is read-only", () => {
+  const page = readFileSync("app/dashboard/upgrade/success/page.jsx", "utf8");
+  const route = readFileSync("app/api/(billing)/payments/payhere/status/route.js", "utf8");
+  assert.doesNotMatch(page, /axios\.post\(["']\/api\/payments\/verify/);
+  assert.match(page, /\/api\/payments\/payhere\/status/);
+  assert.match(page, /response\.data\.status === "completed"/);
+  assert.match(route, /requireUserAuth\(req\)/);
+  assert.match(route, /PAYMENT_RECORD_TABLE\.userEmail, identity\.email/);
+  assert.match(route, /Cache-Control": "no-store"/);
+  assert.doesNotMatch(route, /db\.update\(|db\.insert\(/);
+});
+
+test("PayHere initiation returns a durable order identifier", () => {
+  const source = readFileSync("app/api/(billing)/payments/payhere/initiate/route.js", "utf8");
+  assert.match(source, /crypto\.randomUUID\(\)/);
+  assert.match(source, /order_id=\$\{encodeURIComponent\(orderId\)\}/);
+  assert.match(source, /NEXT_PUBLIC_APP_URL/);
+});
