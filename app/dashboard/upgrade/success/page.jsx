@@ -18,7 +18,8 @@ export default function PaymentSuccess() {
     }, [])
 
     useEffect(() => {
-        if (!isLoaded || !user || orderId === null) return
+        if (!isLoaded || orderId === null) return
+        if (!user) { setStatus("login"); return }
         if (!orderId) {
             setStatus("missing")
             return
