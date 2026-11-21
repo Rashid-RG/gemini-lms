@@ -103,3 +103,21 @@ test("PayHere initiation returns a durable order identifier", () => {
   assert.match(source, /order_id=\$\{encodeURIComponent\(orderId\)\}/);
   assert.match(source, /NEXT_PUBLIC_APP_URL/);
 });
+
+test("checkout validates a secure callback origin before writing pending orders", () => {
+  const source = readFileSync("app/api/(billing)/payments/payhere/initiate/route.js", "utf8");
+  assert.match(source, /new URL\(rawBaseUrl\)/);
+  assert.match(source, /parsed\.protocol === "https:"/);
+  assert.match(source, /const localDevelopment/);
+  const validation = source.indexOf("new URL(rawBaseUrl)");
+  const insert = source.indexOf("db.insert(PAYMENT_RECORD_TABLE)");
+  assert.ok(validation >= 0 && insert > validation);
+});
+
+test("IPN replay is bound to the exact gateway payment ID, amount and plan", () => {
+  const source = readFileSync("app/api/(billing)/payments/payhere/notify/route.js", "utf8");
+  assert.match(source, /matches\[0\]\.gatewayPaymentId === paymentId/);
+  assert.match(source, /Number\(matches\[0\]\.amount\) === plan\.amount/);
+  assert.match(source, /matches\[0\]\.creditsAdded === plan\.credits/);
+  assert.match(source, /p\."gatewayPaymentId" IS NULL/);
+});
