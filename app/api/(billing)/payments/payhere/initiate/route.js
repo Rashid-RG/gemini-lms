@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
+import crypto from "node:crypto";
+import { makePayhereCheckoutHash, normalizePayhereSecret } from "@/lib/payhereSignature";
 import { db } from "@/configs/db";
 import { PAYMENT_RECORD_TABLE, USER_TABLE } from "@/configs/schema";
 import { eq } from "drizzle-orm";
@@ -12,51 +13,6 @@ import { getPayherePlan } from "@/lib/payherePricing";
  * 
  * PayHere Documentation: https://support.payhere.lk/api-&-mobile-sdk/payhere-checkout
  */
-
-function generatePayHereHash(merchantId, orderId, amount, currency, merchantSecret) {
-    // PayHere hash formula:
-    // md5(merchant_id + order_id + amount + currency + md5(merchant_secret).toUpperCase()).toUpperCase()
-    
-    // Amount must be formatted with exactly 2 decimal places
-    const amountFormatted = Number(amount).toFixed(2);
-    
-    // Step 1: MD5 hash of merchant secret (uppercase)
-    const secretMd5 = crypto.createHash('md5').update(merchantSecret).digest('hex').toUpperCase();
-    
-    // Step 2: Concatenate all values
-    const stringToHash = merchantId + orderId + amountFormatted + currency + secretMd5;
-    
-    // Step 3: MD5 hash of concatenated string (uppercase)
-    const hash = crypto.createHash('md5').update(stringToHash).digest('hex').toUpperCase();
-    
-    
-    return hash;
-}
-
-function isLikelyBase64(value) {
-    return /^[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length % 4 === 0;
-}
-
-function normalizeMerchantSecret(secret) {
-    if (!secret) return '';
-
-    const trimmed = String(secret).trim();
-    const encoding = (process.env.PAYHERE_MERCHANT_SECRET_ENCODING || 'auto').toLowerCase();
-
-    // Safe default: use the value exactly as provided unless base64 is explicitly requested.
-    // Many gateways provide secrets that happen to look like base64; auto-decoding can break hashes.
-    if (encoding === 'raw' || encoding === 'auto') return trimmed;
-
-    const tryDecode = encoding === 'base64' || (encoding === 'auto' && isLikelyBase64(trimmed));
-    if (!tryDecode) return trimmed;
-
-    try {
-        const decoded = Buffer.from(trimmed, 'base64').toString('utf8').trim();
-        return decoded || trimmed;
-    } catch {
-        return trimmed;
-    }
-}
 
 export async function POST(req) {
     try {
@@ -87,11 +43,11 @@ export async function POST(req) {
         // PayHere credentials from environment
         const merchantId = process.env.PAYHERE_MERCHANT_ID;
         const merchantSecretRaw = process.env.PAYHERE_MERCHANT_SECRET;
-        const merchantSecret = normalizeMerchantSecret(merchantSecretRaw);
+        const merchantSecret = normalizePayhereSecret(merchantSecretRaw, process.env.PAYHERE_MERCHANT_SECRET_ENCODING || "raw");
         const isProduction = process.env.PAYHERE_PRODUCTION === 'true';
 
 
-        if (!merchantId || !merchantSecretRaw || merchantSecretRaw.includes('REPLACE_WITH_')) {
+        if (!merchantId || !merchantSecret || merchantSecretRaw.includes('REPLACE_WITH_')) {
             return NextResponse.json({ error: 'Payment gateway not configured: set valid PAYHERE merchant credentials for this domain' }, { status: 500 });
         }
 
@@ -110,7 +66,7 @@ export async function POST(req) {
         });
 
         // Generate hash
-        const hash = generatePayHereHash(merchantId, orderId, amount, currency, merchantSecret);
+        const hash = makePayhereCheckoutHash(merchantId, orderId, amount.toFixed(2), currency, merchantSecret);
 
         // Base URL for callbacks
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
