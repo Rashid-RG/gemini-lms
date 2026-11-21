@@ -129,3 +129,12 @@ test("attempt creation is throttled before database writes", () => {
   assert.match(source, /"Retry-After"/);
   assert.ok(source.indexOf("checkRateLimit(") < source.indexOf("db.insert(TRUSTED_ASSESSMENT_ATTEMPT_TABLE)"));
 });
+
+test("trusted mode reroutes old Quiz, MCQ and manual Quiz pages", () => {
+  const middleware = readFileSync("middleware.js", "utf8");
+  assert.match(middleware, /TRUSTED_ASSESSMENTS_ENABLED === 'true'/);
+  assert.match(middleware, /quiz\|mcq\|manual-quiz/);
+  assert.match(middleware, /\/trusted-quiz/);
+  assert.match(middleware, /await auth\.protect\(\)/);
+  assert.ok(middleware.indexOf("await auth.protect()") < middleware.indexOf("legacyQuizPath"));
+});
