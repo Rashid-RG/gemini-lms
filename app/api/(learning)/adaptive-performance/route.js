@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/configs/db'
 import { ADAPTIVE_PERFORMANCE_TABLE } from '@/configs/schema'
 import { eq, and } from 'drizzle-orm'
-import { calculatePerformanceMetrics } from '@/lib/adaptiveDifficulty'
+import { recordAdaptivePerformance } from '@/lib/recordAdaptivePerformance'
 import { requireUserAuth } from "@/lib/userApiAuth";
 
 /**
@@ -16,94 +16,21 @@ export async function POST(req) {
         if (!authResult.authenticated) return authResult.error;
 
         const body = await req.json();
-        const studentEmail = authResult.isInternal ? body.studentEmail : authResult.email;
-        const { courseId, topicId, topicName, score, assessmentType } = body;
+        if (!authResult.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const studentEmail = authResult.email;
+        const { courseId, topicId, topicName, score } = body;
 
-        if (!courseId || !studentEmail || !topicId || !topicName || score === undefined) {
-            return NextResponse.json(
-                { error: 'Missing required fields' },
-                { status: 400 }
-            )
+        if (!courseId || !topicId || !topicName || score === undefined) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+        if (typeof score !== "number" || !Number.isFinite(score) || score < 0 || score > 100) {
+            return NextResponse.json({ error: "Score must be between 0-100" }, { status: 400 });
         }
 
-        // Validate score is 0-100
-        if (score < 0 || score > 100) {
-            return NextResponse.json(
-                { error: 'Score must be between 0-100' },
-                { status: 400 }
-            )
-        }
-
-        // Get existing performance record
-        const existing = await db.select().from(ADAPTIVE_PERFORMANCE_TABLE)
-            .where(
-                and(
-                    eq(ADAPTIVE_PERFORMANCE_TABLE.courseId, courseId),
-                    eq(ADAPTIVE_PERFORMANCE_TABLE.studentEmail, studentEmail),
-                    eq(ADAPTIVE_PERFORMANCE_TABLE.topicId, topicId)
-                )
-            )
-
-        const existingRecord = existing[0] || null
-
-        // Calculate new metrics
-        const metrics = calculatePerformanceMetrics(existingRecord, score, topicName)
-
-        let result
-
-        if (existingRecord) {
-            // Update existing record
-            result = await db.update(ADAPTIVE_PERFORMANCE_TABLE)
-                .set({
-                    totalAttempts: metrics.totalAttempts,
-                    correctAnswers: metrics.correctAnswers,
-                    averageScore: metrics.averageScore,
-                    recommendedDifficulty: metrics.recommendedDifficulty,
-                    currentDifficulty: metrics.currentDifficulty,
-                    masteryLevel: metrics.masteryLevel,
-                    isWeakTopic: metrics.isWeakTopic,
-                    lastAttemptAt: metrics.lastAttemptAt,
-                    updatedAt: metrics.updatedAt
-                })
-                .where(
-                    and(
-                        eq(ADAPTIVE_PERFORMANCE_TABLE.courseId, courseId),
-                        eq(ADAPTIVE_PERFORMANCE_TABLE.studentEmail, studentEmail),
-                        eq(ADAPTIVE_PERFORMANCE_TABLE.topicId, topicId)
-                    )
-                )
-                .returning()
-
-            return NextResponse.json({
-                result: result[0],
-                isNew: false,
-                message: `Performance updated. Recommended difficulty: ${metrics.recommendedDifficulty}`
-            })
-        } else {
-            // Create new record
-            result = await db.insert(ADAPTIVE_PERFORMANCE_TABLE)
-                .values({
-                    courseId,
-                    studentEmail,
-                    topicId,
-                    topicName,
-                    totalAttempts: metrics.totalAttempts,
-                    correctAnswers: metrics.correctAnswers,
-                    averageScore: metrics.averageScore,
-                    currentDifficulty: metrics.currentDifficulty,
-                    recommendedDifficulty: metrics.recommendedDifficulty,
-                    masteryLevel: metrics.masteryLevel,
-                    isWeakTopic: metrics.isWeakTopic,
-                    lastAttemptAt: metrics.lastAttemptAt
-                })
-                .returning()
-
-            return NextResponse.json({
-                result: result[0],
-                isNew: true,
-                message: `Performance tracked. Recommended difficulty: ${metrics.recommendedDifficulty}`
-            })
-        }
+        const { record, isNew } = await recordAdaptivePerformance({
+            courseId, studentEmail, topicId, topicName, score
+        });
+        return NextResponse.json({ result: record, isNew });
     } catch (error) {
         console.error('Error tracking adaptive performance:', error)
         return NextResponse.json(
