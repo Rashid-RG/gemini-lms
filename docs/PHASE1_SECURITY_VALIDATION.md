@@ -34,3 +34,9 @@ Until a verified gateway workflow is integrated:
 - Build a support-mediated cancellation request queue and an authenticated gateway refund/chargeback reconciliation worker before permitting automated settlement.
 - Because PayHere callbacks can be replayed concurrently, verify behavior against actual isolated PostgreSQL. Source-level regression tests alone are insufficient.
 
+
+## Payment listing and support-ticket follow-up
+- The administrator payment listing now rejects unsupported filters and limits each page to 1–100 records with offsets up to 10,000; this prevents unbounded list retrieval, but analytics currently still scan all completed payments and need a future database-aggregation refactor.
+- Cancellation review tickets reuse an existing open ticket when available. **Concurrent new requests can still create duplicate tickets** until a carefully reviewed partial unique index or transactional serialization is introduced; do not claim strict deduplication.
+- The cancellation UI intentionally does not describe a support request as an executed refund. Staff must verify gateway records before changing balances or entitlements.
+- Read-only reconciliation reports sample up to 50 entries per anomaly type; the response is not a complete ledger audit.
