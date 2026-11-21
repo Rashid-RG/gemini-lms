@@ -273,3 +273,28 @@ test("isolated PostgreSQL rehearsal includes concurrent grading, owner scope and
   assert.match(source, /"expiresAt" > NOW\(\)/);
   assert.match(source, /"status"='started'/);
 });
+
+test("trusted mode preserves legacy grade maps instead of accepting browser scores", () => {
+  const source = readFileSync("app/api/(assignments)/student-progress/route.js", "utf8");
+  assert.match(source, /TRUSTED_ASSESSMENTS_ENABLED === "true"/);
+  assert.match(source, /storedProgress\?\.quizScores/);
+  assert.match(source, /storedProgress\?\.mcqScores/);
+  assert.match(source, /storedProgress\?\.assignmentScores/);
+  assert.match(source, /const finalScore = trustedMode \? \(prev\.finalScore \?\? 0\)/);
+  assert.match(source, /encodeScoreMap\(acceptedQuizScores\)/);
+  assert.match(source, /encodeScoreMap\(acceptedAssignmentScores\)/);
+  assert.match(source, /encodeScoreMap\(acceptedMcqScores\)/);
+});
+
+test("CI PostgreSQL suite never accepts external or application database URLs", () => {
+  const workflow = readFileSync(".github/workflows/security-tests.yml", "utf8");
+  const script = readFileSync("tests/assessment_postgres_ci.py", "utf8");
+  assert.match(workflow, /image: postgres:16/);
+  assert.match(workflow, /ASSESSMENT_PG_CI_ACK: EPHEMERAL_LOCALHOST_ONLY/);
+  assert.match(script, /DATABASE_URL/);
+  assert.match(script, /PGHOST/);
+  assert.match(script, /127\.0\.0\.1/);
+  assert.match(script, /phase1_trusted_assessment_attempts\.sql/);
+  assert.match(script, /phase1_verified_assessment_projection\.sql/);
+  assert.match(script, /DROP SCHEMA/);
+});
