@@ -42,3 +42,10 @@ Provide auditable, server-graded quiz attempts for commercial education and futu
 
 ## 6. Research instrumentation specification
 Capture: opaque learner identifier, course/assessment/question version, topic tag, difficulty, server start/submitted times, question-level correctness, score, grading version, trusted provenance, consent cohort. Do not export direct emails, raw answers, or unverified legacy scores to ML datasets by default. Define consent, minimization and retention before any research extraction.
+
+## 7. Initial pilot implementation (committed, disabled)
+- `GET /api/assessments/trusted/catalog?courseId=...`: authenticated answer-free metadata listing with course access checks.
+- `/course/[courseId]/trusted-quiz`: isolated learner-facing pilot. Existing quiz/MCQ pages remain unchanged and are not yet migrated.
+- Legacy `/api/study-type` now **redacts** Quiz/MCQ `content` in trusted mode; the main legacy Quiz/MCQ screens may show unavailable content if this feature flag is enabled before migration.
+- The trusted pilot UI supports straightforward option text and free-text entry. AI-generated question formats and partial-credit policies need verification before rollout.
+- Do not enable `TRUSTED_ASSESSMENTS_ENABLED` merely because tests pass. Migration, course-level access controls, cross-route answer-leak audit, stage data isolation and manual review are release gates.
