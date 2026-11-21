@@ -10,6 +10,11 @@ import { requireUserAuth } from "@/lib/userApiAuth"
  * Body: { courseId, studentEmail, chapterId, topicName, answers, quizData }
  */
 export async function POST(req) {
+    // Legacy endpoint trusts question keys supplied by the browser.
+    // Disable it when the secure assessment flow is enabled.
+    if (process.env.TRUSTED_ASSESSMENTS_ENABLED === "true") {
+        return NextResponse.json({ error: "Use the trusted assessment workflow" }, { status: 409 });
+    }
     try {
         const authResult = await requireUserAuth(req);
         if (!authResult.authenticated) return authResult.error;
