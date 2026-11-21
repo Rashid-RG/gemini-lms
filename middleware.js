@@ -27,6 +27,17 @@ export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect()
   }
+
+  // In trusted mode, old quiz pages must not run browser-side grading.
+  // Route all existing quiz entry points to the isolated server-graded pilot.
+  if (process.env.TRUSTED_ASSESSMENTS_ENABLED === 'true' && req.method === 'GET') {
+    const legacyQuizPath = req.nextUrl.pathname.match(/^\/course\/([^/]+)\/(quiz|mcq|manual-quiz)\/?$/)
+    if (legacyQuizPath) {
+      const destination = req.nextUrl.clone()
+      destination.pathname = `/course/${legacyQuizPath[1]}/trusted-quiz`
+      return NextResponse.redirect(destination)
+    }
+  }
 })
 
 export const config = {
