@@ -824,3 +824,18 @@ export const TRUSTED_ASSESSMENT_ATTEMPT_TABLE = pgTable("trustedAssessmentAttemp
     assessmentIdx: index("trusted_attempt_assessment_idx").on(table.studyTypeContentId)
 }));
 
+
+// Append-only idempotency ledger: one verified assessment projection per attempt.
+// Migration is prepared separately and has NOT been applied.
+export const VERIFIED_ASSESSMENT_PROJECTION_TABLE = pgTable("verifiedAssessmentProjection", {
+    attemptId: varchar().primaryKey(),
+    studentEmail: varchar().notNull(),
+    courseId: varchar().notNull(),
+    studyTypeContentId: integer().notNull(),
+    score: integer().notNull(),
+    submittedAt: timestamp().notNull(),
+    projectedAt: timestamp().notNull().defaultNow()
+}, (table) => ({
+    studentCourseIdx: index("verified_projection_student_course_idx").on(table.studentEmail, table.courseId),
+    assessmentIdx: index("verified_projection_assessment_idx").on(table.studyTypeContentId)
+}));
