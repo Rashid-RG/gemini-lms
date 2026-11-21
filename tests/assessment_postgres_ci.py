@@ -98,8 +98,8 @@ def main():
 
         private = str(uuid.uuid4())
         expired = str(uuid.uuid4())
-        for key, expiry in [(private, "NOW()+INTERVAL '5 minutes"),
-                            (expired, "NOW()-INTERVAL '1 minute")]:
+        for key, expiry in [(private, "NOW()+INTERVAL '5 minutes'"),
+                            (expired, "NOW()-INTERVAL '1 minute'")]:
             run_psql(f"""
               INSERT INTO "trustedAssessmentAttempts"
                 ("id","studentEmail","courseId","studyTypeContentId","questionSnapshot","questionCount","expiresAt")
