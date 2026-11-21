@@ -121,3 +121,9 @@ test("IPN replay is bound to the exact gateway payment ID, amount and plan", () 
   assert.match(source, /matches\[0\]\.creditsAdded === plan\.credits/);
   assert.match(source, /p\."gatewayPaymentId" IS NULL/);
 });
+
+test("payment status fails closed on duplicate order records", () => {
+  const source = readFileSync("app/api/(billing)/payments/payhere/status/route.js", "utf8");
+  assert.match(source, /payments\.length !== 1/);
+  assert.match(source, /Order requires review/);
+});
