@@ -55,3 +55,7 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - Public courses priced above zero are **not** enough to authorize assessment access. Start/catalog now require course creator access or an active enrollment for paid courses. Free public courses remain accessible to authenticated learners.
 - These are source safeguards, not proof that every other endpoint is answer-free. Audit legacy course export, instructor/admin content review, caches, and study-type generation before enabling the pilot.
 - New unit and structural regression tests cover option-object leakage and the paid-course access condition.
+
+## 9. Attempt-start throttling
+- An authenticated student is rate limited through the existing `assignment` limiter before an attempt record is inserted; excess requests receive HTTP 429 and a `Retry-After` header.
+- The limiter is **in-memory only**. Distributed production limits, per-course attempt caps and atomic database enforcement remain mandatory before enabling the feature for commercial use.
