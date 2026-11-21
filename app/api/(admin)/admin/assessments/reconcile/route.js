@@ -25,7 +25,7 @@ export async function POST() {
         eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.adaptiveSyncStatus, "pending")
       )).orderBy(asc(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.submittedAt)).limit(25);
 
-    let synchronized = 0;
+    let ledgered = 0;
     let conflicts = 0;
     let failures = 0;
     for (const attempt of pending) {
@@ -52,21 +52,21 @@ export async function POST() {
           continue;
         }
         await db.update(TRUSTED_ASSESSMENT_ATTEMPT_TABLE)
-          .set({ adaptiveSyncStatus: "synced" })
+          .set({ adaptiveSyncStatus: "ledgered" })
           .where(and(
             eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id, attempt.id),
             eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.status, "submitted"),
             eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.mlEligibility, "server_verified"),
             eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.adaptiveSyncStatus, "pending")
           ));
-        synchronized++;
+        ledgered++;
       } catch (error) {
         failures++;
         console.error("Verified attempt projection failed", { attemptId: attempt.id, error });
       }
     }
     return NextResponse.json({
-      processed: pending.length, synchronized, conflicts, failures,
+      processed: pending.length, ledgered, conflicts, failures,
       source: "server_verified_attempts", ledger: "verifiedAssessmentProjection",
       legacyAdaptiveCountersUpdated: false, batchLimit: 25
     }, { headers: { "Cache-Control": "no-store" } });
