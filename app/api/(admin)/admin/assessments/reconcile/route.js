@@ -51,15 +51,33 @@ export async function POST() {
           conflicts++;
           continue;
         }
-        await db.update(TRUSTED_ASSESSMENT_ATTEMPT_TABLE)
-          .set({ adaptiveSyncStatus: "ledgered" })
-          .where(and(
-            eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id, attempt.id),
-            eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.status, "submitted"),
-            eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.mlEligibility, "server_verified"),
-            eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.adaptiveSyncStatus, "pending")
-          ));
-        ledgered++;
+        // The state change must be conditional on the canonical database row
+        // *still* matching the committed ledger. The earlier JS comparison alone
+        // is not sufficient if another request modifies either row concurrently.
+        const transition = await db.execute(sql`
+          UPDATE "trustedAssessmentAttempts" a
+          SET "adaptiveSyncStatus" = 'ledgered'
+          WHERE a."id" = ${attempt.id}
+            AND a."status" = 'submitted'
+            AND a."mlEligibility" = 'server_verified'
+            AND a."adaptiveSyncStatus" = 'pending'
+            AND EXISTS (
+              SELECT 1 FROM "verifiedAssessmentProjection" p
+              WHERE p."attemptId" = a."id"
+                AND p."studentEmail" = a."studentEmail"
+                AND p."courseId" = a."courseId"
+                AND p."studyTypeContentId" = a."studyTypeContentId"
+                AND p."score" = a."score"
+                AND p."submittedAt" = a."submittedAt"
+            )
+          RETURNING a."id"
+        `);
+        // Only count rows actually transitioned by this invocation.
+        if ((transition.rows || transition).length === 1) {
+          ledgered++;
+        } else {
+          conflicts++;
+        }
       } catch (error) {
         failures++;
         console.error("Verified attempt projection failed", { attemptId: attempt.id, error });
