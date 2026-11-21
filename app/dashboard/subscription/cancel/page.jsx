@@ -49,7 +49,7 @@ export default function CancelSubscription() {
         reason: reason || 'User requested cancellation'
       })
 
-      toast.info('Cancellation requires support review. No refund or change has been made.')
+      toast.success('Cancellation review request submitted. Membership remains active until reviewed.')
       
       router.push('/dashboard/support')
     } catch (error) {
@@ -97,7 +97,7 @@ export default function CancelSubscription() {
       <div className="max-w-2xl mx-auto mt-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Request Cancellation</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Submit Cancellation Request</h1>
           <p className="text-gray-600">We're sorry to see you go. Review your subscription details below.</p>
         </div>
 
@@ -163,7 +163,7 @@ export default function CancelSubscription() {
               className="w-5 h-5 text-primary rounded cursor-pointer"
             />
             <span className="text-gray-700">
-              I understand this sends me to support to request a verified cancellation; no immediate refund occurs
+              I understand this submits a support request for cancellation review; no immediate refund or account change occurs
             </span>
           </label>
 
@@ -193,7 +193,7 @@ export default function CancelSubscription() {
             {cancelling ? (
               <>
                 <Loader className="w-4 h-4 mr-2 animate-spin" />
-                Opening support...
+                Submitting request...
               </>
             ) : (
               'Cancel Subscription'
