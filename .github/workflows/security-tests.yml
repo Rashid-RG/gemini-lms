@@ -31,6 +31,7 @@ jobs:
           node --check lib/trustedAssessment.js
           node --check lib/verifiedAssessmentSummary.js
           node --check lib/verifiedProjection.js
+          node --check tests/trustedAssessment.postgres.integration.mjs
           node --check 'app/api/(admin)/admin/assessments/reconcile/route.js'
           node --check 'app/api/(learning)/assessments/trusted/performance/route.js'
           node --check 'app/api/(learning)/assessments/trusted/start/route.js'
