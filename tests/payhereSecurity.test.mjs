@@ -127,3 +127,32 @@ test("payment status fails closed on duplicate order records", () => {
   assert.match(source, /payments\.length !== 1/);
   assert.match(source, /Order requires review/);
 });
+
+test("subscription cancellation requires account identity and never fabricates refunds", () => {
+  const route = readFileSync("app/api/(billing)/subscription/cancel/route.js", "utf8");
+  assert.match(route, /requireUserAuth\(req\)/);
+  assert.match(route, /access\.email/);
+  assert.match(route, /manual_review_required/);
+  assert.doesNotMatch(route, /db\.update\(|db\.insert\(/);
+  assert.doesNotMatch(route, /status:\s*['"]refunded['"]/);
+});
+
+test("admin cannot fabricate completed or refunded payments using manual routes", () => {
+  const route = readFileSync("app/api/(admin)/admin/payments/route.js", "utf8");
+  assert.match(route, /export async function POST\(\)/);
+  assert.match(route, /export async function PUT\(\)/);
+  assert.match(route, /requireSuperAdmin\(\)/);
+  assert.match(route, /Manual payment awards are disabled/);
+  assert.match(route, /Payment status changes and refunds require verified gateway reconciliation/);
+  assert.doesNotMatch(route, /db\.update\(|db\.insert\(/);
+});
+
+test("financial reconciliation report requires super-admin and never writes", () => {
+  const route = readFileSync("app/api/(admin)/admin/payments/reconciliation/route.js", "utf8");
+  assert.match(route, /requireSuperAdmin\(\)/);
+  for (const issue of ["duplicate_order","duplicate_gateway_payment","pending_over_24h","completed_without_gateway_id"]) {
+    assert.ok(route.includes(issue));
+  }
+  assert.doesNotMatch(route, /db\.update\(|db\.insert\(/);
+  assert.match(route, /Cache-Control": "no-store"/);
+});
