@@ -1,6 +1,7 @@
 import { db } from "@/configs/db";
 import { USER_TABLE, STUDY_MATERIAL_TABLE } from "@/configs/schema";
 import { NextResponse } from "next/server";
+import { requireSuperAdmin } from "@/lib/adminApiAuth";
 
 /**
  * Diagnostic endpoint to test database performance
@@ -12,14 +13,15 @@ import { NextResponse } from "next/server";
  */
 
 export async function GET(req) {
-    // Only allow in development
-    if (process.env.NODE_ENV === 'production' && !req.headers.get('x-admin-token')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Database diagnostics require a verified super-admin session in every environment.
+    const access = await requireSuperAdmin();
+    if (!access.authenticated) return access.error;
 
     const searchParams = new URL(req.url).searchParams;
-    const testTimeout = parseInt(searchParams.get('timeout')) || 5000;
-    const testCount = parseInt(searchParams.get('count')) || 5;
+    const requestedTimeout = Number(searchParams.get('timeout'));
+    const testTimeout = Number.isFinite(requestedTimeout) ? Math.min(10000, Math.max(250, Math.floor(requestedTimeout))) : 5000;
+    const requestedCount = Number(searchParams.get('count'));
+    const testCount = Number.isFinite(requestedCount) ? Math.min(20, Math.max(1, Math.floor(requestedCount))) : 5;
 
     const diagnostics = {
         timestamp: new Date().toISOString(),
