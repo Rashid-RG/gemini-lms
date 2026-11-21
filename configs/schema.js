@@ -828,7 +828,7 @@ export const TRUSTED_ASSESSMENT_ATTEMPT_TABLE = pgTable("trustedAssessmentAttemp
 // Append-only idempotency ledger: one verified assessment projection per attempt.
 // Migration is prepared separately and has NOT been applied.
 export const VERIFIED_ASSESSMENT_PROJECTION_TABLE = pgTable("verifiedAssessmentProjection", {
-    attemptId: varchar().primaryKey(),
+    attemptId: varchar().primaryKey().references(() => TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id, { onDelete: "restrict" }),
     studentEmail: varchar().notNull(),
     courseId: varchar().notNull(),
     studyTypeContentId: integer().notNull(),
