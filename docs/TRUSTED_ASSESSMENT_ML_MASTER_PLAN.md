@@ -64,3 +64,8 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - With trusted mode enabled, Clerk-protected requests to `/course/:courseId/quiz`, `/course/:courseId/mcq`, and `/course/:courseId/manual-quiz` redirect to the isolated `trusted-quiz` pilot through server-side middleware. With the flag disabled, original pages remain untouched.
 - This prevents those three old pages from using their local answer-key grading logic after pilot activation, but **does not prove absence of answer keys in other endpoints**. Audit exports, manually generated questions, instructor interfaces, any API that returns `studyTypeContent`, and any alternate results-writing routes.
 - A global redirect means some legacy UX (chapter completion, MCQ progress, quiz timer) is temporarily replaced rather than fully reproduced. Restore and validate these workflows through trusted APIs before broad rollout.
+
+## 11. Reliable adaptive projection requirement
+- The first implementation attempted to update `adaptivePerformance` immediately after the attempt was marked submitted. That was unsafe: if the projection succeeded but the sync-marker update failed, retrying projection could count the same attempt twice.
+- Trusted submission now persists the authoritative grade **once** and leaves `adaptiveSyncStatus = pending`. It does not directly increment adaptive metrics.
+- Before enabling adaptive learning on the verified dataset, create an attempt-ID idempotent projection ledger, with a uniqueness constraint and a recovery queue, and verify crash/retry behavior against isolated PostgreSQL. Until then, the pilot demonstrates server-grading, not end-to-end verified adaptive updates.
