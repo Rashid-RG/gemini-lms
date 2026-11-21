@@ -11,8 +11,10 @@ const acknowledgement = process.env.ASSESSMENT_TEST_DATABASE_ACK;
 const productionUrl = process.env.DATABASE_URL;
 const confirmedHost = process.env.ASSESSMENT_TEST_DATABASE_HOST;
 let parsedHost = null;
+let productionHost = null;
 try {
   if (testUrl) parsedHost = new URL(testUrl).hostname;
+  if (productionUrl) productionHost = new URL(productionUrl).hostname;
 } catch {
   // Invalid URL must fail closed.
 }
@@ -20,6 +22,7 @@ const guardPassed = Boolean(testUrl && parsedHost &&
   acknowledgement === "ISOLATED_NONPRODUCTION" &&
   confirmedHost && parsedHost === confirmedHost &&
   testUrl !== productionUrl &&
+  (!productionHost || parsedHost !== productionHost) &&
   /^postgres(?:ql)?:\/\//.test(testUrl));
 
 test("PostgreSQL reconciliation: retry, parallel writers, source isolation, FK and recovery", {
