@@ -38,7 +38,7 @@ export default function CancelSubscription() {
 
   const handleCancelSubscription = async () => {
     if (!confirmCancel) {
-      toast.error('Please confirm cancellation')
+      toast.error('Please confirm you understand the support-review process')
       return
     }
 
@@ -49,15 +49,17 @@ export default function CancelSubscription() {
         reason: reason || 'User requested cancellation'
       })
 
-      toast.success('Subscription cancelled successfully! You will receive a refund confirmation email.')
+      toast.info('Cancellation requires support review. No refund or change has been made.')
       
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 2000)
+      router.push('/dashboard/support')
     } catch (error) {
       console.error('Error cancelling subscription:', error)
-      toast.error(error.response?.data?.error || 'Failed to cancel subscription')
+      if (error.response?.data?.status === 'manual_review_required') {
+        toast.info('Please contact support for verified cancellation. Your membership remains active.')
+        router.push('/dashboard/support')
+        return
+      }
+      toast.error(error.response?.data?.error || 'Unable to request cancellation')
       setCancelling(false)
     }
   }
@@ -95,7 +97,7 @@ export default function CancelSubscription() {
       <div className="max-w-2xl mx-auto mt-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Cancel Subscription</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Request Cancellation</h1>
           <p className="text-gray-600">We're sorry to see you go. Review your subscription details below.</p>
         </div>
 
@@ -122,7 +124,7 @@ export default function CancelSubscription() {
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Refund Amount:</span>
+                  <span className="text-gray-600">Paid Amount (not a refund quote):</span>
                   <span className="font-semibold text-green-600">Rs. {subscriptionInfo.lastPayment.amount}</span>
                 </div>
               </>
@@ -131,7 +133,7 @@ export default function CancelSubscription() {
 
           <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-800">
-              ✓ Full refund will be processed after cancellation
+              Automatic refunds are unavailable. Please contact support to review cancellation and any applicable refund. No refund is issued by this page.
             </p>
           </div>
         </div>
@@ -161,13 +163,13 @@ export default function CancelSubscription() {
               className="w-5 h-5 text-primary rounded cursor-pointer"
             />
             <span className="text-gray-700">
-              I understand that my premium membership and unlimited course creation will be cancelled
+              I understand this sends me to support to request a verified cancellation; no immediate refund occurs
             </span>
           </label>
 
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">
-              ⚠️ After cancellation, you will have 0 course credits. You can purchase credit packs anytime.
+              Your membership and credits remain unchanged until a verified cancellation is processed.
             </p>
           </div>
         </div>
@@ -191,7 +193,7 @@ export default function CancelSubscription() {
             {cancelling ? (
               <>
                 <Loader className="w-4 h-4 mr-2 animate-spin" />
-                Cancelling...
+                Opening support...
               </>
             ) : (
               'Cancel Subscription'
