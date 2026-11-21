@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { db } from "@/configs/db";
+import { PAYMENT_RECORD_TABLE, USER_TABLE } from "@/configs/schema";
+import { eq } from "drizzle-orm";
+import { requireUserAuth } from "@/lib/userApiAuth";
+import { getPayherePlan } from "@/lib/payherePricing";
 
 /**
  * PayHere Payment Initiation API
@@ -7,45 +12,6 @@ import crypto from "crypto";
  * 
  * PayHere Documentation: https://support.payhere.lk/api-&-mobile-sdk/payhere-checkout
  */
-
-// Pricing configuration
-const PRICING = {
-    premium_monthly: {
-        name: "Premium Monthly",
-        amount: 1500.00,
-        credits: 999999, // Unlimited
-        isMember: true,
-        planType: 'subscription'
-    },
-    premium_yearly: {
-        name: "Premium Yearly", 
-        amount: 15000.00,
-        credits: 999999,
-        isMember: true,
-        planType: 'subscription'
-    },
-    credits_5: {
-        name: "5 Course Credits",
-        amount: 500.00,
-        credits: 5,
-        isMember: false,
-        planType: 'credits'
-    },
-    credits_15: {
-        name: "15 Course Credits",
-        amount: 1200.00,
-        credits: 15,
-        isMember: false,
-        planType: 'credits'
-    },
-    credits_30: {
-        name: "30 Course Credits",
-        amount: 2100.00,
-        credits: 30,
-        isMember: false,
-        planType: 'credits'
-    }
-};
 
 function generatePayHereHash(merchantId, orderId, amount, currency, merchantSecret) {
     // PayHere hash formula:
@@ -63,14 +29,6 @@ function generatePayHereHash(merchantId, orderId, amount, currency, merchantSecr
     // Step 3: MD5 hash of concatenated string (uppercase)
     const hash = crypto.createHash('md5').update(stringToHash).digest('hex').toUpperCase();
     
-    console.log('PayHere Hash Debug:', { 
-        merchantId, 
-        orderId, 
-        amountFormatted, 
-        currency,
-        secretMd5: secretMd5.substring(0, 10) + '...',
-        hash 
-    });
     
     return hash;
 }
@@ -102,24 +60,29 @@ function normalizeMerchantSecret(secret) {
 
 export async function POST(req) {
     try {
+        const authResult = await requireUserAuth(req);
+        if (!authResult.authenticated || !authResult.email) {
+            return authResult.error || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const userEmail = authResult.email;
         const { 
-            planId, 
-            userEmail, 
-            userName, 
+            planId,
+
             userPhone = '',
             userAddress = '',
             userCity = ''
         } = await req.json();
 
         // Validate plan
-        const plan = PRICING[planId];
+        const plan = getPayherePlan(planId);
         if (!plan) {
             return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
         }
 
-        if (!userEmail || !userName) {
-            return NextResponse.json({ error: 'User email and name are required' }, { status: 400 });
-        }
+        const [user] = await db.select().from(USER_TABLE)
+            .where(eq(USER_TABLE.email, userEmail)).limit(1);
+        if (!user) return NextResponse.json({ error: "User account not found" }, { status: 404 });
+        const userName = user.name || "Student";
 
         // PayHere credentials from environment
         const merchantId = process.env.PAYHERE_MERCHANT_ID;
@@ -127,21 +90,24 @@ export async function POST(req) {
         const merchantSecret = normalizeMerchantSecret(merchantSecretRaw);
         const isProduction = process.env.PAYHERE_PRODUCTION === 'true';
 
-        console.log('PayHere Config:', { 
-            merchantId, 
-            secretLength: merchantSecret?.length,
-            secretEncoding: (process.env.PAYHERE_MERCHANT_SECRET_ENCODING || 'auto').toLowerCase(),
-            isProduction 
-        });
 
         if (!merchantId || !merchantSecretRaw || merchantSecretRaw.includes('REPLACE_WITH_')) {
             return NextResponse.json({ error: 'Payment gateway not configured: set valid PAYHERE merchant credentials for this domain' }, { status: 500 });
         }
 
         // Generate unique order ID
-        const orderId = `ORDER_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const orderId = `ORDER_${crypto.randomUUID()}`;
         const currency = 'LKR';
         const amount = plan.amount;
+
+        // Persist the expected owner, price and plan BEFORE redirecting to PayHere.
+        // Callback settlement only accepts a matching pending order.
+        await db.insert(PAYMENT_RECORD_TABLE).values({
+            sessionId: orderId, userEmail, amount: amount.toFixed(2),
+            currency: "lkr", plan: planId, planType: plan.planType,
+            creditsAdded: plan.credits, status: "pending", paymentMethod: "payhere",
+            metadata: { gateway: "payhere", initiatedAt: new Date().toISOString() }
+        });
 
         // Generate hash
         const hash = generatePayHereHash(merchantId, orderId, amount, currency, merchantSecret);
