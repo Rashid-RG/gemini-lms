@@ -69,3 +69,9 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - The first implementation attempted to update `adaptivePerformance` immediately after the attempt was marked submitted. That was unsafe: if the projection succeeded but the sync-marker update failed, retrying projection could count the same attempt twice.
 - Trusted submission now persists the authoritative grade **once** and leaves `adaptiveSyncStatus = pending`. It does not directly increment adaptive metrics.
 - Before enabling adaptive learning on the verified dataset, create an attempt-ID idempotent projection ledger, with a uniqueness constraint and a recovery queue, and verify crash/retry behavior against isolated PostgreSQL. Until then, the pilot demonstrates server-grading, not end-to-end verified adaptive updates.
+
+## 12. Deterministic verified-performance read model
+- `lib/verifiedAssessmentSummary.js` derives assessment-level attempts, average score, mastery labels, and last submission time from server-verified, completed attempt records. Duplicate input IDs are ignored. No mutable counters are incremented by this function.
+- `GET /api/assessments/trusted/performance?courseId=...` is authenticated, self-scoped and read-only. It returns a bounded window of the latest 500 verified attempts, including a `truncated` indicator if older attempts were excluded. It does not return answers, answer keys or unverified legacy grades.
+- The isolated trusted quiz pilot displays the summary after a successful server-grade submission. This is a temporary verified read model and **not** a completed, durable adaptive-learning synchronization worker.
+- The bounded window is for student UX only, not a complete research dataset. A consent-controlled, paginated export and an attempt-ID-idempotent materialization mechanism are still needed before training ML models or relying on globally complete trends.
