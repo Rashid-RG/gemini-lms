@@ -121,3 +121,11 @@ test("paid public courses are not assessment-accessible without enrollment", () 
     assert.match(source, /STUDY_MATERIAL_TABLE\.createdBy/);
   }
 });
+
+test("attempt creation is throttled before database writes", () => {
+  const source = readFileSync("app/api/(learning)/assessments/trusted/start/route.js", "utf8");
+  assert.match(source, /checkRateLimit\(access\.userId \|\| access\.email, "assignment"\)/);
+  assert.match(source, /status: 429/);
+  assert.match(source, /"Retry-After"/);
+  assert.ok(source.indexOf("checkRateLimit(") < source.indexOf("db.insert(TRUSTED_ASSESSMENT_ATTEMPT_TABLE)"));
+});
