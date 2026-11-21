@@ -4,7 +4,6 @@ import { db } from "@/configs/db";
 import { TRUSTED_ASSESSMENT_ATTEMPT_TABLE } from "@/configs/schema";
 import { requireUserAuth } from "@/lib/userApiAuth";
 import { gradeAssessment } from "@/lib/trustedAssessment";
-import { recordAdaptivePerformance } from "@/lib/recordAdaptivePerformance";
 
 // Only scores calculated from a server-stored attempt may enter the trusted dataset.
 export async function POST(req) {
@@ -47,20 +46,10 @@ export async function POST(req) {
     )).returning({ id: TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id });
     if (!submitted) return NextResponse.json({ error: "Attempt already submitted or expired" }, { status: 409 });
 
-    // Adaptive projections are derived from verified results only.
-    // They can be repaired by a future sync job if updating the projection fails.
-    try {
-      await recordAdaptivePerformance({
-        courseId: attempt.courseId, studentEmail: access.email,
-        topicId: `assessment_${attempt.studyTypeContentId}`,
-        topicName: "Verified assessment", score: result.score
-      });
-      await db.update(TRUSTED_ASSESSMENT_ATTEMPT_TABLE)
-        .set({ adaptiveSyncStatus: "synced" })
-        .where(eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id, attemptId));
-    } catch (error) {
-      console.error("Trusted assessment adaptive projection pending:", error);
-    }
+    // Deliberately leave adaptiveSyncStatus = "pending".
+    // Until a durable, attempt-idempotent projection worker exists, updating here
+    // could double count an assessment after a partial failure and retry.
+    // The authoritative graded attempt remains stored once for later reconciliation.
     return NextResponse.json({
       attemptId,
       gradingVersion: "trusted-v1",
