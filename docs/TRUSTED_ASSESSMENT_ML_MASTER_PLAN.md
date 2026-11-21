@@ -59,3 +59,8 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 ## 9. Attempt-start throttling
 - An authenticated student is rate limited through the existing `assignment` limiter before an attempt record is inserted; excess requests receive HTTP 429 and a `Retry-After` header.
 - The limiter is **in-memory only**. Distributed production limits, per-course attempt caps and atomic database enforcement remain mandatory before enabling the feature for commercial use.
+
+## 10. Legacy page transition (feature gated)
+- With trusted mode enabled, Clerk-protected requests to `/course/:courseId/quiz`, `/course/:courseId/mcq`, and `/course/:courseId/manual-quiz` redirect to the isolated `trusted-quiz` pilot through server-side middleware. With the flag disabled, original pages remain untouched.
+- This prevents those three old pages from using their local answer-key grading logic after pilot activation, but **does not prove absence of answer keys in other endpoints**. Audit exports, manually generated questions, instructor interfaces, any API that returns `studyTypeContent`, and any alternate results-writing routes.
+- A global redirect means some legacy UX (chapter completion, MCQ progress, quiz timer) is temporarily replaced rather than fully reproduced. Restore and validate these workflows through trusted APIs before broad rollout.
