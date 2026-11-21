@@ -114,6 +114,7 @@ export async function POST(req) {
     const acceptedQuizScores = trustedMode ? (storedProgress?.quizScores ?? {}) : quizScores;
     const acceptedMcqScores = trustedMode ? (storedProgress?.mcqScores ?? {}) : mcqScores;
     const acceptedAssignmentScores = trustedMode ? (storedProgress?.assignmentScores ?? {}) : assignmentScores;
+    const encodeScoreMap = (scores) => typeof scores === "string" ? scores : JSON.stringify(scores || {});
 
     let result;
     if (existing.length > 0) {
@@ -162,9 +163,9 @@ export async function POST(req) {
         .update(STUDENT_PROGRESS_TABLE)
         .set({
           completedChapters: JSON.stringify(safeChapters || []),
-          quizScores: JSON.stringify(acceptedQuizScores || {}),
-          assignmentScores: JSON.stringify(acceptedAssignmentScores || {}),
-          mcqScores: JSON.stringify(acceptedMcqScores || {}),
+          quizScores: encodeScoreMap(acceptedQuizScores),
+          assignmentScores: encodeScoreMap(acceptedAssignmentScores),
+          mcqScores: encodeScoreMap(acceptedMcqScores),
           progressPercentage: safeProgress || 0,
           finalScore,
           streakCount,
@@ -192,9 +193,9 @@ export async function POST(req) {
           courseId,
           studentEmail,
           completedChapters: JSON.stringify(safeChapters || []),
-          quizScores: JSON.stringify(acceptedQuizScores || {}),
-          assignmentScores: JSON.stringify(acceptedAssignmentScores || {}),
-          mcqScores: JSON.stringify(acceptedMcqScores || {}),
+          quizScores: encodeScoreMap(acceptedQuizScores),
+          assignmentScores: encodeScoreMap(acceptedAssignmentScores),
+          mcqScores: encodeScoreMap(acceptedMcqScores),
           progressPercentage: safeProgress || 0,
           finalScore: 0,
           totalChapters: 0,
