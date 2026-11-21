@@ -14,10 +14,23 @@ export async function GET(req) {
 
     try {
         const { searchParams } = new URL(req.url);
-        const period = searchParams.get('period') || 'all'; // 'today', 'week', 'month', 'year', 'all'
-        const status = searchParams.get('status'); // 'completed', 'pending', 'failed', 'refunded'
-        const limit = parseInt(searchParams.get('limit') || '50');
-        const offset = parseInt(searchParams.get('offset') || '0');
+        const requestedPeriod = searchParams.get('period') || 'all';
+        const requestedStatus = searchParams.get('status');
+        const allowedPeriods = new Set(['today', 'week', 'month', 'year', 'all']);
+        const allowedStatuses = new Set(['completed', 'pending', 'failed', 'refunded', 'canceled', 'chargedback']);
+        if (!allowedPeriods.has(requestedPeriod) || (requestedStatus && !allowedStatuses.has(requestedStatus))) {
+            return NextResponse.json({ error: "Invalid payment filter" }, { status: 400 });
+        }
+        const period = requestedPeriod;
+        const status = requestedStatus;
+        const requestedLimit = Number(searchParams.get('limit') ?? '50');
+        const requestedOffset = Number(searchParams.get('offset') ?? '0');
+        if (!Number.isSafeInteger(requestedLimit) || !Number.isSafeInteger(requestedOffset) ||
+            requestedLimit < 1 || requestedLimit > 100 || requestedOffset < 0 || requestedOffset > 10000) {
+            return NextResponse.json({ error: "Invalid pagination; limit 1-100 and offset 0-10000" }, { status: 400 });
+        }
+        const limit = requestedLimit;
+        const offset = requestedOffset;
 
         // Calculate date range based on period
         const now = new Date();
