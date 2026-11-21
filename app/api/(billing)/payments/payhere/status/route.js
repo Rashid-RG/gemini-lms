@@ -15,7 +15,7 @@ export async function GET(req) {
     return NextResponse.json({ error: "Invalid order reference" }, { status: 400 });
   }
   try {
-    const [payment] = await db.select({
+    const payments = await db.select({
       sessionId: PAYMENT_RECORD_TABLE.sessionId,
       status: PAYMENT_RECORD_TABLE.status,
       plan: PAYMENT_RECORD_TABLE.plan,
@@ -26,7 +26,10 @@ export async function GET(req) {
       eq(PAYMENT_RECORD_TABLE.userEmail, identity.email),
       eq(PAYMENT_RECORD_TABLE.paymentMethod, "payhere")
     )).limit(2);
-    if (!payment) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (payments.length === 0) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    // Fail closed if historical duplicates make this order reference ambiguous.
+    if (payments.length !== 1) return NextResponse.json({ error: "Order requires review" }, { status: 409 });
+    const payment = payments[0];
     return NextResponse.json({
       success: true,
       status: payment.status,
