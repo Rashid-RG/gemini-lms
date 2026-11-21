@@ -102,3 +102,9 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - A successful result is not release approval; stage-only migration, real API integration, audit of all legacy grade writers, and approval are still needed.
 
 - Additional fail-closed protection: if the usual `DATABASE_URL` is present, the integration suite rejects a test URL with the same hostname, even when credentials or query strings differ. This is a defense in depth check, not a substitute for independently checking the target environment.
+
+## 16. SQL rehearsal for submission replay, isolation and expiry
+- The opt-in SQL integration suite now also creates started attempts and exercises **four concurrent, authenticated-learner-equivalent update claims** against the same attempt. The expected outcome is exactly one successful `started → submitted` transition.
+- It separately asserts that an attempt cannot be resubmitted, that a different learner's email cannot claim the attempt, and that an already-expired attempt cannot be submitted.
+- These are SQL predicate tests in a disposable schema, not Clerk-backed HTTP authentication tests. Independent integration tests must still validate actual session binding and server-side grade calculation before release.
+- Normal CI checks the test source but does not connect to PostgreSQL or execute these database assertions. Running the suite requires separately authorized non-production credentials and explicit confirmation of isolation.
