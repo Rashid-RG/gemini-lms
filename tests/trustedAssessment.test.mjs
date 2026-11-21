@@ -95,3 +95,29 @@ test("isolated pilot consumes only trusted assessment APIs", () => {
   assert.match(code, /\/api\/assessments\/trusted\/submit/);
   assert.doesNotMatch(code, /\/api\/submit-quiz|\/api\/adaptive-performance/);
 });
+
+test("untrusted option objects cannot smuggle grading keys to learners", () => {
+  assert.throws(() => parseAssessmentQuestions({
+    questions: [{
+      question: "Which answer?", answer: "A",
+      options: [{ text: "A", answer: "A", isCorrect: true }, "B"]
+    }]
+  }), TypeError);
+  assert.throws(() => parseAssessmentQuestions({
+    questions: [{ question: "Which answer?", answer: "A", options: ["A", ""] }]
+  }), TypeError);
+  const publicQuestions = publicAssessmentQuestions(parseAssessmentQuestions(stored));
+  assert.deepEqual(Object.keys(publicQuestions[0]).sort(), ["id", "options", "question"]);
+});
+
+test("paid public courses are not assessment-accessible without enrollment", () => {
+  for (const path of [
+    "app/api/(learning)/assessments/trusted/start/route.js",
+    "app/api/(learning)/assessments/trusted/catalog/route.js"
+  ]) {
+    const source = readFileSync(path, "utf8");
+    assert.match(source, /COALESCE\(\$\{STUDY_MATERIAL_TABLE\.price\}, 0\) = 0/);
+    assert.match(source, /courseEnrollments/);
+    assert.match(source, /STUDY_MATERIAL_TABLE\.createdBy/);
+  }
+});
