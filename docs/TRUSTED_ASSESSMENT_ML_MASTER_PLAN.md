@@ -90,3 +90,13 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - After inserting or finding the unique ledger entry, reconciliation compares the ledger against the fetched attempt and then executes a **conditional PostgreSQL UPDATE with EXISTS** that rechecks the current canonical attempt's learner, course, assessment, score, and submission timestamp against the committed projection row.
 - Only the request that actually transitions `pending → ledgered` receives a successful `RETURNING` row and increments the `ledgered` count. Concurrent requests that find already-transitioned or mismatched records are counted as unresolved instead of claiming another successful transition.
 - This protects the marker from stale application reads, but is **not a substitute for real concurrent PostgreSQL integration testing**. Before activation, simulate two workers, a crash between insertion/marker update, failed network requests, and changed/mismatched projection content against an isolated Neon database.
+
+## 15. Opt-in isolated PostgreSQL concurrency integration suite
+- Added `tests/trustedAssessment.postgres.integration.mjs`. This file **does not run in `npm test`**; normal CI only checks its syntax. No database was accessed during development.
+- Only run against a **separate disposable Neon PostgreSQL test branch or database** with an explicit `ASSESSMENT_TEST_DATABASE_URL`, `ASSESSMENT_TEST_DATABASE_HOST` (must equal the parsed URL host) and `ASSESSMENT_TEST_DATABASE_ACK=ISOLATED_NONPRODUCTION`.
+- If `DATABASE_URL` exists and exactly matches the test URL, the integration test will skip. Do not assume this check identifies every production connection; independently confirm the selected host/database is nonproduction and contains no customer records.
+- The test creates a cryptographically random isolated schema, exercises simultaneous one-time INSERT/UPDATE logic, retry after a simulated interruption, ledger score conflicts, restrictive foreign keys and student-scoped selects, then drops that schema in a `finally` block.
+- This is a **SQL integration rehearsal of the projection contract**, not a fully deployed Next.js API/Clerk E2E test and not a complete assessment-gradebook test. A later stage must verify route authentication and side effects in a dedicated staging environment.
+- To execute manually from an authorized disposable test database, set the three test-only environment variables locally and run:
+  `node --test tests/trustedAssessment.postgres.integration.mjs`
+- A successful result is not release approval; stage-only migration, real API integration, audit of all legacy grade writers, and approval are still needed.
