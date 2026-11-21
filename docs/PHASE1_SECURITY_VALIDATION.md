@@ -21,3 +21,16 @@ This branch addresses PayHere payment ownership, signed callback validation, one
 - `/api/payments/verify` is intentionally limited to development; do not use it for real payments. Replace manual adjustments with an audited, role-restricted reconciliation workflow.
 - For stronger long-term accounting, adopt a ledger-based credit model, gateway-payment-ID uniqueness, webhook reconciliation jobs, and refund/chargeback handling.
 - Do not apply schema changes, run destructive scripts, or point test environments at production Neon data.
+
+## Cancellation / refunds safety gate (additional Phase 1 review)
+A source audit found that the old subscription cancellation endpoint trusted a caller-supplied email, marked payments as refunded without gateway confirmation, and changed credits immediately. The legacy admin payments API could also grant credits or mark payments refunded without proving a payment/refund on PayHere.
+
+Until a verified gateway workflow is integrated:
+- Customer cancellation requires Clerk identity and returns a clear **manual review required** response. It does NOT terminate membership or issue a refund.
+- The subscription cancellation UI must not promise automatic refunds; it sends students to support.
+- Manual admin POST/PUT payment mutation is deliberately blocked, even for super-admins, and is NOT suitable for commercial release until a reviewed refund/adjustment workflow is implemented.
+- Super-admin read-only anomaly review: `GET /api/admin/payments/reconciliation` reports duplicate PayHere order IDs, duplicate gateway transaction IDs, pending orders older than 24 hours and completed records missing a gateway ID. Entries are bounded at 50 per category and are indicators for investigation, not gateway proof.
+- Do not change status to `refunded` or reverse entitlements unless gateway refund completion is independently verified and the credit ledger is reconciled.
+- Build a support-mediated cancellation request queue and an authenticated gateway refund/chargeback reconciliation worker before permitting automated settlement.
+- Because PayHere callbacks can be replayed concurrently, verify behavior against actual isolated PostgreSQL. Source-level regression tests alone are insufficient.
+
