@@ -227,10 +227,10 @@ function PaymentsDashboard() {
         // Prevent formula execution in spreadsheet apps and quote CSV delimiters.
         const escapeCsvCell = (value) => {
             let text = String(value ?? '')
-            if (/^[\\s]*[=+@\\-\\t\\r]/.test(text)) text = "'" + text
+            if (/^\s*[=+@\-\t\r]/.test(text)) text = "'" + text
             return '"' + text.replaceAll('"', '""') + '"'
         }
-        const csvContent = [headers, ...rows].map(row => row.map(escapeCsvCell).join(',')).join('\\r\\n')
+        const csvContent = [headers, ...rows].map(row => row.map(escapeCsvCell).join(',')).join('\r\n')
         const blob = new Blob([csvContent], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
