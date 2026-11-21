@@ -1,36 +1,13 @@
-import crypto from "node:crypto";
+import { verifyPayhereIpn, normalizePayhereSecret } from "@/lib/payhereSignature";
 import { db } from "@/configs/db";
 import { sql } from "drizzle-orm";
 import { emailService } from "@/lib/emailService";
 import { getPayherePlan, matchesPayhereAmount } from "@/lib/payherePricing";
 
-// PayHere signatures are MD5 per gateway protocol. Do not use MD5 for application secrets.
-function verifyPayhereSignature({ merchantId, orderId, amount, currency, status, signature, secret }) {
-    if (![merchantId, orderId, amount, currency, status, signature, secret].every(
-        value => typeof value === "string" && value.length > 0
-    )) return false;
-    const raw = secret.trim();
-    const encoding = (process.env.PAYHERE_MERCHANT_SECRET_ENCODING || "raw").toLowerCase();
-    const candidates = [raw];
-    if (encoding === "base64") {
-        try { candidates.unshift(Buffer.from(raw, "base64").toString("utf8").trim()); }
-        catch { return false; }
-    }
-    return candidates.some(candidate => {
-        const secretHash = crypto.createHash("md5").update(candidate).digest("hex").toUpperCase();
-        const calculated = crypto.createHash("md5")
-            .update(merchantId + orderId + amount + currency + status + secretHash)
-            .digest("hex").toUpperCase();
-        const expected = Buffer.from(calculated, "ascii");
-        const received = Buffer.from(signature.toUpperCase(), "ascii");
-        return expected.length === received.length && crypto.timingSafeEqual(expected, received);
-    });
-}
-
 export async function POST(req) {
     try {
         const configuredMerchantId = process.env.PAYHERE_MERCHANT_ID;
-        const secret = process.env.PAYHERE_MERCHANT_SECRET;
+        const secret = normalizePayhereSecret(process.env.PAYHERE_MERCHANT_SECRET, process.env.PAYHERE_MERCHANT_SECRET_ENCODING || "raw");
         if (!configuredMerchantId || !secret) return new Response("Gateway not configured", { status: 503 });
         const form = await req.formData();
         const merchantId = form.get("merchant_id");
@@ -49,7 +26,7 @@ export async function POST(req) {
             !matchesPayhereAmount(amount, currency, plan.amount)) {
             return new Response("Invalid payment details", { status: 400 });
         }
-        if (!verifyPayhereSignature({
+        if (!verifyPayhereIpn({
             merchantId, orderId, amount, currency, status, signature, secret
         })) return new Response("Invalid signature", { status: 400 });
 
