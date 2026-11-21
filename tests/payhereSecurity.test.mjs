@@ -191,3 +191,22 @@ test("CSV payment exports escape formulas and quoted fields", () => {
   assert.match(page, /replaceAll\('"', '""'\)/);
   assert.match(page, /row\.map\(escapeCsvCell\)/);
 });
+
+test("Clerk secret can no longer authorize API calls through custom headers", () => {
+  const helper = readFileSync("lib/userApiAuth.js", "utf8");
+  const quiz = readFileSync("app/api/(assignments)/submit-quiz/route.js", "utf8");
+  const adaptive = readFileSync("app/api/(learning)/adaptive-performance/route.js", "utf8");
+  assert.doesNotMatch(helper, /x-internal-key|CLERK_SECRET_KEY/);
+  assert.doesNotMatch(quiz, /x-internal-key|CLERK_SECRET_KEY|axios\.post/);
+  assert.doesNotMatch(adaptive, /authResult\.isInternal/);
+  assert.match(quiz, /recordAdaptivePerformance\(/);
+  assert.match(adaptive, /recordAdaptivePerformance\(/);
+  assert.match(adaptive, /studentEmail = authResult\.email/);
+});
+
+test("server-only adaptive recorder validates scores and scopes queries to students", () => {
+  const code = readFileSync("lib/recordAdaptivePerformance.js", "utf8");
+  assert.match(code, /Number\.isFinite\(score\)/);
+  assert.match(code, /score < 0 \|\| score > 100/);
+  assert.match(code, /eq\(ADAPTIVE_PERFORMANCE_TABLE\.studentEmail, studentEmail\)/);
+});
