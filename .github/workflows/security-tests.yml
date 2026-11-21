@@ -28,6 +28,9 @@ jobs:
           node --check lib/payhereSignature.js
           node --check lib/userApiAuth.js
           node --check lib/recordAdaptivePerformance.js
+          node --check lib/trustedAssessment.js
+          node --check 'app/api/(learning)/assessments/trusted/start/route.js'
+          node --check 'app/api/(learning)/assessments/trusted/submit/route.js'
           node --check 'app/api/(learning)/adaptive-performance/route.js'
           node --check 'app/api/(assignments)/submit-quiz/route.js'
       - run: npm test
