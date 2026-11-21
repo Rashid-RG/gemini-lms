@@ -30,7 +30,10 @@ export async function POST(req) {
       eq(STUDY_MATERIAL_TABLE.courseId, courseId),
       or(
         eq(STUDY_MATERIAL_TABLE.createdBy, access.email),
-        eq(STUDY_MATERIAL_TABLE.isPublic, true),
+        and(
+          eq(STUDY_MATERIAL_TABLE.isPublic, true),
+          sql`COALESCE(${STUDY_MATERIAL_TABLE.price}, 0) = 0`
+        ),
         sql`EXISTS (
           SELECT 1 FROM "courseEnrollments" e
           WHERE e."courseId" = ${courseId} AND e."studentEmail" = ${access.email}
