@@ -263,3 +263,13 @@ test("PostgreSQL integration suite is opt-in and never uses default DB credentia
   assert.match(source, /Promise\.all\(\[insert\(\), insert\(\), insert\(\), insert\(\)\]\)/);
   assert.match(source, /Promise\.all\(\[mark\(\), mark\(\), mark\(\)\]\)/);
 });
+
+test("isolated PostgreSQL rehearsal includes concurrent grading, owner scope and expiry", () => {
+  const source = readFileSync("tests/trustedAssessment.postgres.integration.mjs", "utf8");
+  assert.match(source, /Concurrent student submissions can claim an attempt only once/);
+  assert.match(source, /Another authenticated learner cannot submit this attempt/);
+  assert.match(source, /Expired assessments must never transition to submitted/);
+  assert.match(source, /"studentEmail"=\$2/);
+  assert.match(source, /"expiresAt" > NOW\(\)/);
+  assert.match(source, /"status"='started'/);
+});
