@@ -7,6 +7,7 @@ import {
   TRUSTED_ASSESSMENT_ATTEMPT_TABLE
 } from "@/configs/schema";
 import { requireUserAuth } from "@/lib/userApiAuth";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { parseAssessmentQuestions, publicAssessmentQuestions } from "@/lib/trustedAssessment";
 
 export async function POST(req) {
@@ -16,6 +17,13 @@ export async function POST(req) {
   const access = await requireUserAuth(req);
   if (!access.authenticated || !access.email) {
     return access.error || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Defense-in-depth only. In-memory throttling is not a distributed attempt quota.
+  const throttle = checkRateLimit(access.userId || access.email, "assignment");
+  if (throttle.limited) {
+    return NextResponse.json({ error: "Too many assessment starts. Please try again later." }, {
+      status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil(throttle.resetIn / 1000))) }
+    });
   }
   try {
     const { courseId, assessmentId } = await req.json();
