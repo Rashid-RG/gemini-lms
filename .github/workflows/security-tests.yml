@@ -16,4 +16,11 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
+      - name: Check payment handler syntax
+        run: |
+          node --check 'app/api/(billing)/payments/payhere/initiate/route.js'
+          node --check 'app/api/(billing)/payments/payhere/notify/route.js'
+          node --check 'app/api/(billing)/payments/payhere/status/route.js'
+          node --check lib/payherePricing.js
+          node --check lib/payhereSignature.js
       - run: npm test
