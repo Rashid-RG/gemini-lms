@@ -78,6 +78,7 @@ export async function POST(req) {
                   AND p.plan = ${planId}
                   AND p.amount = ${plan.amount.toFixed(2)}
                   AND LOWER(p.currency) = 'lkr'
+                  AND EXISTS (SELECT 1 FROM users u WHERE u.email = p."userEmail")
                 RETURNING p."userEmail"
             ),
             credited AS (
