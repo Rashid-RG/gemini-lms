@@ -9,8 +9,16 @@ import { neon } from "@neondatabase/serverless";
 const testUrl = process.env.ASSESSMENT_TEST_DATABASE_URL;
 const acknowledgement = process.env.ASSESSMENT_TEST_DATABASE_ACK;
 const productionUrl = process.env.DATABASE_URL;
-const guardPassed = Boolean(testUrl &&
+const confirmedHost = process.env.ASSESSMENT_TEST_DATABASE_HOST;
+let parsedHost = null;
+try {
+  if (testUrl) parsedHost = new URL(testUrl).hostname;
+} catch {
+  // Invalid URL must fail closed.
+}
+const guardPassed = Boolean(testUrl && parsedHost &&
   acknowledgement === "ISOLATED_NONPRODUCTION" &&
+  confirmedHost && parsedHost === confirmedHost &&
   testUrl !== productionUrl &&
   /^postgres(?:ql)?:\/\//.test(testUrl));
 
