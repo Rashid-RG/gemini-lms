@@ -68,6 +68,52 @@ test("PostgreSQL reconciliation: retry, parallel writers, source isolation, FK a
       VALUES ($1,$2,$3,5,'submitted','server_verified',80,'2026-11-22T07:00:00','2026-11-22T08:00:00')
     `, [id, student, course]);
 
+    // Match the submission route's one-time ownership/status/deadline predicate.
+    // Four simultaneous submissions from the same learner must claim exactly once.
+    const gradingAttemptId = randomUUID();
+    await execute(`
+      INSERT INTO ${qSchema}."trustedAssessmentAttempts"
+        ("id","studentEmail","courseId","studyTypeContentId","status","mlEligibility","expiresAt")
+      VALUES ($1,$2,$3,6,'started','pending',NOW() + INTERVAL '5 minutes')
+    `, [gradingAttemptId, student, course]);
+    const submitAs = (actor, attemptId) => execute(`
+      UPDATE ${qSchema}."trustedAssessmentAttempts"
+      SET "status"='submitted', "mlEligibility"='server_verified',
+          "score"=75, "submittedAt"=NOW()
+      WHERE "id"=$1 AND "studentEmail"=$2
+        AND "status"='started' AND "expiresAt" > NOW()
+      RETURNING "id"
+    `, [attemptId, actor]);
+    const claimed = await Promise.all([
+      submitAs(student, gradingAttemptId),
+      submitAs(student, gradingAttemptId),
+      submitAs(student, gradingAttemptId),
+      submitAs(student, gradingAttemptId)
+    ]);
+    assert.equal(claimed.reduce((total, rows) => total + rows.length, 0), 1,
+      "Concurrent student submissions can claim an attempt only once");
+    assert.equal((await submitAs(student, gradingAttemptId)).length, 0,
+      "Submitted attempts cannot be graded twice");
+
+    const privateAttemptId = randomUUID();
+    await execute(`
+      INSERT INTO ${qSchema}."trustedAssessmentAttempts"
+        ("id","studentEmail","courseId","studyTypeContentId","status","mlEligibility","expiresAt")
+      VALUES ($1,$2,$3,6,'started','pending',NOW() + INTERVAL '5 minutes')
+    `, [privateAttemptId, student, course]);
+    assert.equal((await submitAs("attacker@example.invalid", privateAttemptId)).length, 0,
+      "Another authenticated learner cannot submit this attempt");
+    assert.equal((await submitAs(student, privateAttemptId)).length, 1);
+
+    const expiredAttemptId = randomUUID();
+    await execute(`
+      INSERT INTO ${qSchema}."trustedAssessmentAttempts"
+        ("id","studentEmail","courseId","studyTypeContentId","status","mlEligibility","expiresAt")
+      VALUES ($1,$2,$3,6,'started','pending',NOW() - INTERVAL '1 minute')
+    `, [expiredAttemptId, student, course]);
+    assert.equal((await submitAs(student, expiredAttemptId)).length, 0,
+      "Expired assessments must never transition to submitted");
+
     // This is the same INSERT SELECT / conflict strategy used in reconciliation.
     const insert = () => execute(`
       INSERT INTO ${qSchema}."verifiedAssessmentProjection"
