@@ -298,3 +298,15 @@ test("CI PostgreSQL suite never accepts external or application database URLs", 
   assert.match(script, /phase1_verified_assessment_projection\.sql/);
   assert.match(script, /DROP SCHEMA/);
 });
+
+test("student gradebook annotates verified attempts and defers legacy pass awards", () => {
+  const route = readFileSync("app/api/(assignments)/grades/student/route.js", "utf8");
+  assert.match(route, /TRUSTED_ASSESSMENTS_ENABLED === "true"/);
+  assert.match(route, /TRUSTED_ASSESSMENT_ATTEMPT_TABLE/);
+  assert.match(route, /studentEmail, studentEmail/);
+  assert.match(route, /mlEligibility, "server_verified"/);
+  assert.match(route, /gradeProvenance:/);
+  assert.match(route, /verifiedQuizAverage/);
+  assert.match(route, /verifiedQuizWindowTruncated/);
+  assert.match(route, /resultStatus = "Pending Verification"/);
+});
