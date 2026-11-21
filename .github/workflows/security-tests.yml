@@ -26,4 +26,8 @@ jobs:
           node --check 'app/api/(admin)/admin/payments/reconciliation/route.js'
           node --check lib/payherePricing.js
           node --check lib/payhereSignature.js
+          node --check lib/userApiAuth.js
+          node --check lib/recordAdaptivePerformance.js
+          node --check 'app/api/(learning)/adaptive-performance/route.js'
+          node --check 'app/api/(assignments)/submit-quiz/route.js'
       - run: npm test
