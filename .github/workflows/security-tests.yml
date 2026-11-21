@@ -38,6 +38,7 @@ jobs:
           node --check 'app/api/(learning)/assessments/trusted/submit/route.js'
           node --check 'app/api/(learning)/adaptive-performance/route.js'
           node --check 'app/api/(assignments)/submit-quiz/route.js'
+          node --check 'app/api/(assignments)/student-progress/route.js'
       - run: npm test
 
   postgres-integration:
