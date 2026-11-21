@@ -250,3 +250,16 @@ test("projection ledger cannot become orphaned from its trusted attempt", () => 
   assert.match(schema, /references\(\(\) => TRUSTED_ASSESSMENT_ATTEMPT_TABLE\.id, \{ onDelete: "restrict" \}\)/);
   assert.ok(migration.includes('REFERENCES "trustedAssessmentAttempts"("id") ON DELETE RESTRICT'));
 });
+
+test("PostgreSQL integration suite is opt-in and never uses default DB credentials", () => {
+  const source = readFileSync("tests/trustedAssessment.postgres.integration.mjs", "utf8");
+  assert.match(source, /ASSESSMENT_TEST_DATABASE_URL/);
+  assert.match(source, /ASSESSMENT_TEST_DATABASE_HOST/);
+  assert.match(source, /ASSESSMENT_TEST_DATABASE_ACK/);
+  assert.match(source, /ISOLATED_NONPRODUCTION/);
+  assert.match(source, /parsedHost !== productionHost/);
+  assert.match(source, /CREATE SCHEMA/);
+  assert.match(source, /DROP SCHEMA/);
+  assert.match(source, /Promise\.all\(\[insert\(\), insert\(\), insert\(\), insert\(\)\]\)/);
+  assert.match(source, /Promise\.all\(\[mark\(\), mark\(\), mark\(\)\]\)/);
+});
