@@ -49,3 +49,9 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - Legacy `/api/study-type` now **redacts** Quiz/MCQ `content` in trusted mode; the main legacy Quiz/MCQ screens may show unavailable content if this feature flag is enabled before migration.
 - The trusted pilot UI supports straightforward option text and free-text entry. AI-generated question formats and partial-credit policies need verification before rollout.
 - Do not enable `TRUSTED_ASSESSMENTS_ENABLED` merely because tests pass. Migration, course-level access controls, cross-route answer-leak audit, stage data isolation and manual review are release gates.
+
+## 8. Security hardening after pilot review
+- Generated question `options` must be a small array of plain non-empty strings. Objects, which might contain `answer` or `isCorrect` metadata, fail closed rather than reaching the student API.
+- Public courses priced above zero are **not** enough to authorize assessment access. Start/catalog now require course creator access or an active enrollment for paid courses. Free public courses remain accessible to authenticated learners.
+- These are source safeguards, not proof that every other endpoint is answer-free. Audit legacy course export, instructor/admin content review, caches, and study-type generation before enabling the pilot.
+- New unit and structural regression tests cover option-object leakage and the paid-course access condition.
