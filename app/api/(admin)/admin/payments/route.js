@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
 import { PAYMENT_RECORD_TABLE, USER_TABLE, CREDIT_TRANSACTION_TABLE } from "@/configs/schema";
 import { eq, desc, sql, gte, and, between } from "drizzle-orm";
-import { requireAdminOrAbove } from "@/lib/adminApiAuth";
+import { requireAdminOrAbove, requireSuperAdmin } from "@/lib/adminApiAuth";
 
 /**
  * GET /api/admin/payments
@@ -159,171 +159,24 @@ export async function GET(req) {
 }
 
 /**
- * POST /api/admin/payments
- * Manually record a payment (for admin use)
+ * Financial modifications cannot be treated as gateway settlements.
+ * Refuse manual "completed/refunded" writes until a provider-confirmed,
+ * auditable refund/adjustment workflow is implemented.
  */
-export async function POST(req) {
-    const authResult = await requireAdminOrAbove();
-    if (!authResult.authenticated) return authResult.error;
-
-    try {
-        const {
-            userEmail,
-            amount,
-            currency = 'lkr',
-            plan,
-            planType = 'one_time',
-            creditsAdded = 0,
-            status = 'completed',
-            paymentMethod,
-            notes,
-            adminEmail
-        } = await req.json();
-
-        if (!userEmail || !amount || !plan) {
-            return NextResponse.json({ error: 'User email, amount, and plan are required' }, { status: 400 });
-        }
-
-        // Record the payment
-        const result = await db.insert(PAYMENT_RECORD_TABLE).values({
-            userEmail,
-            amount: amount.toString(),
-            currency,
-            plan,
-            planType,
-            creditsAdded,
-            status,
-            paymentMethod,
-            metadata: { notes, recordedBy: adminEmail, manual: true }
-        }).returning();
-
-        // If credits were added and payment is completed, update user credits
-        if (creditsAdded > 0 && status === 'completed') {
-            await db.update(USER_TABLE)
-                .set({
-                    credits: sql`${USER_TABLE.credits} + ${creditsAdded}`,
-                    isMember: true,
-                    updatedAt: new Date()
-                })
-                .where(eq(USER_TABLE.email, userEmail));
-        }
-
-        return NextResponse.json({
-            success: true,
-            payment: result[0]
-        });
-    } catch (error) {
-        console.error('Error recording payment:', error);
-        return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 });
-    }
+export async function POST() {
+    const access = await requireSuperAdmin();
+    if (!access.authenticated) return access.error;
+    return NextResponse.json({
+        error: "Manual payment awards are disabled pending audited reconciliation",
+        supportAction: "Use the read-only reconciliation report"
+    }, { status: 409 });
 }
 
-/**
- * PUT /api/admin/payments
- * Update payment status (refund, etc.)
- * Automatically reverses credits when marking as refunded
- */
-export async function PUT(req) {
-    const authResult = await requireAdminOrAbove();
-    if (!authResult.authenticated) return authResult.error;
-
-    try {
-        const { id, status, adminEmail, refundReason = 'Admin refund' } = await req.json();
-
-        if (!id || !status) {
-            return NextResponse.json({ error: 'Payment ID and status are required' }, { status: 400 });
-        }
-
-        // Get the payment record
-        const payment = await db.select()
-            .from(PAYMENT_RECORD_TABLE)
-            .where(eq(PAYMENT_RECORD_TABLE.id, id))
-            .limit(1);
-
-        if (payment.length === 0) {
-            return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
-        }
-
-        const paymentRecord = payment[0];
-        const userEmail = paymentRecord.userEmail;
-
-        // Update payment status
-        const result = await db.update(PAYMENT_RECORD_TABLE)
-            .set({
-                status,
-                updatedAt: new Date(),
-                metadata: sql`jsonb_set(COALESCE(metadata, '{}'), '{updatedBy}', ${JSON.stringify(adminEmail)})`
-            })
-            .where(eq(PAYMENT_RECORD_TABLE.id, id))
-            .returning();
-
-        // If marking as refunded, automatically reverse credits
-        if (status === 'refunded') {
-            // Get user data
-            const user = await db.select()
-                .from(USER_TABLE)
-                .where(eq(USER_TABLE.email, userEmail))
-                .limit(1);
-
-            if (user.length > 0) {
-                const currentCredits = user[0].credits || 0;
-                const planType = paymentRecord.planType;
-                const creditsAdded = paymentRecord.creditsAdded || 0;
-
-                if (planType === 'subscription') {
-                    // For premium subscriptions, remove member status and reset credits
-                    await db.update(USER_TABLE)
-                        .set({
-                            isMember: false,
-                            credits: 0,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(USER_TABLE.email, userEmail));
-
-                    // Log refund transaction
-                    await db.insert(CREDIT_TRANSACTION_TABLE).values({
-                        userEmail: userEmail,
-                        amount: -999999,
-                        type: 'refund',
-                        reason: `Refund: ${refundReason} - Subscription cancelled`,
-                        balanceBefore: 999999,
-                        balanceAfter: 0,
-                        createdBy: `admin:${adminEmail}`
-                    });
-                } else if (planType === 'credits') {
-                    // For credit packs, deduct the credits
-                    const newBalance = Math.max(0, currentCredits - creditsAdded);
-                    
-                    await db.update(USER_TABLE)
-                        .set({
-                            credits: newBalance,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(USER_TABLE.email, userEmail));
-
-                    // Log refund transaction
-                    await db.insert(CREDIT_TRANSACTION_TABLE).values({
-                        userEmail: userEmail,
-                        amount: -creditsAdded,
-                        type: 'refund',
-                        reason: `Refund: ${refundReason} - ${creditsAdded} credits reversed`,
-                        balanceBefore: currentCredits,
-                        balanceAfter: newBalance,
-                        createdBy: `admin:${adminEmail}`
-                    });
-                }
-
-                console.log(`Refund processed: ${userEmail} - ${status} - ${creditsAdded} credits reversed`);
-            }
-        }
-
-        return NextResponse.json({
-            success: true,
-            payment: result[0]
-        });
-    } catch (error) {
-        console.error('Error updating payment:', error);
-        return NextResponse.json({ error: 'Failed to update payment' }, { status: 500 });
-    }
+export async function PUT() {
+    const access = await requireSuperAdmin();
+    if (!access.authenticated) return access.error;
+    return NextResponse.json({
+        error: "Payment status changes and refunds require verified gateway reconciliation",
+        supportAction: "Use the read-only reconciliation report"
+    }, { status: 409 });
 }
-
