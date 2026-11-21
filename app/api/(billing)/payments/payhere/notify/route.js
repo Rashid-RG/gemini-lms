@@ -30,8 +30,8 @@ export async function POST(req) {
             merchantId, orderId, amount, currency, status, signature, secret
         })) return new Response("Invalid signature", { status: 400 });
 
-        // A signed non-success callback must never grant credits.
-        // Leave the order pending for gateway reconciliation / subsequent verified success.
+        // Signed non-success events are not evidence of completed settlement.
+        // Pending/cancellation/chargeback need a separate gateway reconciliation workflow.
         if (status !== "2") return new Response("OK", { status: 200 });
 
         // Exactly one SQL statement makes claiming, awarding and auditing atomic.
@@ -55,6 +55,7 @@ export async function POST(req) {
                   AND p.plan = ${planId}
                   AND p.amount = ${plan.amount.toFixed(2)}
                   AND LOWER(p.currency) = 'lkr'
+                  AND p."gatewayPaymentId" IS NULL
                   AND EXISTS (SELECT 1 FROM users u WHERE u.email = p."userEmail")
                 RETURNING p."userEmail"
             ),
@@ -85,13 +86,20 @@ export async function POST(req) {
         if (Number(row?.claimed_count) === 0) {
             // Distinguish a replay from unmatched orders for reconciliation.
             const existing = await db.execute(sql`
-                SELECT status FROM "paymentRecord"
+                SELECT status, "gatewayPaymentId", amount, currency, "creditsAdded"
+                FROM "paymentRecord"
                 WHERE "sessionId" = ${orderId} AND "userEmail" = ${userEmail}
                   AND plan = ${planId} AND "paymentMethod" = 'payhere'
                 LIMIT 2
             `);
             const matches = existing.rows || existing;
-            if (matches.length === 1 && matches[0].status === "completed") return new Response("OK", { status: 200 });
+            if (matches.length === 1 && matches[0].status === "completed" &&
+                matches[0].gatewayPaymentId === paymentId &&
+                Number(matches[0].amount) === plan.amount &&
+                String(matches[0].currency).toUpperCase() === currency &&
+                matches[0].creditsAdded === plan.credits) {
+                return new Response("OK", { status: 200 });
+            }
             return new Response("Unknown or mismatched order", { status: 409 });
         }
         if (Number(row?.audit_count) !== 1) throw new Error("Payment claim did not create exactly one audit entry");
