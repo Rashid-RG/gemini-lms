@@ -2,7 +2,7 @@
 -- Apply in an isolated Neon branch after trustedAssessmentAttempts migration.
 -- The attempt ID is the durable, idempotent projection key.
 CREATE TABLE IF NOT EXISTS "verifiedAssessmentProjection" (
-  "attemptId" varchar PRIMARY KEY NOT NULL,
+  "attemptId" varchar PRIMARY KEY NOT NULL REFERENCES "trustedAssessmentAttempts"("id") ON DELETE RESTRICT,
   "studentEmail" varchar NOT NULL,
   "courseId" varchar NOT NULL,
   "studyTypeContentId" integer NOT NULL,
