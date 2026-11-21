@@ -243,3 +243,10 @@ test("reconciliation only marks matching canonical database rows", () => {
   ]) assert.ok(route.includes(fragment), "Missing concurrency guard: " + fragment);
   assert.ok(route.indexOf('RETURNING a."id"') < route.indexOf('ledgered++;'));
 });
+
+test("projection ledger cannot become orphaned from its trusted attempt", () => {
+  const schema = readFileSync("configs/schema.js", "utf8");
+  const migration = readFileSync("drizzle/phase1_verified_assessment_projection.sql", "utf8");
+  assert.match(schema, /references\(\(\) => TRUSTED_ASSESSMENT_ATTEMPT_TABLE\.id, \{ onDelete: "restrict" \}\)/);
+  assert.ok(migration.includes('REFERENCES "trustedAssessmentAttempts"("id") ON DELETE RESTRICT'));
+});
