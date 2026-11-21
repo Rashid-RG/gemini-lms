@@ -21,6 +21,9 @@ jobs:
           node --check 'app/api/(billing)/payments/payhere/initiate/route.js'
           node --check 'app/api/(billing)/payments/payhere/notify/route.js'
           node --check 'app/api/(billing)/payments/payhere/status/route.js'
+          node --check 'app/api/(billing)/subscription/cancel/route.js'
+          node --check 'app/api/(admin)/admin/payments/route.js'
+          node --check 'app/api/(admin)/admin/payments/reconciliation/route.js'
           node --check lib/payherePricing.js
           node --check lib/payhereSignature.js
       - run: npm test
