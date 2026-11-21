@@ -221,7 +221,7 @@ test("projection reconciliation requires super-admin, flags and idempotent datab
   assert.match(route, /TRUSTED_ASSESSMENTS_ENABLED !== "true"/);
   assert.match(route, /ON CONFLICT \("attemptId"\) DO NOTHING/);
   assert.match(route, /matchesVerifiedProjection\(attempt, projection\)/);
-  assert.match(route, /adaptiveSyncStatus: "synced"/);
+  assert.match(route, /adaptiveSyncStatus: "ledgered"/);
   assert.match(route, /limit\(25\)/);
   assert.doesNotMatch(route, /recordAdaptivePerformance\(|ADAPTIVE_PERFORMANCE_TABLE/);
   assert.match(migration, /"attemptId" varchar PRIMARY KEY NOT NULL/);
