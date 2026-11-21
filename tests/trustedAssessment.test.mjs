@@ -138,3 +138,11 @@ test("trusted mode reroutes old Quiz, MCQ and manual Quiz pages", () => {
   assert.match(middleware, /await auth\.protect\(\)/);
   assert.ok(middleware.indexOf("await auth.protect()") < middleware.indexOf("legacyQuizPath"));
 });
+
+test("trusted submission does not double-count adaptive projections on retries", () => {
+  const source = readFileSync("app/api/(learning)/assessments/trusted/submit/route.js", "utf8");
+  assert.doesNotMatch(source, /recordAdaptivePerformance\(/);
+  assert.match(source, /adaptiveSyncStatus = "pending"/);
+  assert.match(source, /status: "submitted"/);
+  assert.match(source, /mlEligibility: "server_verified"/);
+});
