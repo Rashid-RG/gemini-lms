@@ -51,6 +51,22 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Payment gateway not configured: set valid PAYHERE merchant credentials for this domain' }, { status: 500 });
         }
 
+        // Check callback URLs before creating a pending payment record.
+        // Never leave orphan orders when application settings are invalid.
+        const rawBaseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+        let baseUrl;
+        try {
+            const parsed = new URL(rawBaseUrl);
+            const isHttps = parsed.protocol === "https:";
+            const localDevelopment = process.env.NODE_ENV === "development" &&
+                parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname);
+            if ((!isHttps && !localDevelopment) || parsed.username || parsed.password ||
+                parsed.search || parsed.hash || parsed.pathname !== "/") throw new Error("Invalid checkout origin");
+            baseUrl = parsed.origin;
+        } catch {
+            return NextResponse.json({ error: "Valid HTTPS checkout origin required" }, { status: 503 });
+        }
+
         // Generate unique order ID
         const orderId = `ORDER_${crypto.randomUUID()}`;
         const currency = 'LKR';
@@ -67,12 +83,6 @@ export async function POST(req) {
 
         // Generate hash
         const hash = makePayhereCheckoutHash(merchantId, orderId, amount.toFixed(2), currency, merchantSecret);
-
-        // Base URL for callbacks
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
-        if (!baseUrl || (process.env.NODE_ENV === "production" && !baseUrl.startsWith("https://"))) {
-            return NextResponse.json({ error: "Valid HTTPS application URL required for checkout" }, { status: 503 });
-        }
 
         // PayHere form data
         const paymentData = {
