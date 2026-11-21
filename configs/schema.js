@@ -798,3 +798,29 @@ export const SYSTEM_BACKUP_TABLE = pgTable('systemBackups', {
     createdByIdx: index('system_backup_created_by_idx').on(table.createdBy),
     downloadTokenIdx: index('system_backup_download_token_idx').on(table.downloadToken),
 }));
+// Server-authoritative, immutable-at-start assessment attempt snapshots.
+// Requires a separately reviewed non-destructive database migration before activation.
+export const TRUSTED_ASSESSMENT_ATTEMPT_TABLE = pgTable("trustedAssessmentAttempts", {
+    id: varchar().primaryKey(),
+    studentEmail: varchar().notNull(),
+    courseId: varchar().notNull(),
+    studyTypeContentId: integer().notNull(),
+    questionSnapshot: json().notNull(), // PRIVATE: never include in student API responses
+    questionCount: integer().notNull(),
+    status: varchar().notNull().default("started"),
+    answers: json(), // user submissions only
+    gradeDetails: json(), // validated outcome; no trusted answer keys exposed
+    score: integer(),
+    correctCount: integer(),
+    gradingVersion: varchar().notNull().default("trusted-v1"),
+    mlEligibility: varchar().notNull().default("pending"), // eligible only on verified server submission
+    adaptiveSyncStatus: varchar().notNull().default("pending"),
+    startedAt: timestamp().defaultNow().notNull(),
+    expiresAt: timestamp().notNull(),
+    submittedAt: timestamp()
+}, (table) => ({
+    studentIdx: index("trusted_attempt_student_idx").on(table.studentEmail),
+    courseIdx: index("trusted_attempt_course_idx").on(table.courseId),
+    assessmentIdx: index("trusted_attempt_assessment_idx").on(table.studyTypeContentId)
+}));
+
