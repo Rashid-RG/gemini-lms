@@ -69,13 +69,16 @@ export async function POST(req) {
         const hash = makePayhereCheckoutHash(merchantId, orderId, amount.toFixed(2), currency, merchantSecret);
 
         // Base URL for callbacks
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+        if (!baseUrl || (process.env.NODE_ENV === "production" && !baseUrl.startsWith("https://"))) {
+            return NextResponse.json({ error: "Valid HTTPS application URL required for checkout" }, { status: 503 });
+        }
 
         // PayHere form data
         const paymentData = {
             // PayHere required fields
             merchant_id: merchantId,
-            return_url: `${baseUrl}/dashboard/upgrade/success?plan=${planId}`,
+            return_url: `${baseUrl}/dashboard/upgrade/success?plan=${planId}&order_id=${encodeURIComponent(orderId)}`,
             cancel_url: `${baseUrl}/dashboard/upgrade/cancel`,
             notify_url: `${baseUrl}/api/payments/payhere/notify`,
             
