@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/configs/db";
-import { USER_TABLE, PAYMENT_RECORD_TABLE } from "@/configs/schema";
+import { USER_TABLE, PAYMENT_RECORD_TABLE, SUPPORT_TICKETS_TABLE } from "@/configs/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { requireUserAuth } from "@/lib/userApiAuth";
 
@@ -17,12 +17,34 @@ export async function POST(req) {
   if (!user) return NextResponse.json({ error: "Account not found" }, { status: 404 });
   if (!user.isMember) return NextResponse.json({ error: "No active premium membership" }, { status: 409 });
 
+  const payload = await req.json().catch(() => ({}));
+  const reason = typeof payload.reason === "string" ? payload.reason.trim().slice(0, 500) : "";
+  const existing = await db.select({ id: SUPPORT_TICKETS_TABLE.id })
+    .from(SUPPORT_TICKETS_TABLE).where(and(
+      eq(SUPPORT_TICKETS_TABLE.userEmail, access.email),
+      eq(SUPPORT_TICKETS_TABLE.category, "Subscription Cancellation"),
+      eq(SUPPORT_TICKETS_TABLE.status, "Open")
+    )).limit(1);
+  if (existing.length) {
+    return NextResponse.json({
+      success: true, status: "review_pending", requestId: existing[0].id,
+      message: "A cancellation request is already under review. No refund or entitlement change has been made."
+    }, { status: 202 });
+  }
+  const [ticket] = await db.insert(SUPPORT_TICKETS_TABLE).values({
+    userEmail: access.email,
+    subject: "Subscription cancellation request",
+    message: reason || "Customer requests review of premium membership cancellation.",
+    category: "Subscription Cancellation",
+    status: "Open",
+    source: "subscription",
+    metadata: { refundRequested: false, gatewayRefundVerified: false, generatedBy: "subscription-cancel" }
+  }).returning({ id: SUPPORT_TICKETS_TABLE.id });
   return NextResponse.json({
-    success: false,
-    status: "manual_review_required",
-    message: "Automatic subscription cancellation and refunds are temporarily unavailable. Contact support to arrange a verified cancellation.",
+    success: true, status: "review_pending", requestId: ticket.id,
+    message: "Your cancellation request was submitted for review. No refund or entitlement change has been made.",
     supportUrl: "/dashboard/support"
-  }, { status: 409 });
+  }, { status: 202 });
 }
 
 export async function GET(req) {
