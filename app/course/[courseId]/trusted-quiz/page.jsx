@@ -13,6 +13,7 @@ export default function TrustedQuizPilot() {
   const [attempt, setAttempt] = useState(null);
   const [responses, setResponses] = useState({});
   const [result, setResult] = useState(null);
+  const [performance, setPerformance] = useState(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -61,6 +62,16 @@ export default function TrustedQuizPilot() {
       if (!response.ok) throw new Error(data.error || "Unable to submit");
       setResult(data);
       setAttempt(null);
+      // The summary is derived from verified attempts, never client-side scores.
+      try {
+        const summaryResponse = await fetch(
+          "/api/assessments/trusted/performance?courseId=" + encodeURIComponent(courseId),
+          { cache: "no-store" }
+        );
+        if (summaryResponse.ok) setPerformance(await summaryResponse.json());
+      } catch {
+        // Grading succeeded; an unavailable summary must not hide the verified result.
+      }
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   };
@@ -121,6 +132,20 @@ export default function TrustedQuizPilot() {
           <p className="text-3xl font-semibold">{result.score}%</p>
           <p>{result.correctCount} of {result.totalQuestions} correct</p>
           <p className="text-xs text-slate-500">Grading version: {result.gradingVersion}</p>
+          {performance?.assessments?.length > 0 && (
+            <div className="rounded-xl bg-slate-50 p-4 space-y-2">
+              <h3 className="font-semibold text-sm">Verified learning history</h3>
+              {performance.assessments.map(item => (
+                <p key={item.assessmentId} className="text-sm">
+                  Assessment {item.assessmentId}: {item.totalAttempts} verified attempts,
+                  {item.averageScore}% average · {item.masteryLevel}
+                </p>
+              ))}
+              {performance.truncated && (
+                <p className="text-xs text-amber-700">Summary includes only the latest 500 verified attempts.</p>
+              )}
+            </div>
+          )}
           <Button variant="outline" onClick={() => { setResult(null); setResponses({}); }}>Choose another assessment</Button>
         </div>
       )}
