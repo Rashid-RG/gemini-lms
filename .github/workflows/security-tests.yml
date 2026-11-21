@@ -29,6 +29,8 @@ jobs:
           node --check lib/userApiAuth.js
           node --check lib/recordAdaptivePerformance.js
           node --check lib/trustedAssessment.js
+          node --check lib/verifiedAssessmentSummary.js
+          node --check 'app/api/(learning)/assessments/trusted/performance/route.js'
           node --check 'app/api/(learning)/assessments/trusted/start/route.js'
           node --check 'app/api/(learning)/assessments/trusted/submit/route.js'
           node --check 'app/api/(learning)/adaptive-performance/route.js'
