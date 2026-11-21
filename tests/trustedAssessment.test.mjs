@@ -68,3 +68,30 @@ test("legacy score APIs block untrusted submissions in trusted mode", () => {
     assert.match(code, /status: 409/);
   }
 });
+
+test("student catalog exposes metadata only and requires course access", () => {
+  const code = readFileSync("app/api/(learning)/assessments/trusted/catalog/route.js", "utf8");
+  assert.match(code, /TRUSTED_ASSESSMENTS_ENABLED !== "true"/);
+  assert.match(code, /requireUserAuth\(req\)/);
+  assert.match(code, /eq\(STUDY_MATERIAL_TABLE\.createdBy, access\.email\)/);
+  assert.match(code, /STUDY_MATERIAL_TABLE\.isPublic/);
+  assert.match(code, /courseEnrollments/);
+  assert.doesNotMatch(code, /STUDY_TYPE_CONTENT_TABLE\.content/);
+});
+
+test("trusted mode redacts legacy Quiz and MCQ answer banks", () => {
+  const code = readFileSync("app/api/(learning)/study-type/route.jsx", "utf8");
+  assert.match(code, /function redactAssessmentKeys\(item\)/);
+  assert.match(code, /TRUSTED_ASSESSMENTS_ENABLED !== "true"/);
+  assert.match(code, /content: null/);
+  assert.match(code, /map\(redactAssessmentKeys\)/);
+  assert.match(code, /redactAssessmentKeys\(result\[0\]\)/);
+});
+
+test("isolated pilot consumes only trusted assessment APIs", () => {
+  const code = readFileSync("app/course/[courseId]/trusted-quiz/page.jsx", "utf8");
+  assert.match(code, /\/api\/assessments\/trusted\/catalog/);
+  assert.match(code, /\/api\/assessments\/trusted\/start/);
+  assert.match(code, /\/api\/assessments\/trusted\/submit/);
+  assert.doesNotMatch(code, /\/api\/submit-quiz|\/api\/adaptive-performance/);
+});
