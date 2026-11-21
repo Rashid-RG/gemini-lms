@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { getPayherePlan, matchesPayhereAmount } from "../lib/payherePricing.js";
+import { makePayhereCheckoutHash, normalizePayhereSecret, verifyPayhereIpn } from "../lib/payhereSignature.js";
+import crypto from "node:crypto";
 
 test("only known PayHere plans are accepted", () => {
   assert.equal(getPayherePlan("credits_5")?.amount, 500);
@@ -37,7 +39,7 @@ test("PayHere successful callbacks use a single atomic claim and credit statemen
   assert.match(source, /credited AS/);
   assert.match(source, /audit AS/);
   assert.match(source, /COUNT\(\*\) FROM matching/);
-  assert.match(source, /verifyPayhereSignature/);
+  assert.match(source, /verifyPayhereIpn/);
 });
 
 test("database diagnostics enforce super-admin authorization", () => {
@@ -49,4 +51,36 @@ test("database diagnostics enforce super-admin authorization", () => {
 test("manual credit granting is unavailable outside development", () => {
   const source = readFileSync("app/api/(billing)/payments/verify/route.js", "utf8");
   assert.match(source, /process\.env\.NODE_ENV !== 'development'/);
+});
+
+test("checkout signature matches PayHere protocol and changes with price", () => {
+  const secret = "sandbox-merchant-secret";
+  const input = ["123456", "ORDER_test", "500.00", "LKR"];
+  const signature = makePayhereCheckoutHash(...input, secret);
+  const secretDigest = crypto.createHash("md5").update(secret).digest("hex").toUpperCase();
+  const expected = crypto.createHash("md5").update(input.join("") + secretDigest).digest("hex").toUpperCase();
+  assert.equal(signature, expected);
+  assert.notEqual(makePayhereCheckoutHash("123456", "ORDER_test", "501.00", "LKR", secret), signature);
+});
+
+test("signed IPN validates correct event and refuses tampering", () => {
+  const secret = "sandbox-merchant-secret";
+  const fields = { merchantId: "123456", orderId: "ORDER_test", amount: "500.00", currency: "LKR", status: "2" };
+  const secretHash = crypto.createHash("md5").update(secret).digest("hex").toUpperCase();
+  const signature = crypto.createHash("md5")
+    .update(fields.merchantId + fields.orderId + fields.amount + fields.currency + fields.status + secretHash)
+    .digest("hex").toUpperCase();
+  assert.equal(verifyPayhereIpn({ ...fields, signature, secret }), true);
+  for (const changed of [
+    { amount: "501.00" }, { orderId: "ORDER_other" }, { status: "-1" },
+    { currency: "USD" }, { merchantId: "654321" }, { signature: "0".repeat(32) }
+  ]) assert.equal(verifyPayhereIpn({ ...fields, signature, secret, ...changed }), false);
+  assert.equal(verifyPayhereIpn({ ...fields, signature: "invalid", secret }), false);
+});
+
+test("merchant secret encoding is explicit and validated", () => {
+  assert.equal(normalizePayhereSecret(" raw-key ", "raw"), "raw-key");
+  assert.equal(normalizePayhereSecret(Buffer.from("raw-key").toString("base64"), "base64"), "raw-key");
+  assert.equal(normalizePayhereSecret("!not base64!", "base64"), null);
+  assert.equal(normalizePayhereSecret("", "raw"), null);
 });
