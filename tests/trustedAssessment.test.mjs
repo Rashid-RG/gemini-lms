@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { parseAssessmentQuestions, publicAssessmentQuestions, gradeAssessment } from "../lib/trustedAssessment.js";
 import { summarizeVerifiedAttempts } from "../lib/verifiedAssessmentSummary.js";
+import { matchesVerifiedProjection } from "../lib/verifiedProjection.js";
 
 const stored = {
   topic: "Algebra",
@@ -189,4 +190,39 @@ test("trusted pilot displays student-scoped verified performance after grading",
   assert.match(page, /\/api\/assessments\/trusted\/performance/);
   assert.match(page, /Verified learning history/);
   assert.match(page, /performance\.truncated/);
+});
+
+test("attempt-ID projection matches the canonical grade and rejects conflicts", () => {
+  const attempt = {
+    id: "attempt-1", studentEmail: "student@example.com", courseId: "course-1",
+    studyTypeContentId: 7, score: 80, submittedAt: "2026-11-22T07:00:00Z",
+    status: "submitted", mlEligibility: "server_verified"
+  };
+  const ledger = {
+    attemptId: attempt.id, studentEmail: attempt.studentEmail,
+    courseId: attempt.courseId, studyTypeContentId: attempt.studyTypeContentId,
+    score: attempt.score, submittedAt: new Date(attempt.submittedAt)
+  };
+  assert.equal(matchesVerifiedProjection(attempt, ledger), true);
+  assert.equal(matchesVerifiedProjection(attempt, { ...ledger, score: 100 }), false);
+  assert.equal(matchesVerifiedProjection(attempt, { ...ledger, studentEmail: "other@example.com" }), false);
+  assert.equal(matchesVerifiedProjection(attempt, { ...ledger, courseId: "other-course" }), false);
+  assert.equal(matchesVerifiedProjection({ ...attempt, status: "started" }, ledger), false);
+  assert.equal(matchesVerifiedProjection({ ...attempt, mlEligibility: "pending" }, ledger), false);
+  assert.equal(matchesVerifiedProjection({ ...attempt, submittedAt: "invalid" }, ledger), false);
+  assert.equal(matchesVerifiedProjection(attempt, null), false);
+});
+
+test("projection reconciliation requires super-admin, flags and idempotent database key", () => {
+  const route = readFileSync("app/api/(admin)/admin/assessments/reconcile/route.js", "utf8");
+  const migration = readFileSync("drizzle/phase1_verified_assessment_projection.sql", "utf8");
+  assert.match(route, /requireSuperAdmin\(\)/);
+  assert.match(route, /TRUSTED_ASSESSMENT_SYNC_ENABLED !== "true"/);
+  assert.match(route, /TRUSTED_ASSESSMENTS_ENABLED !== "true"/);
+  assert.match(route, /ON CONFLICT \("attemptId"\) DO NOTHING/);
+  assert.match(route, /matchesVerifiedProjection\(attempt, projection\)/);
+  assert.match(route, /adaptiveSyncStatus: "synced"/);
+  assert.match(route, /limit\(25\)/);
+  assert.doesNotMatch(route, /recordAdaptivePerformance\(|ADAPTIVE_PERFORMANCE_TABLE/);
+  assert.match(migration, /"attemptId" varchar PRIMARY KEY NOT NULL/);
 });
