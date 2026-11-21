@@ -175,3 +175,19 @@ test("admin payments enforce bounded pagination and supported filters", () => {
   assert.match(route, /allowedPeriods\.has\(requestedPeriod\)/);
   assert.match(route, /allowedStatuses\.has\(requestedStatus\)/);
 });
+
+test("admin billing UI exposes read-only reconciliation without active payment mutation buttons", () => {
+  const page = readFileSync("app/admin/payments/page.jsx", "utf8");
+  assert.match(page, /\/api\/admin\/payments\/reconciliation/);
+  assert.match(page, /admin\?\.role === 'super_admin'/);
+  assert.match(page, /Manual payment awards and refunds are temporarily disabled/);
+  assert.doesNotMatch(page, /onClick=\{\(\) => handleRefund\(payment\.id\)\}/);
+  assert.doesNotMatch(page, /onClick=\{\(\) => setShowAddModal\(true\)\}/);
+});
+
+test("CSV payment exports escape formulas and quoted fields", () => {
+  const page = readFileSync("app/admin/payments/page.jsx", "utf8");
+  assert.match(page, /const escapeCsvCell = \(value\)/);
+  assert.match(page, /replaceAll\('"', '""'\)/);
+  assert.match(page, /row\.map\(escapeCsvCell\)/);
+});
