@@ -100,3 +100,5 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - To execute manually from an authorized disposable test database, set the three test-only environment variables locally and run:
   `node --test tests/trustedAssessment.postgres.integration.mjs`
 - A successful result is not release approval; stage-only migration, real API integration, audit of all legacy grade writers, and approval are still needed.
+
+- Additional fail-closed protection: if the usual `DATABASE_URL` is present, the integration suite rejects a test URL with the same hostname, even when credentials or query strings differ. This is a defense in depth check, not a substitute for independently checking the target environment.
