@@ -183,3 +183,10 @@ test("verified performance API is read-only, identity-scoped and bounded", () =>
   assert.match(code, /truncated/);
   assert.doesNotMatch(code, /db\.update\(|db\.insert\(|questionSnapshot|gradeDetails|\.answers/);
 });
+
+test("trusted pilot displays student-scoped verified performance after grading", () => {
+  const page = readFileSync("app/course/[courseId]/trusted-quiz/page.jsx", "utf8");
+  assert.match(page, /\/api\/assessments\/trusted\/performance/);
+  assert.match(page, /Verified learning history/);
+  assert.match(page, /performance\.truncated/);
+});
