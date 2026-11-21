@@ -40,3 +40,10 @@ Until a verified gateway workflow is integrated:
 - Cancellation review tickets reuse an existing open ticket when available. **Concurrent new requests can still create duplicate tickets** until a carefully reviewed partial unique index or transactional serialization is introduced; do not claim strict deduplication.
 - The cancellation UI intentionally does not describe a support request as an executed refund. Staff must verify gateway records before changing balances or entitlements.
 - Read-only reconciliation reports sample up to 50 entries per anomaly type; the response is not a complete ledger audit.
+
+## Adaptive learning authorization review
+- Removed `x-internal-key` authentication bypass that previously compared a client-supplied header against `CLERK_SECRET_KEY`. All `requireUserAuth` calls now require a Clerk session.
+- Quiz submission now writes adaptive metrics through `recordAdaptivePerformance` directly instead of sending a privileged HTTP request back to the application.
+- The adaptive-performance POST API binds the student email to the Clerk session, validates numeric scores 0–100, and uses the same server-side writer.
+- **Unresolved P0 assessment integrity risk:** the existing quiz submission grades client-provided `quizData` (including correct answers) and the adaptive-performance POST route still accepts client-provided assessment scores. Before commercial academic grading or ML research, the correct answers and score must be derived from trusted server-side stored assessments or signed attempts; do not train research models from unverified self-reported scores.
+- Existing adaptive-performance records may have concurrent update races without unique constraints. Evaluate non-destructive schema upgrades and integration tests against an isolated test database.
