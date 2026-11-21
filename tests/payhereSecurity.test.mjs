@@ -166,3 +166,12 @@ test("cancellation request creates a support ticket without changing financial r
   assert.doesNotMatch(route, /db\.update\(PAYMENT_RECORD_TABLE\)/);
   assert.doesNotMatch(route, /db\.update\(USER_TABLE\)/);
 });
+
+test("admin payments enforce bounded pagination and supported filters", () => {
+  const route = readFileSync("app/api/(admin)/admin/payments/route.js", "utf8");
+  assert.match(route, /Number\.isSafeInteger\(requestedLimit\)/);
+  assert.match(route, /requestedLimit > 100/);
+  assert.match(route, /requestedOffset > 10000/);
+  assert.match(route, /allowedPeriods\.has\(requestedPeriod\)/);
+  assert.match(route, /allowedStatuses\.has\(requestedStatus\)/);
+});
