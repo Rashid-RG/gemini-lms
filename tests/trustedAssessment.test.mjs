@@ -221,8 +221,25 @@ test("projection reconciliation requires super-admin, flags and idempotent datab
   assert.match(route, /TRUSTED_ASSESSMENTS_ENABLED !== "true"/);
   assert.match(route, /ON CONFLICT \("attemptId"\) DO NOTHING/);
   assert.match(route, /matchesVerifiedProjection\(attempt, projection\)/);
-  assert.match(route, /adaptiveSyncStatus: "ledgered"/);
+  assert.match(route, /SET "adaptiveSyncStatus" = 'ledgered'/);
   assert.match(route, /limit\(25\)/);
   assert.doesNotMatch(route, /recordAdaptivePerformance\(|ADAPTIVE_PERFORMANCE_TABLE/);
   assert.match(migration, /"attemptId" varchar PRIMARY KEY NOT NULL/);
+});
+
+test("reconciliation only marks matching canonical database rows", () => {
+  const route = readFileSync("app/api/(admin)/admin/assessments/reconcile/route.js", "utf8");
+  for (const fragment of [
+    'UPDATE "trustedAssessmentAttempts" a',
+    'AND EXISTS (',
+    'p."attemptId" = a."id"',
+    'p."studentEmail" = a."studentEmail"',
+    'p."courseId" = a."courseId"',
+    'p."studyTypeContentId" = a."studyTypeContentId"',
+    'p."score" = a."score"',
+    'p."submittedAt" = a."submittedAt"',
+    'RETURNING a."id"',
+    '(transition.rows || transition).length === 1'
+  ]) assert.ok(route.includes(fragment), "Missing concurrency guard: " + fragment);
+  assert.ok(route.indexOf('RETURNING a."id"') < route.indexOf('ledgered++;'));
 });
