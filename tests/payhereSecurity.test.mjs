@@ -132,8 +132,9 @@ test("subscription cancellation requires account identity and never fabricates r
   const route = readFileSync("app/api/(billing)/subscription/cancel/route.js", "utf8");
   assert.match(route, /requireUserAuth\(req\)/);
   assert.match(route, /access\.email/);
-  assert.match(route, /manual_review_required/);
-  assert.doesNotMatch(route, /db\.update\(|db\.insert\(/);
+  assert.match(route, /status: "review_pending"/);
+  assert.match(route, /SUPPORT_TICKETS_TABLE/);
+  assert.doesNotMatch(route, /db\.update\(/);
   assert.doesNotMatch(route, /status:\s*['"]refunded['"]/);
 });
 
@@ -155,4 +156,13 @@ test("financial reconciliation report requires super-admin and never writes", ()
   }
   assert.doesNotMatch(route, /db\.update\(|db\.insert\(/);
   assert.match(route, /Cache-Control": "no-store"/);
+});
+
+test("cancellation request creates a support ticket without changing financial records", () => {
+  const route = readFileSync("app/api/(billing)/subscription/cancel/route.js", "utf8");
+  assert.match(route, /eq\(SUPPORT_TICKETS_TABLE\.userEmail, access\.email\)/);
+  assert.match(route, /db\.insert\(SUPPORT_TICKETS_TABLE\)/);
+  assert.match(route, /gatewayRefundVerified: false/);
+  assert.doesNotMatch(route, /db\.update\(PAYMENT_RECORD_TABLE\)/);
+  assert.doesNotMatch(route, /db\.update\(USER_TABLE\)/);
 });
