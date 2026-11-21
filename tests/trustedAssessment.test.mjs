@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { parseAssessmentQuestions, publicAssessmentQuestions, gradeAssessment } from "../lib/trustedAssessment.js";
+import { summarizeVerifiedAttempts } from "../lib/verifiedAssessmentSummary.js";
 
 const stored = {
   topic: "Algebra",
@@ -145,4 +146,40 @@ test("trusted submission does not double-count adaptive projections on retries",
   assert.match(source, /adaptiveSyncStatus = "pending"/);
   assert.match(source, /status: "submitted"/);
   assert.match(source, /mlEligibility: "server_verified"/);
+});
+
+test("verified mastery read model ignores legacy and pending grades", () => {
+  const attempts = [
+    { id: "a", studyTypeContentId: 9, status: "submitted", mlEligibility: "server_verified", score: 80, submittedAt: "2026-11-20T10:00:00Z" },
+    { id: "b", studyTypeContentId: 9, status: "submitted", mlEligibility: "server_verified", score: 100, submittedAt: "2026-11-21T10:00:00Z" },
+    { id: "b", studyTypeContentId: 9, status: "submitted", mlEligibility: "server_verified", score: 100, submittedAt: "2026-11-21T10:00:00Z" },
+    { id: "c", studyTypeContentId: 9, status: "started", mlEligibility: "pending", score: 100, submittedAt: "2026-11-21T10:00:00Z" },
+    { id: "d", studyTypeContentId: 10, status: "submitted", mlEligibility: "legacy_unverified", score: 100, submittedAt: "2026-11-21T10:00:00Z" },
+    { id: "e", studyTypeContentId: 11, status: "submitted", mlEligibility: "server_verified", score: 40, submittedAt: "2026-11-22T10:00:00Z" }
+  ];
+  const summary = summarizeVerifiedAttempts(attempts);
+  assert.deepEqual(summary.map(x => [x.assessmentId, x.totalAttempts, x.averageScore, x.masteryLevel]), [
+    [9, 2, 90, "expert"], [11, 1, 40, "novice"]
+  ]);
+  assert.equal(summary[0].provenance, "server_verified");
+  assert.equal(summary[1].needsReview, true);
+  assert.deepEqual(summarizeVerifiedAttempts([...attempts].reverse()).map(x => x.averageScore), [90, 40]);
+});
+
+test("verified read model rejects corrupted submitted assessments", () => {
+  assert.throws(() => summarizeVerifiedAttempts([
+    { id: "x", studyTypeContentId: 1, status: "submitted", mlEligibility: "server_verified", score: Infinity, submittedAt: new Date() }
+  ]), TypeError);
+  assert.throws(() => summarizeVerifiedAttempts({}), TypeError);
+});
+
+test("verified performance API is read-only, identity-scoped and bounded", () => {
+  const code = readFileSync("app/api/(learning)/assessments/trusted/performance/route.js", "utf8");
+  assert.match(code, /requireUserAuth\(req\)/);
+  assert.match(code, /TRUSTED_ASSESSMENTS_ENABLED !== "true"/);
+  assert.match(code, /studentEmail, access\.email/);
+  assert.match(code, /mlEligibility, "server_verified"/);
+  assert.match(code, /limit\(501\)/);
+  assert.match(code, /truncated/);
+  assert.doesNotMatch(code, /db\.update\(|db\.insert\(|questionSnapshot|gradeDetails|\.answers/);
 });
