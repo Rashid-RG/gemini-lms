@@ -81,3 +81,18 @@ test("trusted course-policy route computes fingerprints without returning privat
   assert.match(source, /certificateIssuanceEnabled: false/);
   assert.doesNotMatch(source, /db\.insert\(|db\.update\(/);
 });
+
+test("published revision schema is private, append-only and constrained", () => {
+  const sql = readFileSync("drizzle/phase1_trusted_course_revisions.sql", "utf8");
+  const schema = readFileSync("configs/schema.js", "utf8");
+  const rehearsal = readFileSync("tests/assessment_postgres_ci.py", "utf8");
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS "trustedCourseRevisions"/);
+  assert.match(sql, /"manifestSnapshot" jsonb NOT NULL/);
+  assert.match(sql, /UNIQUE \("courseId", "revisionNumber"\)/);
+  assert.match(sql, /BEFORE UPDATE OR DELETE ON "trustedCourseRevisions"/);
+  assert.match(sql, /trusted_course_revision_reject_change/);
+  assert.match(schema, /TRUSTED_COURSE_REVISION_TABLE/);
+  assert.match(schema, /manifestSnapshot: jsonb\(\)\.notNull\(\)/);
+  assert.match(rehearsal, /phase1_trusted_course_revisions\.sql/);
+  assert.match(rehearsal, /expect_failure=True/);
+});
