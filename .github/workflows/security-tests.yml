@@ -33,6 +33,8 @@ jobs:
           node --check lib/verifiedProjection.js
           node --check lib/trustedCoursePolicy.js
           node --check lib/trustedCourseManifest.js
+          node --check 'app/api/(learning)/assessments/trusted/publish-review/route.js'
+          node --check 'app/api/(learning)/assessments/trusted/publish/route.js'
           node --check lib/trustedChapterEvidence.js
           node --check lib/trustedChapterReview.js
           node --check 'app/api/(learning)/assessments/trusted/chapter-activity/route.js'
