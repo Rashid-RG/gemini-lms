@@ -150,3 +150,10 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - All three existing admin manual-grading forms now require a complete whole-number string from 0 through 100 before converting it to a numeric JSON score. The server separately enforces integer-only 0–100 grades and authenticated reviewer identity.
 - This prevents permissive `parseInt` coercion such as `75abc → 75`, rejects fractional/out-of-range values, and permits a legitimate grade of zero.
 - The current policy still does not grant automatic certificates; successful verified assessments only establish provisional assessment completion pending course and chapter completion verification.
+
+## 23. Server-derived chapter assessment evidence (no completion award)
+- New `lib/trustedChapterEvidence.js` derives per-chapter assessment checkpoints from **server-verified submitted attempts only**. It selects the latest attempt per required Quiz/MCQ. An older passing grade cannot override a newer failed attempt.
+- The student-scoped, feature-gated, read-only `GET /api/assessments/trusted/course-policy` now adds `chapterEvidence`, using existing course-layout chapter indices and assessment `chapterId` references. Unknown/missing/invalid layout-to-assessment mappings fail closed and are labeled `unverified_chapter_mapping`. Chapters lacking a mapped ready quiz are not treated as completed.
+- The model intentionally returns `chapterCompletionVerified=false` regardless of test scores. It **does not infer reading, video viewing, or activity completion from a click or browser-controlled `completedChapters`**.
+- No chapter evidence or status writes, certificate issuance, or database migrations are introduced by this step. Follow-on work requires a versioned course content catalog plus an authenticated server-side activity-event design and meaningful completion evidence, not just a student POST that says `completed=true`.
+- Regression tests cover latest-grade precedence, zero-based chapter IDs, unmapped chapters, invalid and truncated data, verified-only access and explicit non-issuance.
