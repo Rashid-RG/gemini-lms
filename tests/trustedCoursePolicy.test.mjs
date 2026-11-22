@@ -96,3 +96,17 @@ test("admin manual review writers enforce strict scores and reviewer identity", 
     assert.doesNotMatch(source, /parseInt\(newScore\)/);
   }
 });
+
+test("admin score forms validate whole numbers before sending numeric grades", () => {
+  for (const path of [
+    "app/dashboard/admin/all-submissions/page.jsx",
+    "app/admin/review-requests/page.jsx",
+    "app/dashboard/admin/review-requests/page.jsx"
+  ]) {
+    const source = readFileSync(path, "utf8");
+    assert.ok(source.includes(String.raw`/^\d{1,3}$/`));
+    assert.match(source, /Number\.isInteger\(score\)/);
+    assert.match(source, /score < 0 \|\| score > 100/);
+    assert.doesNotMatch(source, /parseInt\(newScore\)/);
+  }
+});
