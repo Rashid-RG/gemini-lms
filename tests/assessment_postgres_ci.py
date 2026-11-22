@@ -267,15 +267,22 @@ def main():
         )"""
         run_psql(f"""
           SELECT trusted_publish_course_revision(
-            '{course}','unauthorized@example.invalid',{candidate},'{"a" * 64}'
+            '{course}','unauthorized@example.invalid',{candidate},'{"b" * 64}'
           )
         """, schema=schema, expect_failure=True)
         revision = run_psql(f"""
           SELECT trusted_publish_course_revision(
-            '{course}','teacher@example.invalid',{candidate},'{"a" * 64}'
+            '{course}','teacher@example.invalid',{candidate},'{"b" * 64}'
           ) ->> 'revisionNumber'
         """, schema=schema)
         assert revision == "2", f"Unexpected atomic revision number {revision!r}"
+        # Replaying identical publication cannot create another revision.
+        run_psql(f"""
+          SELECT trusted_publish_course_revision(
+            '{course}','teacher@example.invalid',{candidate},'{"b" * 64}'
+          )
+        """, schema=schema, expect_failure=True)
+
         run_psql("""
           UPDATE "studyTypeContent" SET "content" =
              '{"questions":[{"question":"Edited","correctOption":1}]}'::json
@@ -283,7 +290,7 @@ def main():
         """, schema=schema)
         run_psql(f"""
           SELECT trusted_publish_course_revision(
-            '{course}','teacher@example.invalid',{candidate},'{"a" * 64}'
+            '{course}','teacher@example.invalid',{candidate},'{"b" * 64}'
           )
         """, schema=schema, expect_failure=True)
         assert run_psql(f"""
