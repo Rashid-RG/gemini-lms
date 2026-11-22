@@ -145,3 +145,8 @@ Capture: opaque learner identifier, course/assessment/question version, topic ta
 - Identified the two authenticated admin manual grading endpoints using permissive `parseInt(newScore)`. Introduced `parseManualGrade` to accept only an actual integer from 0 to 100, preventing strings, partial text, negative or out-of-range values. Both admin grading writers now reject requests without an admin reviewer email.
 - Regression tests cover fail-closed policy behavior, retake precedence, AI-only grades, missing reviews, invalid grade values and reviewer identity mismatch. CI syntax checks added.
 - **Not yet release-ready:** confirm student-visible course policy access in actual Clerk E2E; audit additional writers and whether reviewer authorization is correct for each course; freeze required assessment/assignment catalogs and implement verifiable chapter-completion events before certificates can be enabled.
+
+## 22. Admin manual grade input alignment
+- All three existing admin manual-grading forms now require a complete whole-number string from 0 through 100 before converting it to a numeric JSON score. The server separately enforces integer-only 0–100 grades and authenticated reviewer identity.
+- This prevents permissive `parseInt` coercion such as `75abc → 75`, rejects fractional/out-of-range values, and permits a legitimate grade of zero.
+- The current policy still does not grant automatic certificates; successful verified assessments only establish provisional assessment completion pending course and chapter completion verification.
