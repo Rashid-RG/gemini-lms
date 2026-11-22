@@ -310,3 +310,37 @@ test("student gradebook annotates verified attempts and defers legacy pass award
   assert.match(route, /verifiedQuizWindowTruncated/);
   assert.match(route, /resultStatus = "Pending Verification"/);
 });
+
+test("both public certificate issuance routes fail closed in trusted mode", () => {
+  for (const path of [
+    "app/api/(certificates)/generate-certificate/route.js",
+    "app/api/student/generate-certificate/route.js"
+  ]) {
+    const source = readFileSync(path, "utf8");
+    assert.match(source, /TRUSTED_ASSESSMENTS_ENABLED === "true"/);
+    assert.match(source, /Certificate issuance is pending verified gradebook/);
+    assert.match(source, /status: 409/);
+    assert.ok(source.indexOf("TRUSTED_ASSESSMENTS_ENABLED") < source.indexOf("await db"));
+    assert.match(source, /export async function GET/);
+  }
+});
+
+test("instructor gradebook shows only authorized student verified grades", () => {
+  const code = readFileSync("app/api/(assignments)/grades/instructor/route.js", "utf8");
+  assert.match(code, /Only course instructor can view grades/);
+  assert.match(code, /TRUSTED_ASSESSMENTS_ENABLED === "true"/);
+  assert.match(code, /TRUSTED_ASSESSMENT_ATTEMPT_TABLE/);
+  assert.match(code, /studentEmail, progress\.studentEmail/);
+  assert.match(code, /mlEligibility, "server_verified"/);
+  assert.match(code, /verifiedQuizAverage/);
+  assert.match(code, /gradeProvenance/);
+  assert.match(code, /verifiedWindowTruncated/);
+});
+
+test("admin certificate eligibility defers to verified policy in trusted mode", () => {
+  const source = readFileSync("app/api/(admin)/admin/gradebook/route.js", "utf8");
+  assert.match(source, /TRUSTED_ASSESSMENTS_ENABLED === "true"/);
+  assert.match(source, /\? false : chaptersCompleted && passedQuizzes && allAssignmentsPassed/);
+  assert.match(source, /certificateEligibilityStatus:/);
+  assert.match(source, /Pending Verification/);
+});
