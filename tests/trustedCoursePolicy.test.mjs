@@ -44,6 +44,7 @@ test("human review is required for assignment grades, not AI-only grades", () =>
   assert.equal(run({ ...options, submissions: [reviewed(75)] }).readyForCompletionReview, true);
   assert.equal(run({ ...options, submissions: [reviewed(55)] }).readyForCompletionReview, false);
   assert.equal(run({ ...options, submissions: [{ ...reviewed(95), reviewedAt: null }] }).readyForCompletionReview, false);
+  assert.equal(run({ ...options, submissions: [{ ...reviewed(95), gradedBy: "different@example.invalid" }] }).readyForCompletionReview, false);
 });
 test("passing assessments never automatically issue a certificate", () => {
   const outcome = run({ assignments: [{assignmentId:"essay-1"}], submissions:[reviewed(88)] });
