@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { evaluateTrustedCourseAssessments as evaluate } from "../lib/trustedCoursePolicy.js";
+import { parseManualGrade } from "../lib/manualGradeValidation.js";
 
 const assessment = { id: 15, type: "Quiz" };
 const attempt = (id, score, date = "2026-11-22T09:00:00Z") => ({
@@ -72,4 +73,25 @@ test("course-policy API is feature gated, signed-in scoped and read-only", () =>
   assert.match(source, /officialGrade: null/);
   assert.match(source, /certificateIssuanceEnabled: false/);
   assert.doesNotMatch(source, /db\.insert\(|db\.update\(|questionSnapshot|answers:/);
+});
+
+test("manual grade validation rejects coercion, partial numeric text and out-of-range grades", () => {
+  assert.equal(parseManualGrade(0), 0);
+  assert.equal(parseManualGrade(100), 100);
+  assert.equal(parseManualGrade(75), 75);
+  for (const invalid of ["75", "75abc", 75.5, -1, 101, null, undefined, NaN, Infinity, {}, true]) {
+    assert.throws(() => parseManualGrade(invalid), TypeError);
+  }
+});
+test("admin manual review writers enforce strict scores and reviewer identity", () => {
+  for (const path of [
+    "app/api/(admin)/admin/all-submissions/route.js",
+    "app/api/(admin)/admin/review-requests/route.js"
+  ]) {
+    const source = readFileSync(path, "utf8");
+    assert.match(source, /parseManualGrade\(newScore\)/);
+    assert.match(source, /Grade must be an integer from 0 to 100/);
+    assert.match(source, /Reviewer identity unavailable/);
+    assert.doesNotMatch(source, /parseInt\(newScore\)/);
+  }
 });
