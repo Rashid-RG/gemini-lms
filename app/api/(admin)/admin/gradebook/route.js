@@ -223,7 +223,10 @@ export async function GET(req) {
         }
       }
 
-      const isEligibleForCertificate = chaptersCompleted && passedQuizzes && allAssignmentsPassed;
+      // Unverified browser-maintained grade maps cannot award certificate eligibility
+      // in trusted mode. Full verified assignment/completion policy is pending.
+      const isEligibleForCertificate = process.env.TRUSTED_ASSESSMENTS_ENABLED === "true"
+        ? false : chaptersCompleted && passedQuizzes && allAssignmentsPassed;
       const isCertIssued = !!cert || enrollment?.certificateIssued || false;
 
       return {
@@ -264,6 +267,10 @@ export async function GET(req) {
         certificateIssued: isCertIssued,
         certificateId: cert?.certificateId || null,
         isEligibleForCertificate,
+        gradeProvenance: process.env.TRUSTED_ASSESSMENTS_ENABLED === "true"
+          ? "legacy_unverified_pending_policy" : "legacy_unverified",
+        certificateEligibilityStatus: process.env.TRUSTED_ASSESSMENTS_ENABLED === "true"
+          ? "Pending Verification" : (isEligibleForCertificate ? "Eligible" : "Not Eligible"),
         progressPercentage: progress.progressPercentage || 0,
         status: progress.status || "In Progress",
         quizAverage: quiz.avg,
