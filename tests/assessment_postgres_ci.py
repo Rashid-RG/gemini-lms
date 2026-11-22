@@ -227,6 +227,68 @@ def main():
           WHERE "courseId"='{course}' AND "revisionNumber"=1
             AND "fingerprint"='{fingerprint}'
         """, schema=schema), "Course revision mutated or deleted")
+
+        # Atomic publisher rehearsal against disposable representative base tables.
+        run_psql("""
+          CREATE TABLE "studyMaterial" (
+            "courseId" varchar PRIMARY KEY, "createdBy" varchar NOT NULL,
+            "courseLayout" json, "hasAssignments" boolean DEFAULT false,
+            "assignmentCount" integer DEFAULT 0
+          );
+          CREATE TABLE "studyTypeContent" (
+            "id" integer PRIMARY KEY, "courseId" varchar NOT NULL,
+            "chapterId" integer, "type" varchar, "status" varchar, "content" json
+          );
+          CREATE TABLE "courseAssignments" (
+            "assignmentId" varchar PRIMARY KEY, "courseId" varchar NOT NULL,
+            "title" varchar, "description" text, "rubric" json,
+            "totalPoints" integer
+          );
+        """, schema=schema)
+        run_psql(f"""
+          INSERT INTO "studyMaterial"
+            ("courseId","createdBy","courseLayout","hasAssignments","assignmentCount")
+          VALUES ('{course}','teacher@example.invalid',
+                  '{{"chapters":[{{"title":"Overview"}}]}}'::json,false,0);
+          INSERT INTO "studyTypeContent"
+            ("id","courseId","chapterId","type","status","content")
+          VALUES (5,'{course}',0,'Quiz','Ready',
+                  '{{"questions":[{{"question":"Q?","correctOption":0}}]}}'::json);
+        """, schema=schema)
+        run_psql(file="drizzle/phase1_trusted_course_publisher.sql", schema=schema)
+        candidate = f"""jsonb_build_object(
+          'courseId','{course}',
+          'courseLayout','{{"chapters":[{{"title":"Overview"}}]}}'::jsonb,
+          'assessments',jsonb_build_array(jsonb_build_object(
+            'id',5,'chapterId',0,'type','Quiz',
+            'content','{{"questions":[{{"question":"Q?","correctOption":0}}]}}'::jsonb
+          )),
+          'assignments','[]'::jsonb
+        )"""
+        run_psql(f"""
+          SELECT trusted_publish_course_revision(
+            '{course}','unauthorized@example.invalid',{candidate},'{"a" * 64}'
+          )
+        """, schema=schema, expect_failure=True)
+        revision = run_psql(f"""
+          SELECT trusted_publish_course_revision(
+            '{course}','teacher@example.invalid',{candidate},'{"a" * 64}'
+          ) ->> 'revisionNumber'
+        """, schema=schema)
+        assert revision == "2", f"Unexpected atomic revision number {revision!r}"
+        run_psql("""
+          UPDATE "studyTypeContent" SET "content" =
+             '{"questions":[{"question":"Edited","correctOption":1}]}'::json
+          WHERE "id"=5
+        """, schema=schema)
+        run_psql(f"""
+          SELECT trusted_publish_course_revision(
+            '{course}','teacher@example.invalid',{candidate},'{"a" * 64}'
+          )
+        """, schema=schema, expect_failure=True)
+        assert run_psql(f"""
+          SELECT COUNT(*) FROM "trustedCourseRevisions" WHERE "courseId"='{course}'
+        """, schema=schema) == "2", "Stale requirements published"
         # Historical attempts are unbound; newly revision-bound attempts use FK.
         run_psql(file="drizzle/phase1_trusted_attempt_revision_binding.sql", schema=schema)
         assert run_psql(f"""
