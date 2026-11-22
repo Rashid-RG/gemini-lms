@@ -40,6 +40,10 @@ jobs:
           node --check 'app/api/(assignments)/submit-quiz/route.js'
           node --check 'app/api/(assignments)/student-progress/route.js'
           node --check 'app/api/(assignments)/grades/student/route.js'
+          node --check 'app/api/(assignments)/grades/instructor/route.js'
+          node --check 'app/api/(admin)/admin/gradebook/route.js'
+          node --check 'app/api/(certificates)/generate-certificate/route.js'
+          node --check 'app/api/student/generate-certificate/route.js'
       - run: npm test
 
   postgres-integration:
