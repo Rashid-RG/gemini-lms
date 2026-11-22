@@ -96,3 +96,17 @@ test("published revision schema is private, append-only and constrained", () => 
   assert.match(rehearsal, /phase1_trusted_course_revisions\.sql/);
   assert.match(rehearsal, /expect_failure=True/);
 });
+
+test("attempt revision linkage preserves legacy NULL and requires a real revision FK", () => {
+  const sql = readFileSync("drizzle/phase1_trusted_attempt_revision_binding.sql", "utf8");
+  const schema = readFileSync("configs/schema.js", "utf8");
+  const integration = readFileSync("tests/assessment_postgres_ci.py", "utf8");
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS "courseRevisionId" varchar/);
+  assert.match(sql, /FOREIGN KEY \("courseRevisionId"\)/);
+  assert.match(sql, /REFERENCES "trustedCourseRevisions" \("id"\)/);
+  assert.match(sql, /ON DELETE RESTRICT/);
+  assert.match(schema, /courseRevisionId: varchar\(\)\.references/);
+  assert.match(integration, /phase1_trusted_attempt_revision_binding\.sql/);
+  assert.match(integration, /Historical attempt backfilled incorrectly/);
+  assert.match(integration, /Revision FK binding failed/);
+});
