@@ -8,6 +8,7 @@ import {
 } from "@/configs/schema";
 import { requireUserAuth } from "@/lib/userApiAuth";
 import { evaluateTrustedCourseAssessments } from "@/lib/trustedCoursePolicy";
+import { summarizeTrustedChapterEvidence } from "@/lib/trustedChapterEvidence";
 
 // Read-only student assessment review. No official grade or certificate updates.
 export async function GET(req) {
@@ -26,7 +27,8 @@ export async function GET(req) {
     const [course] = await db.select({
       id: STUDY_MATERIAL_TABLE.courseId,
       assignmentCount: STUDY_MATERIAL_TABLE.assignmentCount,
-      hasAssignments: STUDY_MATERIAL_TABLE.hasAssignments
+      hasAssignments: STUDY_MATERIAL_TABLE.hasAssignments,
+      courseLayout: STUDY_MATERIAL_TABLE.courseLayout
     }).from(STUDY_MATERIAL_TABLE).where(and(
       eq(STUDY_MATERIAL_TABLE.courseId, courseId),
       or(
@@ -46,7 +48,8 @@ export async function GET(req) {
 
     const [assessments, assignments, attempts, submissions] = await Promise.all([
       db.select({
-        id: STUDY_TYPE_CONTENT_TABLE.id, type: STUDY_TYPE_CONTENT_TABLE.type
+        id: STUDY_TYPE_CONTENT_TABLE.id, type: STUDY_TYPE_CONTENT_TABLE.type,
+        chapterId: STUDY_TYPE_CONTENT_TABLE.chapterId
       }).from(STUDY_TYPE_CONTENT_TABLE).where(and(
         eq(STUDY_TYPE_CONTENT_TABLE.courseId, courseId),
         inArray(STUDY_TYPE_CONTENT_TABLE.type, ["Quiz", "MCQ"]),
@@ -93,7 +96,34 @@ export async function GET(req) {
       submissions: submissions.slice(0, 1000),
       truncated
     });
+    // Chapter indices are a provisional mapping from the current course layout.
+    // This is assessment evidence only; no verified reading/completion event exists.
+    // Missing or inconsistent mappings must never produce an official award.
+    const configuredChapters = course.courseLayout?.chapters;
+    const chapterCatalogValid = Array.isArray(configuredChapters) &&
+      configuredChapters.length > 0 && configuredChapters.length <= 200;
+    let chapterEvidence = {
+      evidenceStatus: "unverified_chapter_mapping",
+      allAssessmentCheckpointsPassed: false,
+      chapterCompletionVerified: false,
+      chapters: []
+    };
+    if (chapterCatalogValid) {
+      const chapterAssessments = assessments.slice(0, 200);
+      const mappingValid = chapterAssessments.every(item =>
+        Number.isSafeInteger(item.chapterId) &&
+        item.chapterId >= 0 && item.chapterId < configuredChapters.length);
+      if (mappingValid) {
+        chapterEvidence = summarizeTrustedChapterEvidence({
+          chapters: configuredChapters.map((_, index) => index),
+          assessments: chapterAssessments,
+          attempts: attempts.slice(0, 1000),
+          truncated
+        });
+      }
+    }
     return NextResponse.json({
+      chapterEvidence,
       courseId, ...policy,
       officialGrade: null, certificateIssuanceEnabled: false
     }, { headers: { "Cache-Control": "no-store" } });
