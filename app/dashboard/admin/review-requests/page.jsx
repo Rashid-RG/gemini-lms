@@ -64,8 +64,10 @@ function AdminReviewPage() {
     }
 
     const handleSubmitReview = async (submissionId) => {
-        if (!newScore || isNaN(parseInt(newScore))) {
-            toast.error('Please enter a valid score')
+        const scoreText = String(newScore).trim()
+        const score = Number(scoreText)
+        if (!/^\\d{1,3}$/.test(scoreText) || !Number.isInteger(score) || score < 0 || score > 100) {
+            toast.error('Please enter a whole-number score between 0 and 100')
             return
         }
 
@@ -73,7 +75,7 @@ function AdminReviewPage() {
             setSubmitting(true)
             await axios.post('/api/admin/review-requests', {
                 submissionId,
-                newScore: parseInt(newScore),
+                newScore: score,
                 instructorNotes,
                 adminEmail: userEmail
             })
