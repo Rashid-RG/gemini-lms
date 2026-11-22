@@ -16,6 +16,14 @@ import { shouldIssueCertificate, getMergedQuizScores } from "@/lib/gradingEngine
  * Generate certificate upon course completion
  */
 export async function POST(req) {
+  // Fail closed: legacy progress fields are client-maintained and cannot authorize
+  // a new official certificate after trusted assessment mode is enabled.
+  // Existing certificate reads remain available through GET routes.
+  if (process.env.TRUSTED_ASSESSMENTS_ENABLED === "true") {
+    return NextResponse.json({
+      error: "Certificate issuance is pending verified gradebook and completion-policy integration"
+    }, { status: 409, headers: { "Cache-Control": "no-store" } });
+  }
   try {
     const user = await currentUser();
     if (!user) {
