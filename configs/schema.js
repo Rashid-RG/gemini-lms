@@ -1,4 +1,4 @@
-import { boolean, integer, json, pgTable, serial, text, timestamp, varchar, decimal, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, integer, json, pgTable, serial, text, timestamp, varchar, decimal, index, uniqueIndex, unique, jsonb } from "drizzle-orm/pg-core";
 
 export const USER_TABLE=pgTable('users',{
     id:serial().primaryKey(),
@@ -797,4 +797,85 @@ export const SYSTEM_BACKUP_TABLE = pgTable('systemBackups', {
 }, (table) => ({
     createdByIdx: index('system_backup_created_by_idx').on(table.createdBy),
     downloadTokenIdx: index('system_backup_download_token_idx').on(table.downloadToken),
+}));
+// Server-authoritative, immutable-at-start assessment attempt snapshots.
+// Requires a separately reviewed non-destructive database migration before activation.
+export const TRUSTED_ASSESSMENT_ATTEMPT_TABLE = pgTable("trustedAssessmentAttempts", {
+    id: varchar().primaryKey(),
+    studentEmail: varchar().notNull(),
+    courseId: varchar().notNull(),
+    studyTypeContentId: integer().notNull(),
+    courseRevisionId: varchar().references(() => TRUSTED_COURSE_REVISION_TABLE.id, { onDelete: "restrict" }),
+    questionSnapshot: json().notNull(), // PRIVATE: never include in student API responses
+    questionCount: integer().notNull(),
+    status: varchar().notNull().default("started"),
+    answers: json(), // user submissions only
+    gradeDetails: json(), // validated outcome; no trusted answer keys exposed
+    score: integer(),
+    correctCount: integer(),
+    gradingVersion: varchar().notNull().default("trusted-v1"),
+    mlEligibility: varchar().notNull().default("pending"), // eligible only on verified server submission
+    adaptiveSyncStatus: varchar().notNull().default("pending"),
+    startedAt: timestamp().defaultNow().notNull(),
+    expiresAt: timestamp().notNull(),
+    submittedAt: timestamp()
+}, (table) => ({
+    studentIdx: index("trusted_attempt_student_idx").on(table.studentEmail),
+    courseIdx: index("trusted_attempt_course_idx").on(table.courseId),
+    assessmentIdx: index("trusted_attempt_assessment_idx").on(table.studyTypeContentId),
+    courseRevisionIdx: index("trusted_attempt_course_revision_idx").on(table.courseRevisionId)
+}));
+
+
+// Append-only idempotency ledger: one verified assessment projection per attempt.
+// Migration is prepared separately and has NOT been applied.
+export const VERIFIED_ASSESSMENT_PROJECTION_TABLE = pgTable("verifiedAssessmentProjection", {
+    attemptId: varchar().primaryKey().references(() => TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id, { onDelete: "restrict" }),
+    studentEmail: varchar().notNull(),
+    courseId: varchar().notNull(),
+    studyTypeContentId: integer().notNull(),
+    score: integer().notNull(),
+    submittedAt: timestamp().notNull(),
+    projectedAt: timestamp().notNull().defaultNow()
+}, (table) => ({
+    studentCourseIdx: index("verified_projection_student_course_idx").on(table.studentEmail, table.courseId),
+    assessmentIdx: index("verified_projection_assessment_idx").on(table.studyTypeContentId)
+}));
+
+
+// Experimental server-observed chapter sessions. Requires separate migration and
+// TRUSTED_CHAPTER_ACTIVITY_ENABLED=true. These are not certificate or reading proof.
+export const TRUSTED_CHAPTER_SESSION_TABLE = pgTable("trustedChapterSessions", {
+    id: varchar().primaryKey(),
+    studentEmail: varchar().notNull(),
+    courseId: varchar().notNull(),
+    chapterIndex: integer().notNull(),
+    startedAt: timestamp().notNull().defaultNow(),
+    lastHeartbeatAt: timestamp().notNull().defaultNow(),
+    expiresAt: timestamp().notNull(),
+    closedAt: timestamp(),
+    heartbeatCount: integer().notNull().default(0)
+}, (table) => ({
+    ownerCourseIdx: index("trusted_chapter_sessions_owner_course_idx")
+        .on(table.studentEmail, table.courseId, table.startedAt)
+}));
+
+
+// Proposed append-only snapshots of officially published course requirements.
+// Private manifestSnapshot can include answer keys. Never select it in student APIs.
+// No publishing endpoint or production migration is activated by this declaration.
+export const TRUSTED_COURSE_REVISION_TABLE = pgTable("trustedCourseRevisions", {
+    id: varchar().primaryKey(),
+    courseId: varchar().notNull(),
+    revisionNumber: integer().notNull(),
+    fingerprint: varchar({ length: 64 }).notNull(),
+    manifestVersion: varchar().notNull().default("course-manifest-sha256-v1"),
+    manifestSnapshot: jsonb().notNull(),
+    publishedBy: varchar().notNull(),
+    publishedAt: timestamp().notNull().defaultNow()
+}, (table) => ({
+    courseRevisionUnique: unique("trusted_course_revision_unique")
+        .on(table.courseId, table.revisionNumber),
+    courseRevisionIdx: index("trusted_course_revisions_course_idx")
+        .on(table.courseId, table.revisionNumber)
 }));

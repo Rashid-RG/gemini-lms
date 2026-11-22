@@ -20,6 +20,10 @@ const PRICING = {
 };
 
 export async function POST(req) {
+    // This endpoint bypasses gateway settlement and must never run in production.
+    if (process.env.NODE_ENV !== 'development') {
+        return NextResponse.json({ error: 'Manual payment verification is disabled' }, { status: 403 });
+    }
     const authHeader = req.headers.get('authorization');
     const expectedKey = process.env.ADMIN_SETUP_KEY;
     

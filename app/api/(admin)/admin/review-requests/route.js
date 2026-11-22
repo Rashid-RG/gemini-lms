@@ -3,6 +3,7 @@ import { ASSIGNMENT_SUBMISSIONS_TABLE, COURSE_ASSIGNMENTS_TABLE, STUDY_MATERIAL_
 import { eq, and, desc, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
+import { parseManualGrade } from "@/lib/manualGradeValidation";
 
 /**
  * Helper function to update student progress with new assignment score
@@ -148,6 +149,15 @@ export async function POST(req) {
     try {
         const { submissionId, newScore, instructorNotes } = await req.json();
         const adminEmail = auth.admin?.email;
+        let validatedScore;
+        try {
+            validatedScore = parseManualGrade(newScore);
+        } catch {
+            return NextResponse.json({ error: "Grade must be an integer from 0 to 100" }, { status: 400 });
+        }
+        if (!adminEmail) {
+            return NextResponse.json({ error: "Reviewer identity unavailable" }, { status: 403 });
+        }
 
         if (!submissionId || newScore === undefined) {
             return NextResponse.json(
@@ -180,7 +190,7 @@ export async function POST(req) {
         const result = await db
             .update(ASSIGNMENT_SUBMISSIONS_TABLE)
             .set({
-                score: parseInt(newScore),
+                score: validatedScore,
                 originalAiScore: originalScore, // Preserve original AI score (only on first review)
                 reviewedBy: adminEmail,
                 reviewedAt: new Date(),
@@ -198,7 +208,7 @@ export async function POST(req) {
             submission.courseId,
             submission.studentEmail,
             submission.assignmentId,
-            parseInt(newScore)
+            validatedScore
         );
 
         return NextResponse.json({ 

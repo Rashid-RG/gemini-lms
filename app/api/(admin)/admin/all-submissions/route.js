@@ -3,6 +3,7 @@ import { ASSIGNMENT_SUBMISSIONS_TABLE, COURSE_ASSIGNMENTS_TABLE, STUDY_MATERIAL_
 import { eq, desc, and, or, ilike, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/adminApiAuth";
+import { parseManualGrade } from "@/lib/manualGradeValidation";
 
 /**
  * Helper function to update student progress with new assignment score
@@ -211,6 +212,15 @@ export async function PATCH(req) {
     try {
         const { submissionId, newScore, instructorNotes } = await req.json();
         const adminEmail = auth.admin?.email;
+        let validatedScore;
+        try {
+            validatedScore = parseManualGrade(newScore);
+        } catch {
+            return NextResponse.json({ error: "Grade must be an integer from 0 to 100" }, { status: 400 });
+        }
+        if (!adminEmail) {
+            return NextResponse.json({ error: "Reviewer identity unavailable" }, { status: 403 });
+        }
 
         if (!submissionId || newScore === undefined) {
             return NextResponse.json(
@@ -238,7 +248,7 @@ export async function PATCH(req) {
         const result = await db
             .update(ASSIGNMENT_SUBMISSIONS_TABLE)
             .set({
-                score: parseInt(newScore),
+                score: validatedScore,
                 originalAiScore: submission.originalAiScore || submission.score, // Preserve original AI score if not already set
                 reviewedBy: adminEmail,
                 reviewedAt: new Date(),
@@ -256,7 +266,7 @@ export async function PATCH(req) {
             submission.courseId,
             submission.studentEmail,
             submission.assignmentId,
-            parseInt(newScore)
+            validatedScore
         );
 
         // Log admin activity
@@ -267,7 +277,7 @@ export async function PATCH(req) {
             submissionId,
             {
                 oldScore: submission.score,
-                newScore: parseInt(newScore),
+                newScore: validatedScore,
                 instructorNotes: instructorNotes || null
             },
             submission.studentEmail,

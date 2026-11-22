@@ -6,6 +6,14 @@ import { withDbRetry } from "@/lib/dbUtils";
 import { auth } from "@clerk/nextjs/server";
 import { getAuthEmail } from "@/lib/clerkUtils";
 
+// Do not disclose source question banks containing grading keys when trusted
+// assessments are enabled. The dedicated attempt API delivers answer-free questions.
+function redactAssessmentKeys(item) {
+    if (process.env.TRUSTED_ASSESSMENTS_ENABLED !== "true") return item;
+    if (!item || !["quiz", "mcq"].includes(String(item.type).toLowerCase())) return item;
+    return { ...item, content: null };
+}
+
 export const maxDuration = 30;
 
 export async function POST(req) {
@@ -45,7 +53,7 @@ export async function POST(req) {
             const result={
                 notes:notes,
                 flashcard:contentList?.filter(item=>item.type=='Flashcard'),
-                quiz:contentList?.filter(item=>item.type=='Quiz'),
+                quiz:contentList?.filter(item=>item.type=='Quiz').map(redactAssessmentKeys),
                 qa:contentList?.filter(item=>item.type=='QA'),
             }
             return NextResponse.json(result);
@@ -63,7 +71,7 @@ export async function POST(req) {
                 eq(STUDY_TYPE_CONTENT_TABLE.type,studyType))));
 
             // Return the first result if it exists, otherwise return null
-            return NextResponse.json(result && result.length > 0 ? result[0] : null);
+            return NextResponse.json(result && result.length > 0 ? redactAssessmentKeys(result[0]) : null);
         }
     } catch (error) {
         console.error('Error in study-type route:', error);

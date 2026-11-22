@@ -3,8 +3,8 @@
  * Used by Student GradeBook
  */
 import { db } from "@/configs/db";
-import { STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, GRADE_COMMENTS_TABLE, USER_TABLE } from "@/configs/schema";
-import { eq, and } from "drizzle-orm";
+import { STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, GRADE_COMMENTS_TABLE, USER_TABLE, TRUSTED_ASSESSMENT_ATTEMPT_TABLE } from "@/configs/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
@@ -159,6 +159,24 @@ export async function GET(req) {
             ),
         ]);
 
+        // Verified quiz grades remain distinguishable from historical client-supplied
+        // progress maps. This is a read-only, student-scoped, bounded overlay.
+        const trustedMode = process.env.TRUSTED_ASSESSMENTS_ENABLED === "true";
+        const verifiedAttempts = trustedMode ? await db.select({
+          score: TRUSTED_ASSESSMENT_ATTEMPT_TABLE.score,
+          id: TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id
+        }).from(TRUSTED_ASSESSMENT_ATTEMPT_TABLE).where(and(
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.studentEmail, studentEmail),
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.courseId, progress.courseId),
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.status, "submitted"),
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.mlEligibility, "server_verified")
+        )).orderBy(desc(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.submittedAt)).limit(501) : [];
+        const verifiedWindowTruncated = verifiedAttempts.length > 500;
+        const verifiedScores = verifiedAttempts.slice(0, 500).map(a => a.score)
+          .filter(score => Number.isInteger(score) && score >= 0 && score <= 100);
+        const verifiedQuizAverage = verifiedScores.length
+          ? Math.round(verifiedScores.reduce((sum, score) => sum + score, 0) / verifiedScores.length)
+          : null;
         const gradeBreakdown = calculateWeightedGrade(progress);
         const rankedPeers = dedupeByKey(
           peerProgress,
@@ -233,8 +251,18 @@ export async function GET(req) {
           resultStatus = "Failed";
         }
 
+        if (trustedMode) {
+          // No official certificate/pass decision from legacy browser-reported maps.
+          // Verified quiz history is available separately; assignment trust is pending.
+          resultStatus = "Pending Verification";
+        }
+
         return {
           courseId: progress.courseId,
+          gradeProvenance: trustedMode ? "legacy_unverified_plus_verified_quiz_overlay" : "legacy_unverified",
+          verifiedQuizAverage,
+          verifiedQuizAttemptCount: verifiedScores.length,
+          verifiedQuizWindowTruncated: verifiedWindowTruncated,
           courseName: course?.[0]?.topic || "Unknown Course",
           courseType: course?.[0]?.courseType || "Unknown",
           category: course?.[0]?.category || "General",

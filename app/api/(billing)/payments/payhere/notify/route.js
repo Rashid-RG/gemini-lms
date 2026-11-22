@@ -1,254 +1,124 @@
-import { NextResponse } from "next/server";
-import crypto from "crypto";
+import { verifyPayhereIpn, normalizePayhereSecret } from "@/lib/payhereSignature";
 import { db } from "@/configs/db";
-import { PAYMENT_RECORD_TABLE, USER_TABLE, CREDIT_TRANSACTION_TABLE } from "@/configs/schema";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { emailService } from "@/lib/emailService";
-
-/**
- * PayHere Payment Notification API (IPN - Instant Payment Notification)
- * This is called by PayHere's servers when payment status changes
- * 
- * PayHere will POST to this URL with payment result
- */
-
-// Pricing configuration (must match initiate route)
-const PRICING = {
-    premium_monthly: {
-        name: "Premium Monthly",
-        amount: 1500.00,
-        credits: 999999,
-        isMember: true,
-        planType: 'subscription'
-    },
-    premium_yearly: {
-        name: "Premium Yearly", 
-        amount: 15000.00,
-        credits: 999999,
-        isMember: true,
-        planType: 'subscription'
-    },
-    credits_5: {
-        name: "5 Course Credits",
-        amount: 500.00,
-        credits: 5,
-        isMember: false,
-        planType: 'credits'
-    },
-    credits_15: {
-        name: "15 Course Credits",
-        amount: 1200.00,
-        credits: 15,
-        isMember: false,
-        planType: 'credits'
-    },
-    credits_30: {
-        name: "30 Course Credits",
-        amount: 2100.00,
-        credits: 30,
-        isMember: false,
-        planType: 'credits'
-    }
-};
-
-function isLikelyBase64(value) {
-    return /^[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length % 4 === 0;
-}
-
-function getMerchantSecretCandidates(secret) {
-    if (!secret) return [];
-
-    const trimmed = String(secret).trim();
-    const encoding = (process.env.PAYHERE_MERCHANT_SECRET_ENCODING || 'auto').toLowerCase();
-
-    if (encoding === 'raw') return [trimmed];
-
-    let decoded = null;
-    const shouldTryDecode = encoding === 'base64' || (encoding === 'auto' && isLikelyBase64(trimmed));
-    if (shouldTryDecode) {
-        try {
-            decoded = Buffer.from(trimmed, 'base64').toString('utf8').trim();
-        } catch {
-            decoded = null;
-        }
-    }
-
-    const candidates = [trimmed];
-    if (decoded && decoded !== trimmed) candidates.unshift(decoded);
-    return [...new Set(candidates)];
-}
-
-function verifyPayHereSignature(merchantId, orderId, amount, currency, statusCode, merchantSecret, receivedMd5sig) {
-    if (!receivedMd5sig) return false;
-
-    // PayHere verification: md5(merchant_id + order_id + payhere_amount + payhere_currency + status_code + md5(merchant_secret))
-    const candidates = getMerchantSecretCandidates(merchantSecret);
-
-    return candidates.some((candidate) => {
-        const secretHash = crypto.createHash('md5').update(candidate).digest('hex').toUpperCase();
-        const localMd5sig = crypto.createHash('md5')
-            .update(merchantId + orderId + amount + currency + statusCode + secretHash)
-            .digest('hex')
-            .toUpperCase();
-
-        return localMd5sig === String(receivedMd5sig).toUpperCase();
-    });
-}
+import { getPayherePlan, matchesPayhereAmount } from "@/lib/payherePricing";
 
 export async function POST(req) {
     try {
-        // Parse form data from PayHere
-        const formData = await req.formData();
-        
-        const merchantId = formData.get('merchant_id');
-        const orderId = formData.get('order_id');
-        const paymentId = formData.get('payment_id');
-        const payhereAmount = formData.get('payhere_amount');
-        const payhereCurrency = formData.get('payhere_currency');
-        const statusCode = formData.get('status_code');
-        const md5sig = formData.get('md5sig');
-        const method = formData.get('method');
-        const statusMessage = formData.get('status_message');
-        
-        // Custom fields
-        const planId = formData.get('custom_1');
-        const userEmail = formData.get('custom_2');
-
-        console.log('PayHere notification received:', {
-            orderId,
-            paymentId,
-            statusCode,
-            statusMessage,
-            planId,
-            userEmail
-        });
-
-        // Verify signature
-        const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET;
-        const isValid = verifyPayHereSignature(
-            merchantId,
-            orderId,
-            payhereAmount,
-            payhereCurrency,
-            statusCode,
-            merchantSecret,
-            md5sig
-        );
-
-        if (!isValid) {
-            console.error('Invalid PayHere signature');
-            return new Response('Invalid signature', { status: 400 });
+        const configuredMerchantId = process.env.PAYHERE_MERCHANT_ID;
+        const secret = normalizePayhereSecret(process.env.PAYHERE_MERCHANT_SECRET, process.env.PAYHERE_MERCHANT_SECRET_ENCODING || "raw");
+        if (!configuredMerchantId || !secret) return new Response("Gateway not configured", { status: 503 });
+        const form = await req.formData();
+        const merchantId = form.get("merchant_id");
+        const orderId = form.get("order_id");
+        const paymentId = form.get("payment_id");
+        const amount = form.get("payhere_amount");
+        const currency = form.get("payhere_currency");
+        const status = form.get("status_code");
+        const signature = form.get("md5sig");
+        const planId = form.get("custom_1");
+        const userEmail = form.get("custom_2");
+        const plan = getPayherePlan(planId);
+        if (merchantId !== configuredMerchantId || !plan || typeof orderId !== "string" ||
+            !orderId.startsWith("ORDER_") || typeof paymentId !== "string" ||
+            !paymentId || typeof userEmail !== "string" ||
+            !matchesPayhereAmount(amount, currency, plan.amount)) {
+            return new Response("Invalid payment details", { status: 400 });
         }
+        if (!verifyPayhereIpn({
+            merchantId, orderId, amount, currency, status, signature, secret
+        })) return new Response("Invalid signature", { status: 400 });
 
-        // Get plan details
-        const plan = PRICING[planId];
-        if (!plan) {
-            console.error('Invalid plan ID:', planId);
-            return new Response('Invalid plan', { status: 400 });
-        }
+        // Signed non-success events are not evidence of completed settlement.
+        // Pending/cancellation/chargeback need a separate gateway reconciliation workflow.
+        if (status !== "2") return new Response("OK", { status: 200 });
 
-        // Determine payment status
-        let paymentStatus = 'pending';
-        if (statusCode === '2') {
-            paymentStatus = 'completed';
-        } else if (statusCode === '-1') {
-            paymentStatus = 'canceled';
-        } else if (statusCode === '-2') {
-            paymentStatus = 'failed';
-        } else if (statusCode === '-3') {
-            paymentStatus = 'chargedback';
-        } else if (statusCode === '0') {
-            paymentStatus = 'pending';
-        }
-
-        // Record payment in database
-        await db.insert(PAYMENT_RECORD_TABLE).values({
-            userEmail: userEmail,
-            amount: payhereAmount,
-            currency: payhereCurrency.toLowerCase(),
-            plan: planId,
-            planType: plan.planType,
-            creditsAdded: plan.credits,
-            status: paymentStatus,
-            paymentMethod: method || 'payhere',
-            gatewayPaymentId: paymentId,
-            sessionId: orderId,
-            metadata: {
-                statusCode,
-                statusMessage,
-                gateway: 'payhere'
+        // Exactly one SQL statement makes claiming, awarding and auditing atomic.
+        // Updating a single pending row serializes simultaneous callback attempts under
+        // PostgreSQL row locking. Neither duplicate nor unknown orders can award credits.
+        const membership = plan.isMember;
+        const result = await db.execute(sql`
+            WITH matching AS (
+                SELECT id FROM "paymentRecord"
+                WHERE "sessionId" = ${orderId} AND "paymentMethod" = 'payhere'
+            ),
+            claimed AS (
+                UPDATE "paymentRecord" p SET
+                    status = 'completed',
+                    "gatewayPaymentId" = ${paymentId},
+                    "updatedAt" = NOW()
+                WHERE p.id = (SELECT id FROM matching LIMIT 1)
+                  AND (SELECT COUNT(*) FROM matching) = 1
+                  AND p.status = 'pending'
+                  AND p."userEmail" = ${userEmail}
+                  AND p.plan = ${planId}
+                  AND p.amount = ${plan.amount.toFixed(2)}
+                  AND LOWER(p.currency) = 'lkr'
+                  AND p."gatewayPaymentId" IS NULL
+                  AND EXISTS (SELECT 1 FROM users u WHERE u.email = p."userEmail")
+                RETURNING p."userEmail"
+            ),
+            credited AS (
+                UPDATE users u SET
+                    credits = CASE WHEN ${membership} THEN 999999 ELSE COALESCE(u.credits, 0) + ${plan.credits} END,
+                    "isMember" = CASE WHEN ${membership} THEN TRUE ELSE COALESCE(u."isMember", FALSE) END,
+                    "updatedAt" = NOW()
+                WHERE u.email = (SELECT "userEmail" FROM claimed LIMIT 1)
+                RETURNING u.email, u.name, u.credits AS new_balance
+            ),
+            audit AS (
+                INSERT INTO "creditTransactions" (
+                    "userEmail", amount, type, reason, "balanceBefore", "balanceAfter", "createdBy"
+                )
+                SELECT email, ${plan.credits}, 'purchase', ${"Purchased " + plan.name + " via PayHere"},
+                    CASE WHEN ${membership} THEN new_balance ELSE new_balance - ${plan.credits} END,
+                    new_balance, 'system'
+                FROM credited RETURNING id
+            )
+            SELECT
+                (SELECT COUNT(*) FROM claimed)::int AS claimed_count,
+                (SELECT COUNT(*) FROM audit)::int AS audit_count,
+                (SELECT email FROM credited LIMIT 1) AS email,
+                (SELECT name FROM credited LIMIT 1) AS name
+        `);
+        const row = result.rows?.[0] || result[0];
+        if (Number(row?.claimed_count) === 0) {
+            // Distinguish a replay from unmatched orders for reconciliation.
+            const existing = await db.execute(sql`
+                SELECT status, "gatewayPaymentId", amount, currency, "creditsAdded"
+                FROM "paymentRecord"
+                WHERE "sessionId" = ${orderId} AND "userEmail" = ${userEmail}
+                  AND plan = ${planId} AND "paymentMethod" = 'payhere'
+                LIMIT 2
+            `);
+            const matches = existing.rows || existing;
+            if (matches.length === 1 && matches[0].status === "completed" &&
+                matches[0].gatewayPaymentId === paymentId &&
+                Number(matches[0].amount) === plan.amount &&
+                String(matches[0].currency).toUpperCase() === currency &&
+                matches[0].creditsAdded === plan.credits) {
+                return new Response("OK", { status: 200 });
             }
-        });
-
-        // If payment is successful, update user credits/membership
-        if (paymentStatus === 'completed' && userEmail) {
-            // Get current user
-            const user = await db.select()
-                .from(USER_TABLE)
-                .where(eq(USER_TABLE.email, userEmail))
-                .limit(1);
-
-            if (user.length > 0) {
-                const currentCredits = user[0].credits || 0;
-
-                if (plan.isMember) {
-                    // Premium subscription - set unlimited credits and member status
-                    await db.update(USER_TABLE)
-                        .set({
-                            isMember: true,
-                            credits: 999999,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(USER_TABLE.email, userEmail));
-                } else {
-                    // Credit pack - add credits
-                    await db.update(USER_TABLE)
-                        .set({
-                            credits: sql`${USER_TABLE.credits} + ${plan.credits}`,
-                            updatedAt: new Date()
-                        })
-                        .where(eq(USER_TABLE.email, userEmail));
-                }
-
-                // Log credit transaction
-                await db.insert(CREDIT_TRANSACTION_TABLE).values({
-                    userEmail: userEmail,
-                    amount: plan.credits,
-                    type: 'purchase',
-                    reason: `Purchased ${plan.name} via PayHere`,
-                    balanceBefore: currentCredits,
-                    balanceAfter: plan.isMember ? 999999 : currentCredits + plan.credits,
-                    createdBy: 'system'
-                });
-
-                // Send payment confirmation email
-                try {
-                    await emailService.sendPaymentConfirmationEmail(
-                        userEmail,
-                        user[0].name || 'User',
-                        payhereAmount,
-                        paymentId,
-                        plan.planType
-                    );
-                } catch (emailError) {
-                    console.error('Payment email failed (non-fatal):', emailError?.message);
-                    // Don't fail the payment processing if email fails
-                }
-
-                console.log(`Payment successful: ${userEmail} purchased ${plan.name}`);
-            }
+            return new Response("Unknown or mismatched order", { status: 409 });
         }
+        if (Number(row?.audit_count) !== 1) throw new Error("Payment claim did not create exactly one audit entry");
 
-        // PayHere expects a 200 OK response
-        return new Response('OK', { status: 200 });
-
+        // Email is intentionally outside the settlement SQL; failures do not grant more credits.
+        try {
+            await emailService.sendPaymentConfirmationEmail(
+                row.email, row.name || "Student", amount, paymentId, plan.planType
+            );
+        } catch (error) {
+            console.error("Payment confirmation email failed:", error);
+        }
+        return new Response("OK", { status: 200 });
     } catch (error) {
-        console.error('PayHere notification error:', error);
-        return new Response('Server error', { status: 500 });
+        console.error("PayHere callback error:", error);
+        return new Response("Server error", { status: 500 });
     }
 }
 
-// Also handle GET for testing
 export async function GET() {
-    return NextResponse.json({ message: 'PayHere notification endpoint active' });
+    return new Response("PayHere notification endpoint active", { status: 200 });
 }

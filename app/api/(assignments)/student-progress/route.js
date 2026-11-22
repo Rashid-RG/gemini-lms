@@ -105,6 +105,17 @@ export async function POST(req) {
         )
       );
 
+    // Trusted mode may accept notes/activity progress, but browser-submitted grade
+    // maps are NOT authoritative assessment records. Preserve existing legacy
+    // fields rather than overwriting them with forged client-supplied scores.
+    // Verified grades live in trustedAssessmentAttempts and its read-only API.
+    const trustedMode = process.env.TRUSTED_ASSESSMENTS_ENABLED === "true";
+    const storedProgress = existing[0] || null;
+    const acceptedQuizScores = trustedMode ? (storedProgress?.quizScores ?? {}) : quizScores;
+    const acceptedMcqScores = trustedMode ? (storedProgress?.mcqScores ?? {}) : mcqScores;
+    const acceptedAssignmentScores = trustedMode ? (storedProgress?.assignmentScores ?? {}) : assignmentScores;
+    const encodeScoreMap = (scores) => typeof scores === "string" ? scores : JSON.stringify(scores || {});
+
     let result;
     if (existing.length > 0) {
       const prev = existing[0];
@@ -141,10 +152,10 @@ export async function POST(req) {
       });
 
       // Calculate final score (average of quiz and assignment scores)
-      const quizArray = Object.values(quizScores || {});
-      const assignmentArray = Object.values(assignmentScores || {});
+      const quizArray = Object.values(acceptedQuizScores || {});
+      const assignmentArray = Object.values(acceptedAssignmentScores || {});
       const allScores = [...quizArray, ...assignmentArray];
-      const finalScore = allScores.length > 0 
+      const finalScore = trustedMode ? (prev.finalScore ?? 0) : allScores.length > 0 
         ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
         : 0;
 
@@ -152,9 +163,9 @@ export async function POST(req) {
         .update(STUDENT_PROGRESS_TABLE)
         .set({
           completedChapters: JSON.stringify(safeChapters || []),
-          quizScores: JSON.stringify(quizScores || {}),
-          assignmentScores: JSON.stringify(assignmentScores || {}),
-          mcqScores: JSON.stringify(mcqScores || {}),
+          quizScores: encodeScoreMap(acceptedQuizScores),
+          assignmentScores: encodeScoreMap(acceptedAssignmentScores),
+          mcqScores: encodeScoreMap(acceptedMcqScores),
           progressPercentage: safeProgress || 0,
           finalScore,
           streakCount,
@@ -182,9 +193,9 @@ export async function POST(req) {
           courseId,
           studentEmail,
           completedChapters: JSON.stringify(safeChapters || []),
-          quizScores: JSON.stringify(quizScores || {}),
-          assignmentScores: JSON.stringify(assignmentScores || {}),
-          mcqScores: JSON.stringify(mcqScores || {}),
+          quizScores: encodeScoreMap(acceptedQuizScores),
+          assignmentScores: encodeScoreMap(acceptedAssignmentScores),
+          mcqScores: encodeScoreMap(acceptedMcqScores),
           progressPercentage: safeProgress || 0,
           finalScore: 0,
           totalChapters: 0,

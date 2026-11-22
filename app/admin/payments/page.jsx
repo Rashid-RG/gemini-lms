@@ -109,6 +109,9 @@ function PaymentsDashboard() {
     const [loading, setLoading] = useState(true)
     const [payments, setPayments] = useState([])
     const [analytics, setAnalytics] = useState(null)
+    const [reconciliation, setReconciliation] = useState(null)
+    const [reconError, setReconError] = useState('')
+    const [reconLoading, setReconLoading] = useState(false)
     const [period, setPeriod] = useState('all')
     const [statusFilter, setStatusFilter] = useState('')
     const [showAddModal, setShowAddModal] = useState(false)
@@ -142,6 +145,20 @@ function PaymentsDashboard() {
             console.error('Error fetching payments:', error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchReconciliation = async () => {
+        if (admin?.role !== 'super_admin') return
+        setReconLoading(true)
+        setReconError('')
+        try {
+            const response = await axios.get('/api/admin/payments/reconciliation')
+            setReconciliation(response.data)
+        } catch (error) {
+            setReconError(error.response?.data?.error || 'Unable to load reconciliation report')
+        } finally {
+            setReconLoading(false)
         }
     }
 
@@ -207,7 +224,13 @@ function PaymentsDashboard() {
             p.paymentMethod || 'N/A'
         ])
 
-        const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
+        // Prevent formula execution in spreadsheet apps and quote CSV delimiters.
+        const escapeCsvCell = (value) => {
+            let text = String(value ?? '')
+            if (/^\s*[=+@\-\t\r]/.test(text)) text = "'" + text
+            return '"' + text.replaceAll('"', '""') + '"'
+        }
+        const csvContent = [headers, ...rows].map(row => row.map(escapeCsvCell).join(',')).join('\r\n')
         const blob = new Blob([csvContent], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -247,16 +270,40 @@ function PaymentsDashboard() {
                             <Download className="w-4 h-4 mr-2" />
                             Export
                         </Button>
-                        <Button
-                            onClick={() => setShowAddModal(true)}
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Record Payment
-                        </Button>
+                        {admin?.role === 'super_admin' && (
+                            <Button onClick={fetchReconciliation} variant="outline" disabled={reconLoading}>
+                                <RefreshCw className={`w-4 h-4 mr-2 ${reconLoading ? 'animate-spin' : ''}`} />
+                                Reconciliation
+                            </Button>
+                        )}
                     </div>
                 }
             />
 
+            <div role="status" className="mb-6 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-4 text-sm text-amber-900 dark:text-amber-200">
+                Manual payment awards and refunds are temporarily disabled. Payment changes require verified PayHere reconciliation.
+            </div>
+            {admin?.role === 'super_admin' && (reconciliation || reconError) && (
+                <AdminSurface className="mb-6 p-5">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Read-only payment reconciliation</h3>
+                    {reconError ? <p role="alert" className="text-red-600">{reconError}</p> :
+                        <div>
+                            <p className="text-xs text-gray-500 mb-3">Sampled anomalies only; gateway verification is required before corrective action.</p>
+                            {reconciliation?.issues?.length ? (
+                                <div className="max-h-64 overflow-auto space-y-2">
+                                    {reconciliation.issues.map((issue, index) => (
+                                        <div key={index} className="rounded-lg border p-3 text-sm flex flex-wrap gap-2 justify-between">
+                                            <span className="font-medium">{String(issue.issue).replaceAll('_', ' ')}</span>
+                                            <span className="break-all">{issue.reference || 'No reference'}</span>
+                                            <span>{issue.occurrences} occurrence(s)</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : <p className="text-sm text-gray-600">No anomalies found in the sampled categories.</p>}
+                        </div>
+                    }
+                </AdminSurface>
+            )}
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <StatCard
@@ -463,16 +510,7 @@ function PaymentsDashboard() {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-right">
-                                            {payment.status === 'completed' && (
-                                                <Button
-                                                    onClick={() => handleRefund(payment.id)}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 font-semibold"
-                                                >
-                                                    Refund
-                                                </Button>
-                                            )}
+                                            <span className="text-xs text-gray-500">Review only</span>
                                         </td>
                                     </tr>
                                 ))

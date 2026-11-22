@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/configs/db'
 import { STUDY_TYPE_CONTENT_TABLE } from '@/configs/schema'
-import axios from 'axios'
+import { recordAdaptivePerformance } from '@/lib/recordAdaptivePerformance'
 import { requireUserAuth } from "@/lib/userApiAuth"
 
 /**
@@ -10,6 +10,11 @@ import { requireUserAuth } from "@/lib/userApiAuth"
  * Body: { courseId, studentEmail, chapterId, topicName, answers, quizData }
  */
 export async function POST(req) {
+    // Legacy endpoint trusts question keys supplied by the browser.
+    // Disable it when the secure assessment flow is enabled.
+    if (process.env.TRUSTED_ASSESSMENTS_ENABLED === "true") {
+        return NextResponse.json({ error: "Use the trusted assessment workflow" }, { status: 409 });
+    }
     try {
         const authResult = await requireUserAuth(req);
         if (!authResult.authenticated) return authResult.error;
@@ -46,23 +51,17 @@ export async function POST(req) {
 
         const score = Math.round((correctCount / totalQuestions) * 100)
 
-        // Track adaptive performance via background job
+        // Internal write is a direct server function, not a privileged HTTP call.
         try {
-            await axios.post(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/adaptive-performance`, {
+            await recordAdaptivePerformance({
                 courseId,
                 studentEmail,
                 topicId: `chapter_${chapterId}`,
-                topicName,
-                score,
-                assessmentType: 'quiz'
-            }, {
-                headers: {
-                    'x-internal-key': process.env.CLERK_SECRET_KEY
-                }
-            })
+                topicName: typeof topicName === "string" && topicName.trim() ? topicName : "Quiz",
+                score
+            });
         } catch (perfError) {
-            console.error('Warning: Could not track adaptive performance:', perfError.message)
-            // Continue even if performance tracking fails
+            console.error("Warning: Could not track adaptive performance:", perfError.message);
         }
 
         return NextResponse.json({

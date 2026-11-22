@@ -1,0 +1,91 @@
+name: Phase 1 security tests
+on:
+  push:
+    branches: [main, "security/**"]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Check payment handler syntax
+        run: |
+          node --check 'app/api/(billing)/payments/payhere/initiate/route.js'
+          node --check 'app/api/(billing)/payments/payhere/notify/route.js'
+          node --check 'app/api/(billing)/payments/payhere/status/route.js'
+          node --check 'app/api/(billing)/subscription/cancel/route.js'
+          node --check 'app/api/(admin)/admin/payments/route.js'
+          node --check 'app/api/(admin)/admin/payments/reconciliation/route.js'
+          node --check lib/payherePricing.js
+          node --check lib/payhereSignature.js
+          node --check lib/userApiAuth.js
+          node --check lib/recordAdaptivePerformance.js
+          node --check lib/trustedAssessment.js
+          node --check lib/verifiedAssessmentSummary.js
+          node --check lib/verifiedProjection.js
+          node --check lib/trustedCoursePolicy.js
+          node --check lib/trustedCourseManifest.js
+          node --check 'app/api/(learning)/assessments/trusted/publish-review/route.js'
+          node --check 'app/api/(learning)/assessments/trusted/publish/route.js'
+          node --check lib/trustedChapterEvidence.js
+          node --check lib/trustedChapterReview.js
+          node --check 'app/api/(learning)/assessments/trusted/chapter-activity/route.js'
+          node --check lib/manualGradeValidation.js
+          node --check 'app/api/(admin)/admin/all-submissions/route.js'
+          node --check 'app/api/(admin)/admin/review-requests/route.js'
+          node --check 'app/api/(learning)/assessments/trusted/course-policy/route.js'
+          node --check tests/trustedAssessment.postgres.integration.mjs
+          node --check 'app/api/(admin)/admin/assessments/reconcile/route.js'
+          node --check 'app/api/(learning)/assessments/trusted/performance/route.js'
+          node --check 'app/api/(learning)/assessments/trusted/start/route.js'
+          node --check 'app/api/(learning)/assessments/trusted/submit/route.js'
+          node --check 'app/api/(learning)/adaptive-performance/route.js'
+          node --check 'app/api/(assignments)/submit-quiz/route.js'
+          node --check 'app/api/(assignments)/student-progress/route.js'
+          node --check 'app/api/(assignments)/grades/student/route.js'
+          node --check 'app/api/(assignments)/grades/instructor/route.js'
+          node --check 'app/api/(admin)/admin/gradebook/route.js'
+          node --check 'app/api/(certificates)/generate-certificate/route.js'
+          node --check 'app/api/student/generate-certificate/route.js'
+      - run: npm test
+
+  postgres-integration:
+    name: Ephemeral PostgreSQL assessment integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: assessment_ci
+          POSTGRES_PASSWORD: assessment_ci_only
+          POSTGRES_DB: assessment_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U assessment_ci -d assessment_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      GITHUB_ACTIONS: "true"
+      CI: "true"
+      ASSESSMENT_PG_CI_ACK: EPHEMERAL_LOCALHOST_ONLY
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGDATABASE: assessment_ci
+      PGUSER: assessment_ci
+      PGPASSWORD: assessment_ci_only
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL command-line client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Run isolated PostgreSQL concurrency tests against actual migration SQL
+        run: python3 tests/assessment_postgres_ci.py
