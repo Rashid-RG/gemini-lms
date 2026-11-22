@@ -110,3 +110,16 @@ test("attempt revision linkage preserves legacy NULL and requires a real revisio
   assert.match(integration, /Historical attempt backfilled incorrectly/);
   assert.match(integration, /Revision FK binding failed/);
 });
+
+test("revision enforcement cannot silently accept unbound trusted attempts", () => {
+  for (const path of [
+    "app/api/(learning)/assessments/trusted/start/route.js",
+    "app/api/(learning)/assessments/trusted/submit/route.js"
+  ]) {
+    const route = readFileSync(path, "utf8");
+    assert.match(route, /TRUSTED_COURSE_REVISIONS_ENABLED === "true"/);
+    assert.match(route, /Revision-bound assessment workflow is not yet available/);
+    assert.match(route, /status: 503/);
+    assert.ok(route.indexOf("TRUSTED_COURSE_REVISIONS_ENABLED") < route.indexOf("await requireUserAuth(req)"));
+  }
+});
