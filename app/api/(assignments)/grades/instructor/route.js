@@ -3,8 +3,8 @@
  * Only course creator/instructor can access
  */
 import { db } from "@/configs/db";
-import { STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE } from "@/configs/schema";
-import { eq, and } from "drizzle-orm";
+import { STUDENT_PROGRESS_TABLE, STUDY_MATERIAL_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE, TRUSTED_ASSESSMENT_ATTEMPT_TABLE } from "@/configs/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
@@ -102,6 +102,26 @@ export async function GET(req) {
             )
           );
 
+        // Instructor access is established by the course-creator check above.
+        // Verified grade history stays separate from legacy client-reported grades.
+        const trustedMode = process.env.TRUSTED_ASSESSMENTS_ENABLED === "true";
+        const verifiedAttempts = trustedMode ? await db.select({
+          id: TRUSTED_ASSESSMENT_ATTEMPT_TABLE.id,
+          score: TRUSTED_ASSESSMENT_ATTEMPT_TABLE.score
+        }).from(TRUSTED_ASSESSMENT_ATTEMPT_TABLE).where(and(
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.courseId, courseId),
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.studentEmail, progress.studentEmail),
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.status, "submitted"),
+          eq(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.mlEligibility, "server_verified")
+        )).orderBy(desc(TRUSTED_ASSESSMENT_ATTEMPT_TABLE.submittedAt)).limit(501) : [];
+        const verifiedWindowTruncated = verifiedAttempts.length > 500;
+        const verifiedScores = verifiedAttempts.slice(0, 500)
+          .map(attempt => attempt.score)
+          .filter(score => Number.isInteger(score) && score >= 0 && score <= 100);
+        const verifiedQuizAverage = verifiedScores.length
+          ? Math.round(verifiedScores.reduce((total, score) => total + score, 0) / verifiedScores.length)
+          : null;
+
         // Parse scores
         const quizScoresObj = typeof progress.quizScores === 'string' 
           ? JSON.parse(progress.quizScores || '{}') 
@@ -130,6 +150,11 @@ export async function GET(req) {
 
         return {
           studentEmail: progress.studentEmail,
+          gradeProvenance: trustedMode ? "legacy_unverified_plus_verified_quiz_overlay" : "legacy_unverified",
+          verifiedQuizAverage,
+          verifiedQuizAttemptCount: verifiedScores.length,
+          verifiedQuizWindowTruncated,
+          verifiedResultStatus: trustedMode ? "Pending Verification" : null,
           progressPercentage: progress.progressPercentage,
           status: progress.status,
           quizAverage,
