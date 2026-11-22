@@ -10,6 +10,7 @@ import { requireUserAuth } from "@/lib/userApiAuth";
 import { evaluateTrustedCourseAssessments } from "@/lib/trustedCoursePolicy";
 import { summarizeTrustedChapterEvidence } from "@/lib/trustedChapterEvidence";
 import { buildChapterCompletionReview } from "@/lib/trustedChapterReview";
+import { fingerprintCourseManifest, compareCourseFingerprint } from "@/lib/trustedCourseManifest";
 
 // Read-only student assessment review. No official grade or certificate updates.
 export async function GET(req) {
@@ -20,7 +21,9 @@ export async function GET(req) {
   if (!access.authenticated || !access.email) {
     return access.error || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const courseId = new URL(req.url).searchParams.get("courseId");
+  const query = new URL(req.url).searchParams;
+  const courseId = query.get("courseId");
+  const referenceFingerprint = query.get("expectedFingerprint");
   if (!courseId || courseId.length > 255) {
     return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
   }
@@ -50,13 +53,18 @@ export async function GET(req) {
     const [assessments, assignments, attempts, submissions] = await Promise.all([
       db.select({
         id: STUDY_TYPE_CONTENT_TABLE.id, type: STUDY_TYPE_CONTENT_TABLE.type,
-        chapterId: STUDY_TYPE_CONTENT_TABLE.chapterId
+        chapterId: STUDY_TYPE_CONTENT_TABLE.chapterId,
+        content: STUDY_TYPE_CONTENT_TABLE.content
       }).from(STUDY_TYPE_CONTENT_TABLE).where(and(
         eq(STUDY_TYPE_CONTENT_TABLE.courseId, courseId),
         inArray(STUDY_TYPE_CONTENT_TABLE.type, ["Quiz", "MCQ"]),
         eq(STUDY_TYPE_CONTENT_TABLE.status, "Ready")
       )).limit(201),
-      db.select({ assignmentId: COURSE_ASSIGNMENTS_TABLE.assignmentId })
+      db.select({ assignmentId: COURSE_ASSIGNMENTS_TABLE.assignmentId,
+        title: COURSE_ASSIGNMENTS_TABLE.title,
+        description: COURSE_ASSIGNMENTS_TABLE.description,
+        rubric: COURSE_ASSIGNMENTS_TABLE.rubric,
+        totalPoints: COURSE_ASSIGNMENTS_TABLE.totalPoints })
         .from(COURSE_ASSIGNMENTS_TABLE)
         .where(eq(COURSE_ASSIGNMENTS_TABLE.courseId, courseId)).limit(201),
       db.select({
@@ -90,6 +98,17 @@ export async function GET(req) {
       attempts.length > 1000 || submissions.length > 1000 ||
       (course.hasAssignments === true &&
        assignments.length < Math.max(1, course.assignmentCount || 0));
+    // Fingerprint the current course requirements including private assessment
+    // content, but NEVER expose that content in the response. This is NOT a
+    // persisted/signed immutable course version or official completion proof.
+    const manifest = fingerprintCourseManifest({
+      courseId,
+      courseLayout: course.courseLayout,
+      assessments: assessments.slice(0, 200),
+      assignments: assignments.slice(0, 200),
+      incomplete: truncated
+    });
+    const manifestComparison = compareCourseFingerprint(manifest, referenceFingerprint);
     const policy = evaluateTrustedCourseAssessments({
       assessments: assessments.slice(0, 200),
       assignments: assignments.slice(0, 200),
@@ -144,6 +163,7 @@ export async function GET(req) {
     return NextResponse.json({
       chapterReview,
       chapterEvidence,
+      courseManifest: { ...manifest, comparison: manifestComparison },
       courseId, ...policy,
       officialGrade: null, certificateIssuanceEnabled: false
     }, { headers: { "Cache-Control": "no-store" } });
