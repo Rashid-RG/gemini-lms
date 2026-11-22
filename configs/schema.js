@@ -839,3 +839,21 @@ export const VERIFIED_ASSESSMENT_PROJECTION_TABLE = pgTable("verifiedAssessmentP
     studentCourseIdx: index("verified_projection_student_course_idx").on(table.studentEmail, table.courseId),
     assessmentIdx: index("verified_projection_assessment_idx").on(table.studyTypeContentId)
 }));
+
+
+// Experimental server-observed chapter sessions. Requires separate migration and
+// TRUSTED_CHAPTER_ACTIVITY_ENABLED=true. These are not certificate or reading proof.
+export const TRUSTED_CHAPTER_SESSION_TABLE = pgTable("trustedChapterSessions", {
+    id: varchar().primaryKey(),
+    studentEmail: varchar().notNull(),
+    courseId: varchar().notNull(),
+    chapterIndex: integer().notNull(),
+    startedAt: timestamp().notNull().defaultNow(),
+    lastHeartbeatAt: timestamp().notNull().defaultNow(),
+    expiresAt: timestamp().notNull(),
+    closedAt: timestamp(),
+    heartbeatCount: integer().notNull().default(0)
+}, (table) => ({
+    ownerCourseIdx: index("trusted_chapter_sessions_owner_course_idx")
+        .on(table.studentEmail, table.courseId, table.startedAt)
+}));
