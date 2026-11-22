@@ -32,6 +32,9 @@ jobs:
           node --check lib/verifiedAssessmentSummary.js
           node --check lib/verifiedProjection.js
           node --check lib/trustedCoursePolicy.js
+          node --check lib/manualGradeValidation.js
+          node --check 'app/api/(admin)/admin/all-submissions/route.js'
+          node --check 'app/api/(admin)/admin/review-requests/route.js'
           node --check 'app/api/(learning)/assessments/trusted/course-policy/route.js'
           node --check tests/trustedAssessment.postgres.integration.mjs
           node --check 'app/api/(admin)/admin/assessments/reconcile/route.js'
