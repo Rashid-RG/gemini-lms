@@ -90,15 +90,17 @@ function ReviewRequestsPage() {
     }, [authLoading, admin, isLive, fetchRequests])
 
     const handleApprove = async (requestId) => {
-        if (!newScore || isNaN(parseInt(newScore)) || parseInt(newScore) < 0 || parseInt(newScore) > 100) {
-            toast.error('Please enter a valid score between 0 and 100')
+        const scoreText = String(newScore).trim()
+        const score = Number(scoreText)
+        if (!/^\\d{1,3}$/.test(scoreText) || !Number.isInteger(score) || score < 0 || score > 100) {
+            toast.error('Please enter a whole-number score between 0 and 100')
             return
         }
         try {
             setActionLoading(requestId)
             await axios.post('/api/admin/review-requests', {
                 submissionId: requestId,
-                newScore: parseInt(newScore),
+                newScore: score,
                 instructorNotes: feedback || null
             })
             toast.success('Review submitted successfully! Score updated.')
