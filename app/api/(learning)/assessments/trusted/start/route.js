@@ -14,6 +14,13 @@ export async function POST(req) {
   if (process.env.TRUSTED_ASSESSMENTS_ENABLED !== "true") {
     return NextResponse.json({ error: "Trusted assessments not yet enabled" }, { status: 503 });
   }
+  // Never silently grade unbound attempts if immutable revision enforcement is
+  // switched on before publishing, snapshot binding and migration are reviewed.
+  if (process.env.TRUSTED_COURSE_REVISIONS_ENABLED === "true") {
+    return NextResponse.json({
+      error: "Revision-bound assessment workflow is not yet available"
+    }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
   const access = await requireUserAuth(req);
   if (!access.authenticated || !access.email) {
     return access.error || NextResponse.json({ error: "Unauthorized" }, { status: 401 });
