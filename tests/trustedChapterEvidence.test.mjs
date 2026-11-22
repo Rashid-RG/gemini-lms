@@ -60,3 +60,37 @@ test("chapter evidence endpoint only uses authenticated verified attempt rows", 
   assert.match(source, /certificateIssuanceEnabled: false/);
   assert.doesNotMatch(source, /db\.insert\(|db\.update\(/);
 });
+
+test("activity pilot is separately gated and uses authenticated server-side identity", () => {
+  const source = readFileSync("app/api/(learning)/assessments/trusted/chapter-activity/route.js", "utf8");
+  assert.match(source, /TRUSTED_CHAPTER_ACTIVITY_ENABLED === "true"/);
+  assert.match(source, /TRUSTED_ASSESSMENTS_ENABLED === "true"/);
+  assert.match(source, /requireUserAuth\(req\)/);
+  assert.match(source, /courseEnrollments/);
+  assert.match(source, /studentEmail, access\.email/);
+  assert.match(source, /crypto\.randomUUID\(\)/);
+  assert.match(source, /sessionId !== undefined/);
+  assert.match(source, /chapterCompletionVerified: false/g);
+  assert.doesNotMatch(source, /STUDENT_PROGRESS_TABLE|CERTIFICATES_TABLE|db\.delete\(/);
+});
+test("activity pilot checks expiry, heartbeat spacing and replay-safe atomic conditions", () => {
+  const source = readFileSync("app/api/(learning)/assessments/trusted/chapter-activity/route.js", "utf8");
+  assert.match(source, /30 \* 60_000/);
+  assert.match(source, /now\.getTime\(\) - 30_000/);
+  assert.match(source, /isNull\(TRUSTED_CHAPTER_SESSION_TABLE\.closedAt\)/);
+  assert.match(source, /gt\(TRUSTED_CHAPTER_SESSION_TABLE\.expiresAt, now\)/);
+  assert.match(source, /lastHeartbeatAt, new Date/);
+  assert.match(source, /heartbeatCount: sql/);
+  assert.match(source, /Session ID is server-generated/);
+  assert.match(source, /action === "heartbeat"/);
+});
+test("activity session has a planned migration only, separate from client progress", () => {
+  const schema = readFileSync("configs/schema.js", "utf8");
+  const migration = readFileSync("drizzle/phase1_trusted_chapter_sessions.sql", "utf8");
+  assert.match(schema, /TRUSTED_CHAPTER_SESSION_TABLE/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS "trustedChapterSessions"/);
+  assert.match(migration, /"id" varchar PRIMARY KEY/);
+  assert.match(migration, /"heartbeatCount" integer NOT NULL DEFAULT 0/);
+  assert.match(migration, /"closedAt" timestamp/);
+  assert.match(migration, /CHECK \("chapterIndex" >= 0\)/);
+});
