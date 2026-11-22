@@ -111,15 +111,43 @@ test("attempt revision linkage preserves legacy NULL and requires a real revisio
   assert.match(integration, /Revision FK binding failed/);
 });
 
-test("revision enforcement cannot silently accept unbound trusted attempts", () => {
-  for (const path of [
-    "app/api/(learning)/assessments/trusted/start/route.js",
-    "app/api/(learning)/assessments/trusted/submit/route.js"
-  ]) {
-    const route = readFileSync(path, "utf8");
-    assert.match(route, /TRUSTED_COURSE_REVISIONS_ENABLED === "true"/);
-    assert.match(route, /Revision-bound assessment workflow is not yet available/);
-    assert.match(route, /status: 503/);
-    assert.ok(route.indexOf("TRUSTED_COURSE_REVISIONS_ENABLED") < route.indexOf("await requireUserAuth(req)"));
-  }
+test("revision-enforced start binds to integrity-checked private published snapshot", () => {
+  const route = readFileSync("app/api/(learning)/assessments/trusted/start/route.js", "utf8");
+  assert.match(route, /TRUSTED_COURSE_REVISIONS_ENABLED === "true"/);
+  assert.match(route, /TRUSTED_COURSE_REVISION_TABLE\.manifestSnapshot/);
+  assert.match(route, /fingerprintCourseManifest/);
+  assert.match(route, /fingerprint !== revision\.fingerprint/);
+  assert.match(route, /courseRevisionId/);
+  assert.match(route, /m\.assessments\.find/);
+  assert.match(route, /parseAssessmentQuestions\(material\.content\)/);
+  assert.match(route, /requireUserAuth\(req\)/);
+});
+
+test("revision-enforced submit rejects unbound, altered or mismatched snapshots", () => {
+  const route = readFileSync("app/api/(learning)/assessments/trusted/submit/route.js", "utf8");
+  assert.match(route, /TRUSTED_COURSE_REVISIONS_ENABLED === "true"/);
+  assert.match(route, /if \(!attempt\.courseRevisionId\)/);
+  assert.match(route, /Attempt revision unavailable/);
+  assert.match(route, /fingerprintCourseManifest/);
+  assert.match(route, /isDeepStrictEqual\(parseAssessmentQuestions\(source\.content\), attempt\.questionSnapshot\)/);
+  assert.match(route, /TRUSTED_ASSESSMENT_ATTEMPT_TABLE\.courseRevisionId, attempt\.courseRevisionId/);
+  assert.match(route, /requireUserAuth\(req\)/);
+});
+
+test("publishing API requires instructor review fingerprint and atomic DB revalidation", () => {
+  const preview = readFileSync("app/api/(learning)/assessments/trusted/publish-review/route.js", "utf8");
+  const publish = readFileSync("app/api/(learning)/assessments/trusted/publish/route.js", "utf8");
+  const sql = readFileSync("drizzle/phase1_trusted_course_publisher.sql", "utf8");
+  assert.match(preview, /TRUSTED_COURSE_PUBLISHING_PREVIEW_ENABLED/);
+  assert.match(preview, /STUDY_MATERIAL_TABLE\.createdBy, user\.email/);
+  assert.match(preview, /canPublish: false/);
+  assert.match(publish, /TRUSTED_COURSE_PUBLISHING_ENABLED/);
+  assert.match(publish, /STUDY_MATERIAL_TABLE\.createdBy, access\.email/);
+  assert.match(publish, /current\.fingerprint !== expectedFingerprint/);
+  assert.match(publish, /trusted_publish_course_revision/);
+  assert.match(sql, /SECURITY INVOKER/);
+  assert.match(sql, /pg_advisory_xact_lock/);
+  assert.match(sql, /LOCK TABLE "studyMaterial", "studyTypeContent", "courseAssignments" IN SHARE MODE/);
+  assert.match(sql, /v_expected IS DISTINCT FROM p_manifest/);
+  assert.match(sql, /Course publisher unauthorized/);
 });
