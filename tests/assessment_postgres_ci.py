@@ -227,6 +227,26 @@ def main():
           WHERE "courseId"='{course}' AND "revisionNumber"=1
             AND "fingerprint"='{fingerprint}'
         """, schema=schema), "Course revision mutated or deleted")
+        # Historical attempts are unbound; newly revision-bound attempts use FK.
+        run_psql(file="drizzle/phase1_trusted_attempt_revision_binding.sql", schema=schema)
+        assert run_psql(f"""
+          SELECT COALESCE("courseRevisionId", '<legacy-null>')
+          FROM "trustedAssessmentAttempts" WHERE "id"='{attempt}'
+        """, schema=schema) == "<legacy-null>", "Historical attempt backfilled incorrectly"
+        run_psql(f"""
+          UPDATE "trustedAssessmentAttempts" SET "courseRevisionId"='{revision_id}'
+          WHERE "id"='{attempt}'
+        """, schema=schema)
+        assert run_psql(f"""
+          SELECT "courseRevisionId" FROM "trustedAssessmentAttempts" WHERE "id"='{attempt}'
+        """, schema=schema) == revision_id, "Revision FK binding failed"
+        run_psql(f"""
+          UPDATE "trustedAssessmentAttempts" SET "courseRevisionId"='{uuid.uuid4()}'
+          WHERE "id"='{attempt}'
+        """, schema=schema, expect_failure=True)
+        run_psql(f"""
+          DELETE FROM "trustedCourseRevisions" WHERE "id"='{revision_id}'
+        """, schema=schema, expect_failure=True)
         # Independently proposed chapter-activity migration and atomic replay checks.
         run_psql(file="drizzle/phase1_trusted_chapter_sessions.sql", schema=schema)
         session = str(uuid.uuid4())
