@@ -805,6 +805,7 @@ export const TRUSTED_ASSESSMENT_ATTEMPT_TABLE = pgTable("trustedAssessmentAttemp
     studentEmail: varchar().notNull(),
     courseId: varchar().notNull(),
     studyTypeContentId: integer().notNull(),
+    courseRevisionId: varchar().references(() => TRUSTED_COURSE_REVISION_TABLE.id, { onDelete: "restrict" }),
     questionSnapshot: json().notNull(), // PRIVATE: never include in student API responses
     questionCount: integer().notNull(),
     status: varchar().notNull().default("started"),
@@ -821,7 +822,8 @@ export const TRUSTED_ASSESSMENT_ATTEMPT_TABLE = pgTable("trustedAssessmentAttemp
 }, (table) => ({
     studentIdx: index("trusted_attempt_student_idx").on(table.studentEmail),
     courseIdx: index("trusted_attempt_course_idx").on(table.courseId),
-    assessmentIdx: index("trusted_attempt_assessment_idx").on(table.studyTypeContentId)
+    assessmentIdx: index("trusted_attempt_assessment_idx").on(table.studyTypeContentId),
+    courseRevisionIdx: index("trusted_attempt_course_revision_idx").on(table.courseRevisionId)
 }));
 
 
