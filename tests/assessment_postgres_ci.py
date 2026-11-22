@@ -187,7 +187,48 @@ def main():
         """, schema=schema)
         assert run_psql(f"""SELECT "score" FROM "trustedAssessmentAttempts"
                   WHERE "id"='{attempt}'""", schema=schema) == "75"
-        print("PASS: real PostgreSQL migrations, replay, deadline, owner scope, parallel claims, ledger, FK, rollback")
+        # Independently proposed chapter-activity migration and atomic replay checks.
+        run_psql(file="drizzle/phase1_trusted_chapter_sessions.sql", schema=schema)
+        session = str(uuid.uuid4())
+        run_psql(f"""
+          INSERT INTO "trustedChapterSessions"
+            ("id","studentEmail","courseId","chapterIndex","startedAt",
+             "lastHeartbeatAt","expiresAt")
+          VALUES ('{session}','{learner}','{course}',0,NOW()-INTERVAL '1 minute',
+                  NOW()-INTERVAL '1 minute',NOW()+INTERVAL '20 minutes')
+        """, schema=schema)
+        def heartbeat(who=learner, key=session):
+            return run_psql(f"""
+              WITH updated AS (
+                UPDATE "trustedChapterSessions"
+                SET "heartbeatCount"="heartbeatCount"+1,"lastHeartbeatAt"=NOW()
+                WHERE "id"='{key}' AND "studentEmail"='{who}' AND "courseId"='{course}'
+                  AND "chapterIndex"=0 AND "closedAt" IS NULL
+                  AND "expiresAt">NOW()
+                  AND "lastHeartbeatAt"<=NOW()-INTERVAL '30 seconds'
+                RETURNING "id"
+              ) SELECT COUNT(*) FROM updated
+            """, schema=schema)
+        assert heartbeat("attacker@example.invalid") == "0", "Cross-student session claimed"
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(lambda _: heartbeat(), range(4)))
+        assert results.count("1") == 1 and results.count("0") == 3, results
+        assert heartbeat() == "0", "Repeated heartbeat accepted too soon"
+        run_psql(f"""
+          UPDATE "trustedChapterSessions" SET "closedAt"=NOW() WHERE "id"='{session}'
+        """, schema=schema)
+        assert heartbeat() == "0", "Closed session accepted a heartbeat"
+        expired_session = str(uuid.uuid4())
+        run_psql(f"""
+          INSERT INTO "trustedChapterSessions"
+            ("id","studentEmail","courseId","chapterIndex","startedAt",
+             "lastHeartbeatAt","expiresAt")
+          VALUES ('{expired_session}','{learner}','{course}',0,
+                  NOW()-INTERVAL '2 hours',NOW()-INTERVAL '1 hour',
+                  NOW()-INTERVAL '30 minutes')
+        """, schema=schema)
+        assert heartbeat(learner, expired_session) == "0", "Expired session accepted"
+        print("PASS: real PostgreSQL migrations, replay, deadline, owner scope, parallel claims, ledger, FK, rollback, chapter sessions")
     finally:
         run_psql(f"DROP SCHEMA {schema_quoted} CASCADE")
 
