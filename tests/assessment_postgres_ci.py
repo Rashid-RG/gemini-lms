@@ -187,6 +187,46 @@ def main():
         """, schema=schema)
         assert run_psql(f"""SELECT "score" FROM "trustedAssessmentAttempts"
                   WHERE "id"='{attempt}'""", schema=schema) == "75"
+        # Proposed private course revision storage: create a published snapshot once
+        # and reject every attempt to mutate or delete it, including direct SQL.
+        run_psql(file="drizzle/phase1_trusted_course_revisions.sql", schema=schema)
+        revision_id = str(uuid.uuid4())
+        fingerprint = "a" * 64
+        run_psql(f"""
+          INSERT INTO "trustedCourseRevisions"
+          ("id","courseId","revisionNumber","fingerprint","manifestSnapshot","publishedBy")
+          VALUES ('{revision_id}','{course}',1,'{fingerprint}',
+                  '{{"chapterCount":2}}'::jsonb,'instructor@example.invalid')
+        """, schema=schema)
+        assert_one(run_psql(f"""
+          SELECT COUNT(*) FROM "trustedCourseRevisions"
+          WHERE "id"='{revision_id}' AND "revisionNumber"=1
+            AND "fingerprint"='{fingerprint}'
+        """, schema=schema), "Published course revision absent")
+        run_psql(f"""
+          UPDATE "trustedCourseRevisions"
+             SET "fingerprint"='{"b" * 64}' WHERE "id"='{revision_id}'
+        """, schema=schema, expect_failure=True)
+        run_psql(f"""
+          DELETE FROM "trustedCourseRevisions" WHERE "id"='{revision_id}'
+        """, schema=schema, expect_failure=True)
+        run_psql(f"""
+          INSERT INTO "trustedCourseRevisions"
+          ("id","courseId","revisionNumber","fingerprint","manifestSnapshot","publishedBy")
+          VALUES ('{uuid.uuid4()}','{course}',1,'{fingerprint}',
+                  '{{"chapterCount":2}}'::jsonb,'instructor@example.invalid')
+        """, schema=schema, expect_failure=True)
+        run_psql(f"""
+          INSERT INTO "trustedCourseRevisions"
+          ("id","courseId","revisionNumber","fingerprint","manifestSnapshot","publishedBy")
+          VALUES ('{uuid.uuid4()}','{course}',2,'not-a-sha',
+                  '{{"chapterCount":2}}'::jsonb,'instructor@example.invalid')
+        """, schema=schema, expect_failure=True)
+        assert_one(run_psql(f"""
+          SELECT COUNT(*) FROM "trustedCourseRevisions"
+          WHERE "courseId"='{course}' AND "revisionNumber"=1
+            AND "fingerprint"='{fingerprint}'
+        """, schema=schema), "Course revision mutated or deleted")
         # Independently proposed chapter-activity migration and atomic replay checks.
         run_psql(file="drizzle/phase1_trusted_chapter_sessions.sql", schema=schema)
         session = str(uuid.uuid4())
