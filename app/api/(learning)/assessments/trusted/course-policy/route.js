@@ -4,11 +4,12 @@ import { db } from "@/configs/db";
 import {
   STUDY_MATERIAL_TABLE, COURSE_ENROLLMENT_TABLE, STUDY_TYPE_CONTENT_TABLE,
   COURSE_ASSIGNMENTS_TABLE, ASSIGNMENT_SUBMISSIONS_TABLE,
-  TRUSTED_ASSESSMENT_ATTEMPT_TABLE
+  TRUSTED_ASSESSMENT_ATTEMPT_TABLE, TRUSTED_CHAPTER_SESSION_TABLE
 } from "@/configs/schema";
 import { requireUserAuth } from "@/lib/userApiAuth";
 import { evaluateTrustedCourseAssessments } from "@/lib/trustedCoursePolicy";
 import { summarizeTrustedChapterEvidence } from "@/lib/trustedChapterEvidence";
+import { buildChapterCompletionReview } from "@/lib/trustedChapterReview";
 
 // Read-only student assessment review. No official grade or certificate updates.
 export async function GET(req) {
@@ -122,7 +123,26 @@ export async function GET(req) {
         });
       }
     }
+    // Activity pilot data is queried only behind its separate flag. It is an
+    // advisory audit signal and must never establish chapter completion.
+    const activityEnabled = process.env.TRUSTED_CHAPTER_ACTIVITY_ENABLED === "true";
+    const activitySessions = activityEnabled ? await db.select({
+      chapterIndex: TRUSTED_CHAPTER_SESSION_TABLE.chapterIndex,
+      heartbeatCount: TRUSTED_CHAPTER_SESSION_TABLE.heartbeatCount,
+      startedAt: TRUSTED_CHAPTER_SESSION_TABLE.startedAt,
+      expiresAt: TRUSTED_CHAPTER_SESSION_TABLE.expiresAt,
+      closedAt: TRUSTED_CHAPTER_SESSION_TABLE.closedAt
+    }).from(TRUSTED_CHAPTER_SESSION_TABLE).where(and(
+      eq(TRUSTED_CHAPTER_SESSION_TABLE.studentEmail, access.email),
+      eq(TRUSTED_CHAPTER_SESSION_TABLE.courseId, courseId)
+    )).limit(501) : [];
+    const chapterReview = buildChapterCompletionReview({
+      chapterEvidence, activityEnabled,
+      sessions: activitySessions.slice(0, 500),
+      truncated: truncated || activitySessions.length > 500
+    });
     return NextResponse.json({
+      chapterReview,
       chapterEvidence,
       courseId, ...policy,
       officialGrade: null, certificateIssuanceEnabled: false
