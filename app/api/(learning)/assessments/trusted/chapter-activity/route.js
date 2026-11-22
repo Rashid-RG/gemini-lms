@@ -103,7 +103,10 @@ export async function POST(req) {
     const now = new Date();
     const [closed] = await db.update(TRUSTED_CHAPTER_SESSION_TABLE).set({
       closedAt: now
-    }).where(identity).returning({ id: TRUSTED_CHAPTER_SESSION_TABLE.id });
+    }).where(and(
+      identity,
+      gt(TRUSTED_CHAPTER_SESSION_TABLE.expiresAt, now)
+    )).returning({ id: TRUSTED_CHAPTER_SESSION_TABLE.id });
     if (!closed) return NextResponse.json({ error: "Activity session already closed or unavailable" },
       { status: 409, headers: noStore });
     return NextResponse.json({
