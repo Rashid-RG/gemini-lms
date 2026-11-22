@@ -857,3 +857,23 @@ export const TRUSTED_CHAPTER_SESSION_TABLE = pgTable("trustedChapterSessions", {
     ownerCourseIdx: index("trusted_chapter_sessions_owner_course_idx")
         .on(table.studentEmail, table.courseId, table.startedAt)
 }));
+
+
+// Proposed append-only snapshots of officially published course requirements.
+// Private manifestSnapshot can include answer keys. Never select it in student APIs.
+// No publishing endpoint or production migration is activated by this declaration.
+export const TRUSTED_COURSE_REVISION_TABLE = pgTable("trustedCourseRevisions", {
+    id: varchar().primaryKey(),
+    courseId: varchar().notNull(),
+    revisionNumber: integer().notNull(),
+    fingerprint: varchar({ length: 64 }).notNull(),
+    manifestVersion: varchar().notNull().default("course-manifest-sha256-v1"),
+    manifestSnapshot: jsonb().notNull(),
+    publishedBy: varchar().notNull(),
+    publishedAt: timestamp().notNull().defaultNow()
+}, (table) => ({
+    courseRevisionUnique: unique("trusted_course_revision_unique")
+        .on(table.courseId, table.revisionNumber),
+    courseRevisionIdx: index("trusted_course_revisions_course_idx")
+        .on(table.courseId, table.revisionNumber)
+}));
