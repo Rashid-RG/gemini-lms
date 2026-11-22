@@ -70,6 +70,18 @@ BEGIN
     RAISE EXCEPTION 'Course content changed before publication';
   END IF;
 
+  -- Publishing an identical revision again must not consume another revision
+  -- number. The advisory lock serializes this comparison under concurrency.
+  IF EXISTS (
+    SELECT 1 FROM "trustedCourseRevisions"
+    WHERE "courseId"=p_course_id AND "revisionNumber"=(
+      SELECT MAX("revisionNumber") FROM "trustedCourseRevisions"
+      WHERE "courseId"=p_course_id
+    ) AND "fingerprint"=p_fingerprint
+  ) THEN
+    RAISE EXCEPTION 'No content changes since latest published revision';
+  END IF;
+
   SELECT COALESCE(MAX("revisionNumber"),0)+1 INTO v_next
     FROM "trustedCourseRevisions" WHERE "courseId"=p_course_id;
   v_id := md5(p_course_id || ':' || v_next::text || ':' || clock_timestamp()::text ||
