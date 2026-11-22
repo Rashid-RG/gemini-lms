@@ -32,6 +32,7 @@ jobs:
           node --check lib/verifiedAssessmentSummary.js
           node --check lib/verifiedProjection.js
           node --check lib/trustedCoursePolicy.js
+          node --check lib/trustedCourseManifest.js
           node --check lib/trustedChapterEvidence.js
           node --check lib/trustedChapterReview.js
           node --check 'app/api/(learning)/assessments/trusted/chapter-activity/route.js'
